@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from ea import db
 from web import changes
 from lib import deadlines as _deadlines
+from lib import outlook as _outlook
 
 
 class StatusBody(BaseModel):
@@ -144,5 +145,18 @@ def create_app(db_path) -> FastAPI:
         if w is None:
             return []
         return [dict(r) for r in db.list_trends(conn, w)]
+
+    @app.get("/api/outlook")
+    def get_outlook(conn=Depends(get_db)):
+        now = datetime.now(timezone.utc).isoformat()
+        deadlines = [dict(r) for r in db.list_deadlines(conn)]
+        w = db.latest_trend_window(conn)
+        trends = [dict(r) for r in db.list_trends(conn, w)] if w else []
+        proactive = [dict(r) for r in conn.execute(
+            "SELECT * FROM signals WHERE type='proactive' AND status='new' "
+            "ORDER BY created_at DESC")]
+        tasks = [dict(r) for r in conn.execute(
+            "SELECT * FROM tasks WHERE status IN ('open','in_progress')")]
+        return _outlook.assemble(now, deadlines, trends, proactive, tasks)
 
     return app
