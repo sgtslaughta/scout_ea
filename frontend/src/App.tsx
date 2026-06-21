@@ -17,6 +17,7 @@ export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false)
   const [activeView, setActiveView] = useState('dashboard')
   const [commandOpen, setCommandOpen] = useState(false)
+  const [briefingOpen, setBriefingOpen] = useState(false)
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -24,6 +25,12 @@ export function App() {
     const stored = localStorage.getItem('ea-accent')
     if (stored) {
       document.documentElement.style.setProperty('--color-accent', stored)
+    }
+    // Auto-open today's briefing once per day
+    const today = new Date().toISOString().split('T')[0]
+    if (localStorage.getItem('ea-briefing-shown') !== today) {
+      setBriefingOpen(true)
+      localStorage.setItem('ea-briefing-shown', today)
     }
   }, [])
 
@@ -75,7 +82,7 @@ export function App() {
       />
 
       {/* Briefing modal */}
-      <TodayBriefing onOpenBriefing={() => {}} />
+      <TodayBriefing open={briefingOpen} onClose={() => setBriefingOpen(false)} />
 
       {/* Left Sidebar - 56px */}
       <Sidebar collapsed={collapsedSidebar} onToggle={setCollapsedSidebar} activeView={activeView} onViewChange={setActiveView} />
@@ -83,7 +90,7 @@ export function App() {
       {/* Center column - flex-1 with flex flex-col min-w-0 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top signature bar - 48px tall */}
-        <SignatureBar onCommandOpen={() => setCommandOpen(true)} onOpenBriefing={() => {}} />
+        <SignatureBar onCommandOpen={() => setCommandOpen(true)} onOpenBriefing={() => setBriefingOpen(true)} />
 
         {/* Main content + right drawer */}
         <div className="flex flex-1 overflow-hidden">

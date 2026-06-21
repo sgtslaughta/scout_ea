@@ -12,7 +12,6 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { getOutlook, getDeadlines, getTrends, getSignals, getActivity } from '@/api'
-import { SignatureBar } from '@/components/SignatureBar'
 import { SkeletonRow } from '@/components/SkeletonRow'
 
 interface CollapsedState {
@@ -132,11 +131,7 @@ export function DashboardView() {
   return (
     <main className="flex-1 overflow-y-auto bg-bg">
       <div className="w-full px-6 py-6">
-        {/* Horizon ops-clock band (full-width at top) */}
-        <div className="mb-8">
-          <SignatureBar onCommandOpen={() => {}} onOpenBriefing={() => {}} />
-        </div>
-
+        {/* horizon ops-clock band lives in the global SignatureBar (App shell) — not duplicated here */}
         <div className="space-y-6">
           {/* KPI Tiles Row */}
           <div>

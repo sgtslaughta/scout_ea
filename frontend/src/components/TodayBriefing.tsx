@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertCircle } from 'lucide-react'
@@ -6,29 +5,11 @@ import { getOutlook, getSignals } from '@/api'
 import { SkeletonRow } from '@/components/SkeletonRow'
 
 interface TodayBriefingProps {
-  onOpenBriefing?: () => void
+  open: boolean
+  onClose: () => void
 }
 
-export function TodayBriefing({ onOpenBriefing }: TodayBriefingProps) {
-  const [open, setOpen] = useState(false)
-
-  useEffect(() => {
-    // Auto-open once per day if localStorage date differs
-    const today = new Date().toISOString().split('T')[0]
-    const stored = localStorage.getItem('ea-briefing-shown')
-    if (stored !== today) {
-      setOpen(true)
-      localStorage.setItem('ea-briefing-shown', today)
-    }
-  }, [])
-
-  // ponytail: wire onOpenBriefing to parent if needed; for now unused
-  useEffect(() => {
-    if (onOpenBriefing) {
-      // could wire button click here
-    }
-  }, [onOpenBriefing])
-
+export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const { data: outlook, isLoading: outlookLoading } = useQuery({
     queryKey: ['outlook'],
     queryFn: getOutlook,
@@ -56,7 +37,7 @@ export function TodayBriefing({ onOpenBriefing }: TodayBriefingProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             className="fixed inset-0 bg-black/50 z-40"
           />
           {/* Modal */}
@@ -68,7 +49,7 @@ export function TodayBriefing({ onOpenBriefing }: TodayBriefingProps) {
           >
             {/* Close button */}
             <button
-              onClick={() => setOpen(false)}
+              onClick={onClose}
               className="absolute top-4 right-4 text-muted hover:text-text transition-colors"
               aria-label="Close briefing"
             >
@@ -170,7 +151,7 @@ export function TodayBriefing({ onOpenBriefing }: TodayBriefingProps) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={onClose}
                   className="w-full py-2 rounded font-medium text-xs transition-all"
                   style={{ background: 'var(--color-accent)', color: '#0B1220' }}
                 >
