@@ -36,3 +36,9 @@ def test_visibility_toggle_hides_from_list(tmp_path):
 def test_visibility_missing_row_404(tmp_path):
     r = _client(tmp_path).post("/api/deadlines/999/visible", json={"visible": False})
     assert r.status_code == 404
+
+
+def test_post_deadline_rejects_bad_due_at(tmp_path):
+    c = _client(tmp_path)
+    r = c.post("/api/deadlines", json={"title": "X", "due_at": "not-a-date"})
+    assert r.status_code == 400
