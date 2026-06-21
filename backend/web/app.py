@@ -1,16 +1,29 @@
 """FastAPI app over EA_DB — browser-facing surface."""
 from __future__ import annotations
 import json
+import uuid
 from pathlib import Path
+from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from ea import db
 from web import changes
+from lib import deadlines as _deadlines
 
 
 class StatusBody(BaseModel):
     status: str
+
+
+class DeadlineBody(BaseModel):
+    title: str
+    due_at: str
+    detail: str | None = None
+
+
+class VisibleBody(BaseModel):
+    visible: bool
 
 
 def _rows(conn, sql, params=()):
@@ -86,5 +99,31 @@ def create_app(db_path) -> FastAPI:
             finally:
                 conn.close()
         return StreamingResponse(gen(), media_type="text/event-stream")
+
+    @app.get("/api/deadlines")
+    def list_deadlines(conn=Depends(get_db)):
+        now = datetime.now(timezone.utc).isoformat()
+        out = []
+        for r in db.list_deadlines(conn):
+            d = dict(r)
+            d["countdown_seconds"] = _deadlines.countdown(d["due_at"], now)
+            out.append(d)
+        return out
+
+    @app.post("/api/deadlines")
+    def add_deadline(body: DeadlineBody, conn=Depends(get_db)):
+        ext = f"manual:{uuid.uuid4()}"
+        db.add_deadline(conn, title=body.title, due_at=body.due_at, detail=body.detail,
+                        source="manual", external_ref=ext)
+        row = conn.execute("SELECT id FROM critical_deadlines WHERE external_ref=?",
+                           (ext,)).fetchone()
+        return {"id": row["id"]}
+
+    @app.post("/api/deadlines/{deadline_id}/visible")
+    def set_visible(deadline_id: int, body: VisibleBody, conn=Depends(get_db)):
+        n = db.set_deadline_visible(conn, deadline_id, body.visible)
+        if n == 0:
+            raise HTTPException(status_code=404, detail="deadline not found")
+        return {"updated": n}
 
     return app
