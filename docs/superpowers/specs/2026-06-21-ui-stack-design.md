@@ -194,9 +194,27 @@ rail items (avoid-multipage). All actions write back via `/api`; the control loo
 - **Copy rules:** active voice, action keeps its name through the flow (Approve→"Approved"),
   sentence case, no filler.
 
----
+### 7.1 Source badge (provenance on every list item)
 
-## 8. Notifications
+Every list row carries a small **Source badge** showing where the item came from — at a glance,
+"did Scout find this or did I?". One `<SourceBadge>` component, color-coded by category, label =
+the source, tooltip = full provenance (skill + channel + time).
+
+Two badge categories:
+- **Channel** — the raw origin: `email`, `teams`, `web`, `news`, `calendar`, `manual`.
+  (from `signals.source`/`type`, `critical_deadlines.source`, `trend_findings.source`).
+- **Named skill** — *which* skill produced the row: `triage_email`, `parse_deadlines`,
+  `daily_outlook`, `compute_trends`, etc. A manual UI entry badges as `manual`.
+
+A row can show both (e.g. `parse_deadlines` · `email`) — the skill is *what* surfaced it, the
+channel is *where* it came from. Color by category: skill = accent-tinted, `manual` = neutral,
+channel = muted. Click a badge → filter the list to that source.
+
+**Schema need (small add):** to render the *named-skill* badge, rows must record their creator.
+Add a nullable `source_skill TEXT` column to `signals`, `critical_deadlines`, `trends`,
+`trend_findings`, and `learning`; each skill writes its own name on insert. Channel-only items
+(manual entry) leave it NULL and badge by channel alone. `skill_runs.skill` already exists for
+audit but isn't per-row, so the column is the right home.
 
 Decision: **in-app toasts + Web Push** (replaces lost OS toast).
 
@@ -249,6 +267,7 @@ copies skills straight into MS Scout.
 | personalization | shadcn CSS-var **accent/theme/bg**, persisted in `config`. |
 | Docs w/ copy-paste skills | **Docs view reads `skills/` SKILL.md**, copy buttons. |
 | M365 integration | MCP server **brokers the external M365 MCP** as a passthrough. |
+| source badges | **`<SourceBadge>`** on every row (channel + named-skill), `source_skill` column added. |
 
 ---
 
