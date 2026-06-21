@@ -1,9 +1,12 @@
 """FastAPI app over EA_DB — browser-facing surface."""
 from __future__ import annotations
+import json
 from pathlib import Path
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from ea import db
+from web import changes
 
 
 class StatusBody(BaseModel):
@@ -65,5 +68,19 @@ def create_app(db_path) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="row not found")
         return {"updated": n}
+
+    @app.get("/api/events/stream")
+    def events_stream():
+        def gen():
+            last = changes.current_version(db_path)
+            yield f"event: db-changed\ndata: {json.dumps({'version': last})}\n\n"
+            while True:
+                v = changes.wait_for_change(db_path, last, timeout=25)
+                if v != last:
+                    last = v
+                    yield f"event: db-changed\ndata: {json.dumps({'version': v})}\n\n"
+                else:
+                    yield ": keep-alive\n\n"
+        return StreamingResponse(gen(), media_type="text/event-stream")
 
     return app
