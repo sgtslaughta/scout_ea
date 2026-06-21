@@ -1,12 +1,18 @@
 # Scout EA — Daily Outlook, Critical Deadlines & Trending — Design Spec
 
 **Date:** 2026-06-21
-**Status:** Approved design, ready for implementation plan
-**Augments:** `2026-06-20-scout-ea-design.md` (the base EA_DB + dashboard + skills system)
-**Deployment note:** Project is moving to **container-based deployment**. The base spec's
-stdlib-only / no-pip constraint is therefore **relaxed** for this work — pip deps are allowed
-where they earn their keep (embeddings, vector search). Core features must still degrade
-gracefully when optional deps are absent.
+**Status:** **Design only — no build yet.** Captures the feature additions at the data/skill/UI-content
+level. Implementation deferred until the UI/integration **stack is re-brainstormed** (see
+`docs/additions.md`: React+shadcn UI, containerized, MCP server the skills call).
+**Augments:** `2026-06-20-scout-ea-design.md` (the base EA_DB + dashboard + skills system, itself design-only).
+**Stack-neutrality:** This spec is written to outlive the stack decision. The **schema, skill
+behavior, and vector approach are stack-independent**. The **UI section describes content and
+actions, not rendering mechanism** — page rendering (HTMX vs React), eventing (SSE vs other),
+notifications (BurntToast vs other), and skill→DB integration (direct SQLite vs MCP) are all
+**deferred** and noted inline where they appear.
+**Deployment note:** Project is moving to **container-based deployment**, so the base spec's
+stdlib-only / no-pip constraint is **relaxed** — pip deps allowed where they earn their keep
+(embeddings, vector search). Core features must still degrade gracefully when optional deps are absent.
 
 ---
 
@@ -23,9 +29,11 @@ Three additions to the existing Scout EA system:
    a per-topic web "trending search", a dedicated `/trending` UI, and an **optional vector
    layer** for semantic dedup and related-item lookup.
 
-All three reuse the existing architecture: SQLite `EA_DB`, stdlib (or FastAPI) server,
-HTMX+SSE dashboard, Scout skills with the established cross-cutting rules
-(lookback via `skill_runs`, dedup via `external_ref`, no-op valid, alert on priority ≤ 2).
+All three reuse the existing data architecture: SQLite `EA_DB` and Scout skills with the
+established cross-cutting rules (lookback via `skill_runs`, dedup via `external_ref`, no-op
+valid, alert on priority ≤ 2). The **UI/transport layer is deferred** — wherever this spec
+names a mechanism (HTMX panel, SSE refresh, BurntToast, direct SQLite write), treat it as the
+*current base-spec default*, to be revisited when the stack is chosen.
 
 ---
 
@@ -188,10 +196,13 @@ Write `trend_findings` (`source='web'|'news'`, `synopsis`, `url`, `relevance`,
 
 ---
 
-## 3. Dashboard additions
+## 3. UI additions (content spec — rendering stack deferred)
 
-Reuse the existing SSE + `PRAGMA data_version` mechanism — any insert/update bumps
-`data_version`, the server emits `db-changed`, HTMX swaps the affected panel. No new plumbing.
+This section specifies **what each surface shows and which actions it offers**, not how it
+renders. The base spec's live-update mechanism (SSE + `PRAGMA data_version` → panel swap) is
+the current default; whether that survives depends on the stack re-brainstorm (React+shadcn
+may use its own data/eventing layer). Page list, content, and control-loop actions below are
+stack-independent and carry over regardless.
 
 ### 3.1 New pages / routes
 
@@ -259,29 +270,32 @@ migrations/
 
 ---
 
-## 6. Build order (for the implementation plan)
+## 6. Build order (when implementation is greenlit — prerequisites first)
+
+**Prerequisites (not part of this spec):** the base EA_DB + skills system must be built first,
+and the **UI/integration stack must be chosen** (stack re-brainstorm pending). The order below
+is the eventual feature-build sequence, recorded now for the future implementation plan:
 
 1. **Migration** `002_*.sql`: 3 tables + config rows + `updated_at` triggers (+ `vec_trends`
    guarded behind extension load).
-2. **`parse_deadlines`** skill + `/deadlines` page + per-row & global visibility toggles +
-   manual-add form.
-3. **`daily_outlook`** skill + `/outlook` page + main-page summary strip + morning BurntToast.
-4. **`compute_trends`** (counts only first) + `/trending` page + main-page rising-trend chip.
+2. **`parse_deadlines`** skill + Deadlines surface + per-row & global visibility toggles + manual-add.
+3. **`daily_outlook`** skill + Outlook surface + main summary strip + morning notification.
+4. **`compute_trends`** (counts only first) + Trending surface + main rising-trend chip.
 5. **Vector layer**: `lib/embeddings.py` + sqlite-vec `vec_trends` + term-merge in
    `compute_trends` + "related" lookup. Additive; gated on dep availability.
 6. **`trending_search`** + `trend_findings` drill-down + per-topic run trigger.
 
 ---
 
-## 7. Self-check (definition of done)
+## 7. Acceptance criteria (for the eventual build — not yet executed)
 
 - Migration applies clean; new tables/indexes/triggers present; `vec_trends` created when
-  extension loads, skipped cleanly when not.
-- Manual deadline added via `/deadlines` → appears with live countdown on `/outlook`;
-  toggling its `visible` (or the global toggle) hides/shows it in real time via SSE.
+  the extension loads, skipped cleanly when not.
+- Manual deadline added → appears with live countdown on the Outlook surface; toggling its
+  `visible` (or the global toggle) hides/shows it.
 - `parse_deadlines` extracts a dated email into `critical_deadlines` once (re-run = no dup).
 - `daily_outlook` writes ≥1 `signals(type='proactive')` from a seeded cue and fires exactly
-  one toast; Accept promotes it to a `task`.
+  one notification; Accept promotes it to a `task`.
 - `compute_trends` produces ranked trends from seeded signals **with the embed model absent**
   (degrade path), and **merges near-duplicate terms when present** (vector path).
 - `trending_search` writes `trend_findings` for an active topic; re-run dedups on URL.
