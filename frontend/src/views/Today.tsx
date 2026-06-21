@@ -209,7 +209,7 @@ export function TodayView() {
                       }}
                       disabled={acceptMutation.isPending}
                       className="px-3 py-1.5 text-xs font-medium rounded-md hover:opacity-90 transition-colors flex items-center gap-1.5 disabled:opacity-50"
-                      style={{ background: '#F2A65A', color: '#0B1220' }}
+                      style={{ background: 'var(--color-accent)', color: '#0B1220' }}
                       aria-label="Accept suggestion"
                     >
                       <Check size={12} />
