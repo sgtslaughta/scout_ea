@@ -1,0 +1,13 @@
+node_modules
+.venv
+__pycache__
+*.sqlite
+.git
+frontend/dist
+screenshots
+.superpowers
+.remember
+.claude
+.idea
+.pytest_cache
+*.egg-info
