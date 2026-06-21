@@ -83,6 +83,40 @@ def build_server(db_path) -> FastMCP:
         finally:
             conn.close()
 
+    @mcp.tool()
+    def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
+                     score: float = 0, count: int = 0, delta: str | None = None) -> int:
+        """Upsert a trend by term and window. Returns the trend id."""
+        conn = _conn()
+        try:
+            return tools.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
+                                      window_end=window_end, score=score, count=count, delta=delta)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def add_trend_finding(title: str, url: str, external_ref: str,
+                         synopsis: str | None = None, source: str | None = None,
+                         relevance: int | None = None, trend_id: int | None = None,
+                         topic_id: int | None = None) -> int:
+        """Add a trend finding with dedup on external_ref. Returns rowcount."""
+        conn = _conn()
+        try:
+            fields = {"title": title, "url": url, "external_ref": external_ref}
+            if synopsis is not None:
+                fields["synopsis"] = synopsis
+            if source is not None:
+                fields["source"] = source
+            if relevance is not None:
+                fields["relevance"] = relevance
+            if trend_id is not None:
+                fields["trend_id"] = trend_id
+            if topic_id is not None:
+                fields["topic_id"] = topic_id
+            return tools.add_trend_finding(conn, **fields)
+        finally:
+            conn.close()
+
     return mcp
 
 
