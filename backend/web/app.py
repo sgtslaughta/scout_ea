@@ -117,6 +117,10 @@ def create_app(db_path) -> FastAPI:
 
     @app.post("/api/deadlines")
     def add_deadline(body: DeadlineBody, conn=Depends(get_db)):
+        try:
+            datetime.fromisoformat(body.due_at.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="due_at must be ISO-8601")
         ext = f"manual:{uuid.uuid4()}"
         db.add_deadline(conn, title=body.title, due_at=body.due_at, detail=body.detail,
                         source="manual", external_ref=ext)

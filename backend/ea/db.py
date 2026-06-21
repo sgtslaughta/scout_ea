@@ -175,3 +175,26 @@ def latest_trend_window(conn):
     """Return the most recent window_start present in trends, or None."""
     row = conn.execute("SELECT MAX(window_start) AS w FROM trends").fetchone()
     return row["w"] if row and row["w"] is not None else None
+
+
+def add_task(conn, **fields) -> int:
+    """Insert a task row; returns the new id."""
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO tasks ({cols}) VALUES ({placeholders})", list(fields.values())
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def add_skill_run(conn, skill, window_start=None, window_end=None,
+                  items_created=0, status="ok", note=None) -> int:
+    """Record a skill run in skill_runs (audit + lookback anchor). Returns the new id."""
+    cur = conn.execute(
+        "INSERT INTO skill_runs (skill, window_start, window_end, items_created, status, note) "
+        "VALUES (?,?,?,?,?,?)",
+        (skill, window_start, window_end, items_created, status, note),
+    )
+    conn.commit()
+    return cur.lastrowid
