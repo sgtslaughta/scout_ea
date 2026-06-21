@@ -225,7 +225,7 @@ export function DeadlinesView() {
 
                 <div
                   className="text-xs font-mono px-2 py-1 rounded flex-shrink-0"
-                  style={{ color: getUrgencyColor(d.countdown_seconds), background: '#131C2B' }}
+                  style={{ color: getUrgencyColor(d.countdown_seconds), background: 'var(--color-surface-2)' }}
                 >
                   {formatCountdown(d.countdown_seconds)}
                 </div>
