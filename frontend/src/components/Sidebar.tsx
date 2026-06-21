@@ -32,46 +32,44 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div
-      className={`flex flex-col bg-surface border-r border-border transition-all duration-200 ${
-        collapsed ? 'w-16' : 'w-16'
-      }`}
+      className="w-14 flex flex-col bg-surface border-r border-border"
       role="navigation"
       aria-label="Main navigation"
     >
       {/* Menu toggle */}
-      <div className="p-3">
+      <div className="h-14 flex items-center justify-center">
         <button
           onClick={() => onToggle(!collapsed)}
-          className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-surface-2 transition-colors text-accent"
+          className="h-11 w-11 flex items-center justify-center rounded-md hover:bg-surface-2 transition-colors text-accent"
           title="Toggle sidebar"
           aria-label="Toggle sidebar"
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
       </div>
 
       {/* Navigation items */}
-      <nav className="flex-1 flex flex-col gap-1 px-2 py-3">
+      <nav className="flex-1 flex flex-col gap-0 px-2 py-3">
         {SIDEBAR_ITEMS.map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveItem(item.id)}
-            className={`w-10 h-10 flex items-center justify-center rounded-md transition-all relative group ${
+            className={`h-11 w-11 flex items-center justify-center rounded-md transition-all relative group ${
               activeItem === item.id
-                ? 'bg-accent/15 text-accent'
+                ? 'text-accent'
                 : 'text-muted hover:bg-surface-2 hover:text-text'
             }`}
             title={item.label}
             aria-label={item.label}
             aria-current={activeItem === item.id ? 'page' : undefined}
           >
-            <item.icon size={18} />
+            <item.icon size={20} />
             {activeItem === item.id && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-5 bg-accent rounded-r" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
             )}
 
             {/* Tooltip on hover */}
-            <div className="absolute left-16 top-1/2 -translate-y-1/2 px-3 py-2 bg-surface-2 border border-border rounded-md text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-md">
+            <div className="absolute left-14 top-1/2 -translate-y-1/2 px-2 py-1.5 bg-surface-2 border border-border rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-md font-mono">
               {item.label}
             </div>
           </button>
@@ -79,9 +77,9 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-3 border-t border-border">
+      <div className="h-14 flex items-center justify-center border-t border-border">
         <button
-          className="w-10 h-10 flex items-center justify-center rounded-md hover:bg-surface-2 text-muted hover:text-text transition-colors"
+          className="h-11 w-11 flex items-center justify-center rounded-md hover:bg-surface-2 text-muted hover:text-text transition-colors"
           title="Help"
           aria-label="Help"
         >

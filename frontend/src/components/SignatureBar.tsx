@@ -19,60 +19,47 @@ export function SignatureBar() {
   const positionPercent = Math.max(0, Math.min(100, ((totalMinutes - workStart) / workDuration) * 100))
 
   return (
-    <div className="border-b border-border px-6 py-4" style={{ background: '#131C2B' }}>
-      <div className="flex items-center justify-between gap-4 mb-4">
-        <h1 className="text-2xl font-display font-semibold text-text">
-          SCOUT
-        </h1>
-        <div className="text-xs text-muted font-mono">
-          Last ran 14:32
-        </div>
-        <div className="flex-1" />
-        <div className="text-xs text-muted">
-          <kbd className="px-2 py-1 bg-surface-2 border border-border rounded-lg text-xs">⌘K</kbd>
-        </div>
-      </div>
-
-      {/* Day horizon strip (7am - 6pm) - SIGNATURE ELEMENT */}
-      <div className="relative h-12 rounded-lg bg-gradient-to-r from-[#1C2840] via-[#2a3a52] to-[#1C2840] border border-accent/40 overflow-hidden shadow-lg">
-        {/* Gradient horizon line - amber to indigo, more prominent */}
+    <div className="relative h-12 flex items-center px-4 bg-surface border-b border-border">
+      <span className="font-display text-lg mr-4">SCOUT</span>
+      <div className="relative flex-1 h-8">
+        {/* horizon line */}
         <motion.div
-          className="absolute inset-x-0 top-5 h-1 bg-gradient-to-r from-transparent via-[#F2A65A] to-transparent"
+          data-horizon
+          className="absolute left-0 right-0 top-1/2 h-[3px] rounded"
+          style={{ background: "linear-gradient(90deg,#F2A65A,#6C8FE5)", originX: 0 }}
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ duration: 1.5, ease: 'easeInOut' }}
-          style={{ originX: 0 }}
+          transition={{ duration: 1.2, ease: 'easeInOut' }}
         />
-
-        {/* Now marker (triangle pointing down) with glow */}
+        {/* now marker at position */}
         <motion.div
-          className="absolute top-0.5 w-5 h-6 transform -translate-x-1/2"
-          style={{ left: `${positionPercent}%` }}
+          className="absolute -translate-x-1/2"
+          style={{ left: `${positionPercent}%`, top: "calc(50% - 9px)" }}
           animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          <div className="w-0 h-0 border-l-2.5 border-r-2.5 border-t-6 border-l-transparent border-r-transparent border-t-[#F2A65A] drop-shadow-lg filter drop-shadow-[0_0_4px_rgba(242,166,90,0.6)]" />
+          <div style={{
+            width: 0,
+            height: 0,
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderBottom: "10px solid #F2A65A",
+            filter: "drop-shadow(0 0 4px #F2A65A)"
+          }} />
         </motion.div>
-
-        {/* Hour ticks */}
-        <div className="absolute inset-0 flex">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="flex-1 flex items-end justify-center pb-2"
-            >
-              <div className="w-px h-2 bg-accent opacity-60" />
-            </div>
-          ))}
-        </div>
-
-        {/* Time labels */}
-        <div className="absolute inset-0 flex px-3 text-[11px] text-text font-mono select-none font-medium items-center">
-          <div className="flex-1">7am</div>
-          <div className="flex-1 text-center">12pm</div>
-          <div className="flex-1 text-right">6pm</div>
-        </div>
+        {/* hour ticks 7a..6p */}
+        {[7, 9, 11, 13, 15, 17].map((h) => (
+          <div
+            key={h}
+            className="absolute text-[9px] text-muted font-mono"
+            style={{ left: `${(h - 7) / 11 * 100}%`, top: "100%" }}
+          >
+            {h > 12 ? `${h - 12}p` : `${h}a`}
+          </div>
+        ))}
       </div>
+      <span className="ml-4 text-muted text-xs font-mono">last ran 14:32</span>
+      <span className="ml-3 text-muted text-xs border border-border rounded px-1.5 py-0.5">⌘K</span>
     </div>
   )
 }

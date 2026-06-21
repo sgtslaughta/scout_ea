@@ -19,23 +19,21 @@ export function App() {
   }, [])
 
   return (
-    <div className="flex h-screen w-screen bg-bg text-text overflow-hidden">
-      {/* Left Sidebar */}
+    <div className="flex h-screen bg-bg text-text overflow-hidden">
+      {/* Left Sidebar - 56px */}
       <Sidebar collapsed={collapsedSidebar} onToggle={setCollapsedSidebar} />
 
-      {/* Main content area */}
-      <div className="flex flex-col flex-1">
-        {/* Top signature bar */}
+      {/* Center column - flex-1 with flex flex-col min-w-0 */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top signature bar - 48px tall */}
         <SignatureBar />
 
         {/* Main content + right drawer */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Today view */}
-          <div className="flex-1 overflow-y-auto">
-            <TodayView />
-          </div>
+          {/* Today view - flex-1 */}
+          <TodayView />
 
-          {/* Right drawer */}
+          {/* Right drawer - fixed w-[300px] */}
           <RightDrawer />
         </div>
       </div>

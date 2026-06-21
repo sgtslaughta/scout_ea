@@ -6,13 +6,9 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-:root {
-  /* Scout Color Palette - Dawn Theme */
-  /* Prefixed with --color- for Tailwind v4 compatibility */
+@theme {
   --color-bg: #0B1220;
   --color-surface: #131C2B;
   --color-surface-2: #1C2840;
@@ -25,6 +21,9 @@
   --color-warn: #F2A65A;
   --color-info: #6C8FE5;
   --color-ok: #3DD68C;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
 * {
