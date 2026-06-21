@@ -11,6 +11,7 @@ import { SettingsView } from '@/views/Settings'
 import { ComingSoonView } from '@/views/ComingSoon'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
+import { applyTheme, getStoredMode } from '@/lib/theme'
 import './App.css'
 
 export function App() {
@@ -26,12 +27,21 @@ export function App() {
     if (stored) {
       document.documentElement.style.setProperty('--color-accent', stored)
     }
+    // Apply theme from localStorage
+    applyTheme(getStoredMode())
+    // Listen for OS theme changes when mode=system
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = () => {
+      if (getStoredMode() === 'system') applyTheme('system')
+    }
+    mql.addEventListener('change', onChange)
     // Auto-open today's briefing once per day
     const today = new Date().toISOString().split('T')[0]
     if (localStorage.getItem('ea-briefing-shown') !== today) {
       setBriefingOpen(true)
       localStorage.setItem('ea-briefing-shown', today)
     }
+    return () => mql.removeEventListener('change', onChange)
   }, [])
 
   useEffect(() => {

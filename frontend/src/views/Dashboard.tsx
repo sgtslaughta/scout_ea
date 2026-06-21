@@ -391,10 +391,12 @@ export function DashboardView() {
                                 : 'hover:bg-surface-2'
                           }`}
                         >
-                          {a.status === 'success' ? (
+                          {a.status === 'ok' ? (
                             <Check size={14} className="text-ok flex-shrink-0" />
-                          ) : (
+                          ) : a.status === 'error' ? (
                             <X size={14} className="text-crit flex-shrink-0" />
+                          ) : (
+                            <Check size={14} className="text-ok flex-shrink-0" />
                           )}
                           <span className="text-text flex-1 font-mono truncate">{a.skill}</span>
                           <span className="text-muted text-[10px] font-mono flex-shrink-0">
