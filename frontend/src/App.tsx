@@ -1,22 +1,24 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Sidebar } from '@/components/Sidebar'
 import { SignatureBar } from '@/components/SignatureBar'
-import { DashboardView } from '@/views/Dashboard'
 import { TodayBriefing } from '@/components/TodayBriefing'
-import { DeadlinesView } from '@/views/Deadlines'
-import { TrendingView } from '@/views/Trending'
-import { DocsView } from '@/views/Docs'
-import { SettingsView } from '@/views/Settings'
-import { InboxView } from '@/views/Inbox'
-import { TasksView } from '@/views/Tasks'
-import { CalendarView } from '@/views/Calendar'
-import { PeopleView } from '@/views/People'
-import { TopicsView } from '@/views/Topics'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
 import { applyTheme, getStoredMode } from '@/lib/theme'
 import './App.css'
+
+// Lazy-loaded views with named export conversion to default
+const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
+const DeadlinesView = lazy(() => import('@/views/Deadlines').then(m => ({ default: m.DeadlinesView })))
+const TrendingView = lazy(() => import('@/views/Trending').then(m => ({ default: m.TrendingView })))
+const DocsView = lazy(() => import('@/views/Docs').then(m => ({ default: m.DocsView })))
+const SettingsView = lazy(() => import('@/views/Settings').then(m => ({ default: m.SettingsView })))
+const InboxView = lazy(() => import('@/views/Inbox').then(m => ({ default: m.InboxView })))
+const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.TasksView })))
+const CalendarView = lazy(() => import('@/views/Calendar').then(m => ({ default: m.CalendarView })))
+const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
+const TopicsView = lazy(() => import('@/views/Topics').then(m => ({ default: m.TopicsView })))
 
 export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false)
@@ -115,7 +117,9 @@ export function App() {
         {/* Main content + right drawer */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main view - flex-1 */}
-          {renderView()}
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted text-sm">Loading…</div>}>
+            {renderView()}
+          </Suspense>
 
           {/* Right drawer - hidden below 1100px, fixed w-[300px] on desktop */}
           <div className="hidden lg:flex">
