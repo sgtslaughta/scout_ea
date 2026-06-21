@@ -158,3 +158,5 @@ CREATE TRIGGER IF NOT EXISTS trg_events_touch AFTER UPDATE ON events
 BEGIN UPDATE events SET updated_at = datetime('now') WHERE id = NEW.id; END;
 CREATE TRIGGER IF NOT EXISTS trg_learning_touch AFTER UPDATE ON learning
 BEGIN UPDATE learning SET updated_at = datetime('now') WHERE id = NEW.id; END;
+CREATE TRIGGER IF NOT EXISTS trg_config_touch AFTER UPDATE ON config
+BEGIN UPDATE config SET updated_at = datetime('now') WHERE key = NEW.key; END;

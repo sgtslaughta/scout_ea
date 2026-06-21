@@ -28,3 +28,12 @@ def test_new_columns_present(tmp_path):
     assert "source_skill" in sig
     assert "source_skill" in lrn
     assert "notified_push" in alt
+
+def test_config_updated_at_touch(tmp_path):
+    conn = db.init_db(tmp_path / "ea.sqlite")
+    conn.execute("INSERT INTO config(key, value, updated_at) VALUES ('k','v','2000-01-01T00:00:00')")
+    conn.commit()
+    conn.execute("UPDATE config SET value = 'v2' WHERE key = 'k'")
+    conn.commit()
+    row = conn.execute("SELECT updated_at FROM config WHERE key='k'").fetchone()
+    assert row["updated_at"] != "2000-01-01T00:00:00"   # trigger refreshed it
