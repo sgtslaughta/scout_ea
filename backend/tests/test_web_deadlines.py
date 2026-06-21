@@ -42,3 +42,19 @@ def test_post_deadline_rejects_bad_due_at(tmp_path):
     c = _client(tmp_path)
     r = c.post("/api/deadlines", json={"title": "X", "due_at": "not-a-date"})
     assert r.status_code == 400
+
+
+def test_post_deadline_naive_timezone_normalized_to_utc(tmp_path):
+    """Naive datetime (no timezone) is treated as UTC and stored normalized."""
+    c = _client(tmp_path)
+    r = c.post("/api/deadlines",
+               json={"title": "Naive deadline", "due_at": "2099-01-01T17:00:00"})
+    assert r.status_code == 200
+    did = r.json()["id"]
+    # Retrieve and verify stored due_at ends with +00:00 (UTC)
+    body = c.get("/api/deadlines").json()
+    assert len(body) == 1
+    stored_due_at = body[0]["due_at"]
+    assert stored_due_at.endswith("+00:00"), f"Expected UTC offset, got {stored_due_at}"
+    # Verify countdown is positive (far-future date)
+    assert body[0]["countdown_seconds"] > 0

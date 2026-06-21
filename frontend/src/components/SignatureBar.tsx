@@ -3,6 +3,14 @@ import { motion } from 'framer-motion'
 
 export function SignatureBar() {
   const [time, setTime] = useState(new Date())
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+      setPrefersReducedMotion(mediaQuery.matches)
+    }
+  }, [])
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -27,15 +35,15 @@ export function SignatureBar() {
           data-horizon
           className="absolute left-0 right-0 top-1/2 h-[3px] rounded"
           style={{ background: "linear-gradient(90deg,#F2A65A,#6C8FE5)", originX: 0 }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
+          initial={prefersReducedMotion ? { scaleX: 1 } : { scaleX: 0 }}
+          animate={prefersReducedMotion ? { scaleX: 1 } : { scaleX: 1 }}
           transition={{ duration: 1.2, ease: 'easeInOut' }}
         />
         {/* now marker at position */}
         <motion.div
           className="absolute -translate-x-1/2"
           style={{ left: `${positionPercent}%`, top: "calc(50% - 9px)" }}
-          animate={{ opacity: [0.8, 1, 0.8] }}
+          animate={prefersReducedMotion ? {} : { opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
           <div style={{

@@ -84,17 +84,26 @@ export function DeadlinesView() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-display font-semibold text-text">Deadlines</h2>
           <div className="flex items-center gap-3">
-            <label className="text-sm text-muted flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={globalEnabled}
-                onChange={(e) =>
-                  globalToggleMutation.mutate(e.target.checked ? '1' : '0')
-                }
-                className="w-4 h-4 rounded border border-border"
+            <button
+              role="switch"
+              aria-checked={globalEnabled}
+              onClick={() =>
+                globalToggleMutation.mutate(globalEnabled ? '0' : '1')
+              }
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                globalEnabled
+                  ? 'bg-accent'
+                  : 'bg-surface-2 border border-border'
+              }`}
+              aria-label="Show all deadlines"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-surface transition-transform ${
+                  globalEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                }`}
               />
-              Show all deadlines
-            </label>
+            </button>
+            <label className="text-sm text-muted">Show all deadlines</label>
           </div>
         </div>
 

@@ -33,3 +33,18 @@ def test_other_tables_return_lists(tmp_path):
         r = c.get(path)
         assert r.status_code == 200
         assert isinstance(r.json(), list)
+
+
+def test_signals_filter_no_match_empty_list(tmp_path):
+    """Empty filter (no rows match) returns 200 with empty list."""
+    c = _client(tmp_path)
+    r = c.get("/api/signals", params={"status": "dismissed"})
+    assert r.status_code == 200
+    # Two signals exist: one 'new', one 'dismissed'. Query for 'dismissed'.
+    body = r.json()
+    assert len(body) == 1
+    assert body[0]["external_ref"] == "b"
+    # Now query for a status that doesn't exist.
+    r = c.get("/api/signals", params={"status": "nomatch"})
+    assert r.status_code == 200
+    assert r.json() == []
