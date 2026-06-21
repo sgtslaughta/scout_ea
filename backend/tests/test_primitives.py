@@ -34,3 +34,8 @@ def test_data_version_bumps_on_external_write(tmp_path):
     db.upsert_signal(writer, type="email", source="outlook", external_ref="x", title="X")
     after = db.data_version(reader)
     assert after != before
+
+def test_upsert_signal_requires_external_ref(tmp_path):
+    conn = _conn(tmp_path)
+    with pytest.raises(ValueError, match="external_ref"):
+        db.upsert_signal(conn, type="email", source="outlook", title="No ref")

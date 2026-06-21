@@ -32,7 +32,12 @@ _STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning"}
 
 
 def upsert_signal(conn, **fields) -> int:
-    """Insert a signal, deduping on external_ref. Returns rowcount (1 new, 0 dup)."""
+    """Insert a signal, deduping on external_ref. Returns rowcount (1 new, 0 dup).
+
+    Requires 'external_ref' in fields — dedup engages on it. Raises ValueError if absent.
+    """
+    if "external_ref" not in fields:
+        raise ValueError("upsert_signal requires 'external_ref' in fields")
     cols = ", ".join(fields)
     placeholders = ", ".join("?" for _ in fields)
     cur = conn.execute(
@@ -45,7 +50,7 @@ def upsert_signal(conn, **fields) -> int:
 
 
 def list_signals(conn, status=None):
-    """Return signal rows (newest first), optionally filtered by status."""
+    """Return signal rows, newest by created_at DESC then id DESC (tie-break)."""
     if status is None:
         return conn.execute(
             "SELECT * FROM signals ORDER BY created_at DESC, id DESC"
