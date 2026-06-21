@@ -56,8 +56,8 @@ export function InboxView() {
               onClick={() => setActiveStatus(status)}
               className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                 activeStatus === status
-                  ? 'bg-accent text-surface'
-                  : 'bg-surface border border-border text-muted hover:border-accent'
+                  ? 'bg-accent text-[#0B1220]'
+                  : 'bg-surface-2 border border-border text-muted hover:border-accent'
               }`}
             >
               {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -132,7 +132,7 @@ export function InboxView() {
                   <button
                     onClick={() => triageMutation.mutate(s.id)}
                     disabled={triageMutation.isPending}
-                    className="px-3 py-2 text-xs font-medium bg-accent text-surface rounded hover:opacity-90 disabled:opacity-50 transition-colors"
+                    className="px-3 py-2 text-xs font-medium bg-accent text-[#0B1220] rounded hover:opacity-90 disabled:opacity-50 transition-colors"
                   >
                     Triage
                   </button>
