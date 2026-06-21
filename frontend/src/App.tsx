@@ -8,7 +8,9 @@ import { DeadlinesView } from '@/views/Deadlines'
 import { TrendingView } from '@/views/Trending'
 import { DocsView } from '@/views/Docs'
 import { SettingsView } from '@/views/Settings'
-import { ComingSoonView } from '@/views/ComingSoon'
+import { InboxView } from '@/views/Inbox'
+import { TasksView } from '@/views/Tasks'
+import { CalendarView } from '@/views/Calendar'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
 import { applyTheme, getStoredMode } from '@/lib/theme'
@@ -69,9 +71,11 @@ export function App() {
       case 'settings':
         return <SettingsView />
       case 'inbox':
+        return <InboxView />
       case 'tasks':
+        return <TasksView />
       case 'calendar':
-        return <ComingSoonView title={activeView.charAt(0).toUpperCase() + activeView.slice(1)} />
+        return <CalendarView />
       default:
         return <DashboardView />
     }
