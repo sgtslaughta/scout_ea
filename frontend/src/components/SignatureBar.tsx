@@ -55,8 +55,8 @@ export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
             height: 0,
             borderLeft: "6px solid transparent",
             borderRight: "6px solid transparent",
-            borderBottom: "10px solid #F2A65A",
-            filter: "drop-shadow(0 0 4px #F2A65A)"
+            borderBottom: "10px solid var(--color-accent)",
+            filter: "drop-shadow(0 0 4px var(--color-accent))"
           }} />
         </motion.div>
         {/* hour ticks 7a..6p */}
