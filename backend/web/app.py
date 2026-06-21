@@ -47,8 +47,6 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         finally:
             conn.close()
 
-    app.state.get_db = get_db
-
     @app.get("/api/health")
     def health():
         return {"status": "ok"}
@@ -59,7 +57,7 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         return {r["key"]: r["value"] for r in rows}
 
     @app.get("/api/signals")
-    def list_signals(status: str | None = None, conn=Depends(get_db)):
+    def get_signals(status: str | None = None, conn=Depends(get_db)):
         if status:
             return _rows(conn,
                 "SELECT * FROM signals WHERE status=? ORDER BY created_at DESC, id DESC",
@@ -79,7 +77,7 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         return _rows(conn, "SELECT * FROM events ORDER BY created_at DESC, id DESC")
 
     @app.post("/api/{table}/{row_id}/status")
-    def set_status(table: str, row_id: int, body: StatusBody, conn=Depends(get_db)):
+    def post_status(table: str, row_id: int, body: StatusBody, conn=Depends(get_db)):
         try:
             n = db.update_status(conn, table, row_id, body.status)
         except ValueError:
@@ -102,12 +100,14 @@ def create_app(db_path, static_dir=None) -> FastAPI:
                         yield f"event: db-changed\ndata: {json.dumps({'version': v})}\n\n"
                     else:
                         yield ": keep-alive\n\n"
+            except Exception as e:
+                yield f"event: error\ndata: {json.dumps({'error': str(e)})}\n\n"
             finally:
                 conn.close()
         return StreamingResponse(gen(), media_type="text/event-stream")
 
     @app.get("/api/deadlines")
-    def list_deadlines(conn=Depends(get_db)):
+    def get_deadlines(conn=Depends(get_db)):
         now = datetime.now(timezone.utc).isoformat()
         out = []
         for r in db.list_deadlines(conn):
@@ -117,13 +117,18 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         return out
 
     @app.post("/api/deadlines")
-    def add_deadline(body: DeadlineBody, conn=Depends(get_db)):
+    def post_deadline(body: DeadlineBody, conn=Depends(get_db)):
         try:
-            datetime.fromisoformat(body.due_at.replace("Z", "+00:00"))
+            dt = datetime.fromisoformat(body.due_at.replace("Z", "+00:00"))
+            # If naive (no tzinfo), treat as UTC and normalize
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
         except ValueError:
             raise HTTPException(status_code=400, detail="due_at must be ISO-8601")
+        # Normalize to UTC ISO string for storage
+        normalized_due_at = dt.isoformat()
         ext = f"manual:{uuid.uuid4()}"
-        db.add_deadline(conn, title=body.title, due_at=body.due_at, detail=body.detail,
+        db.add_deadline(conn, title=body.title, due_at=normalized_due_at, detail=body.detail,
                         source="manual", external_ref=ext)
         row = conn.execute("SELECT id FROM critical_deadlines WHERE external_ref=?",
                            (ext,)).fetchone()
@@ -137,7 +142,7 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         return {"updated": n}
 
     @app.post("/api/config/{key}")
-    def set_config(key: str, body: ConfigBody, conn=Depends(get_db)):
+    def post_config(key: str, body: ConfigBody, conn=Depends(get_db)):
         try:
             db.set_config(conn, key, body.value)
         except ValueError:
@@ -145,7 +150,7 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         return {"key": key, "value": body.value}
 
     @app.get("/api/trends")
-    def list_trends(window_start: str | None = None, conn=Depends(get_db)):
+    def get_trends(window_start: str | None = None, conn=Depends(get_db)):
         w = window_start or db.latest_trend_window(conn)
         if w is None:
             return []

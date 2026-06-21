@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Check, X, AlertCircle, Mail, Zap } from 'lucide-react'
 import { getOutlook, getSignals, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
+import { SkeletonRow } from '@/components/SkeletonRow'
 
 const SOURCE_BADGE_STYLE = (source: string) => {
   if (source.includes('triage')) {
@@ -26,7 +27,7 @@ const severityFromPriority = (priority: number): 'P1' | 'P2' | 'P3' => {
 
 export function TodayView() {
   const queryClient = useQueryClient()
-  const { data: outlook, isLoading: outlookLoading, error: outlookError } = useQuery({
+  const { data: outlook, isLoading: outlookLoading, error: outlookError, refetch: refetchOutlook } = useQuery({
     queryKey: ['outlook'],
     queryFn: getOutlook,
   })
@@ -72,10 +73,11 @@ export function TodayView() {
 
   if (outlookError) {
     return (
-      <main className="flex-1 overflow-y-auto p-6" style={{ background: '#0B1220' }}>
+      <main className="flex-1 overflow-y-auto p-6 bg-bg">
         <div className="max-w-[1080px] mx-auto">
-          <div className="text-red-500 text-sm">
-            Error loading dashboard: {String(outlookError)}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
+            <span>Error loading dashboard</span>
+            <button onClick={() => refetchOutlook()} className="underline hover:no-underline">Retry</button>
           </div>
         </div>
       </main>
@@ -88,7 +90,7 @@ export function TodayView() {
   const tasksToday = outlook?.tasks_due_today || []
 
   return (
-    <main className="flex-1 overflow-y-auto p-6" style={{ background: '#0B1220' }}>
+    <main className="flex-1 overflow-y-auto p-6 bg-bg">
       <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
         <motion.div
           initial={{ opacity: 0 }}
@@ -128,7 +130,11 @@ export function TodayView() {
             Triaged Signals
           </h3>
           {signalsLoading ? (
-            <div className="text-xs text-muted py-4">Loading signals…</div>
+            <div className="space-y-0">
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </div>
           ) : signalsEmpty ? (
             <div className="text-xs text-muted py-4">No signals to review.</div>
           ) : (

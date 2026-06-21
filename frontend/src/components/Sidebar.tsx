@@ -67,11 +67,8 @@ export function Sidebar({ collapsed, onToggle, activeView, onViewChange }: Sideb
             {activeView === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
             )}
-
-            {/* Tooltip on hover */}
-            <div className="absolute left-14 top-1/2 -translate-y-1/2 px-2 py-1.5 bg-surface-2 border border-border rounded text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-md font-mono">
-              {item.label}
-            </div>
+            {/* ponytail: native title tooltip (line 62) instead of a custom div —
+                a left-rail overlay tooltip bleeds over same-y page content. aria-label covers SR. */}
           </button>
         ))}
       </nav>

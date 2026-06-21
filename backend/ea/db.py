@@ -37,7 +37,7 @@ _SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summ
                 "priority", "triage_rank", "status", "occurred_at"}
 
 
-def upsert_signal(conn, **fields) -> int:
+def upsert_signal(conn: sqlite3.Connection, **fields) -> int:
     """Insert a signal, deduping on external_ref. Returns rowcount (1 new, 0 dup).
 
     Requires 'external_ref' in fields. Column names validated against _SIGNAL_COLS.
@@ -58,7 +58,7 @@ def upsert_signal(conn, **fields) -> int:
     return cur.rowcount
 
 
-def list_signals(conn, status=None):
+def list_signals(conn: sqlite3.Connection, status: str | None = None) -> list[sqlite3.Row]:
     """Return signal rows, newest by created_at DESC then id DESC (tie-break)."""
     if status is None:
         return conn.execute(
@@ -70,7 +70,7 @@ def list_signals(conn, status=None):
     ).fetchall()
 
 
-def update_status(conn, table, row_id, status) -> int:
+def update_status(conn: sqlite3.Connection, table: str, row_id: int, status: str) -> int:
     """Set status on a whitelisted table's row. Returns rows affected."""
     if table not in _STATUS_TABLES:
         raise ValueError(f"status updates not allowed on table {table!r}")
@@ -81,7 +81,7 @@ def update_status(conn, table, row_id, status) -> int:
     return cur.rowcount
 
 
-def data_version(conn) -> int:
+def data_version(conn: sqlite3.Connection) -> int:
     """PRAGMA data_version — changes when another connection commits a write."""
     return conn.execute("PRAGMA data_version").fetchone()[0]
 
@@ -92,7 +92,7 @@ _DEADLINE_COLS = {"title", "detail", "due_at", "source", "source_skill", "extern
                   "person_id", "signal_id", "priority", "visible", "status"}
 
 
-def add_deadline(conn, **fields) -> int:
+def add_deadline(conn: sqlite3.Connection, **fields) -> int:
     """Insert a critical deadline, deduping on external_ref. Returns rowcount.
 
     Requires 'external_ref'. Column names validated against _DEADLINE_COLS.
@@ -113,7 +113,7 @@ def add_deadline(conn, **fields) -> int:
     return cur.rowcount
 
 
-def list_deadlines(conn, respect_global=True):
+def list_deadlines(conn: sqlite3.Connection, respect_global: bool = True) -> list[sqlite3.Row]:
     """Active, visible deadlines ordered by due_at asc.
 
     Returns [] when respect_global and config.deadlines_visible_global != '1'.
@@ -130,7 +130,7 @@ def list_deadlines(conn, respect_global=True):
     ).fetchall()
 
 
-def set_deadline_visible(conn, deadline_id, visible) -> int:
+def set_deadline_visible(conn: sqlite3.Connection, deadline_id: int, visible: bool) -> int:
     """Set per-row visibility (1/0). Returns rows affected."""
     cur = conn.execute(
         "UPDATE critical_deadlines SET visible=? WHERE id=?",
@@ -142,10 +142,12 @@ def set_deadline_visible(conn, deadline_id, visible) -> int:
 
 # --- config helpers --------------------------------------------------------
 
+# NOTE: WRITABLE_CONFIG is a deliberate security allowlist; only specific config keys
+# can be modified by end users. Add new keys here explicitly after schema migration.
 WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days"}
 
 
-def set_config(conn, key, value) -> None:
+def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:
     """Upsert a writable config key. Raises ValueError for non-whitelisted keys."""
     if key not in WRITABLE_CONFIG:
         raise ValueError(f"config key not writable: {key}")
@@ -159,9 +161,14 @@ def set_config(conn, key, value) -> None:
 
 # --- trend helpers ---------------------------------------------------------
 
-def upsert_trend(conn, term, kind, window_start, window_end,
-                 score=0, count=0, delta=None, sources=None, source_skill=None) -> int:
-    """Upsert a trend on (term, window_start). Returns the row id."""
+def upsert_trend(conn: sqlite3.Connection, term: str, kind: str, window_start: str,
+                 window_end: str, score: float = 0, count: int = 0, delta: str | None = None,
+                 sources: str | None = None, source_skill: str | None = None) -> int:
+    """Upsert a trend on (term, window_start). Returns the row id.
+
+    ON CONFLICT: score, count, delta, window_end, sources are updated;
+    source_skill is NOT updated (first-writer-wins, preserves original creator).
+    """
     conn.execute(
         "INSERT INTO trends (term, kind, window_start, window_end, score, count, "
         "delta, sources, source_skill) VALUES (?,?,?,?,?,?,?,?,?) "
@@ -177,7 +184,7 @@ def upsert_trend(conn, term, kind, window_start, window_end,
     return row["id"]
 
 
-def list_trends(conn, window_start):
+def list_trends(conn: sqlite3.Connection, window_start: str) -> list[sqlite3.Row]:
     """Trends for a window, highest score first."""
     return conn.execute(
         "SELECT * FROM trends WHERE window_start=? ORDER BY score DESC, term ASC",
@@ -185,7 +192,7 @@ def list_trends(conn, window_start):
     ).fetchall()
 
 
-def latest_trend_window(conn):
+def latest_trend_window(conn: sqlite3.Connection) -> str | None:
     """Return the most recent window_start present in trends, or None."""
     row = conn.execute("SELECT MAX(window_start) AS w FROM trends").fetchone()
     return row["w"] if row and row["w"] is not None else None
@@ -195,7 +202,7 @@ _FINDING_COLS = {"trend_id", "topic_id", "title", "synopsis", "url",
                  "source", "source_skill", "external_ref", "relevance"}
 
 
-def add_trend_finding(conn, **fields) -> int:
+def add_trend_finding(conn: sqlite3.Connection, **fields) -> int:
     """Insert a trend finding, deduping on external_ref (the URL). Returns rowcount."""
     if "external_ref" not in fields:
         raise ValueError("add_trend_finding requires 'external_ref' in fields")
@@ -217,7 +224,7 @@ _TASK_COLS = {"title", "detail", "due_at", "priority", "status",
               "person_id", "source_signal_id"}
 
 
-def add_task(conn, **fields) -> int:
+def add_task(conn: sqlite3.Connection, **fields) -> int:
     """Insert a task row; returns the new id. Columns validated against _TASK_COLS."""
     bad = set(fields) - _TASK_COLS
     if bad:
@@ -231,8 +238,9 @@ def add_task(conn, **fields) -> int:
     return cur.lastrowid
 
 
-def add_skill_run(conn, skill, window_start=None, window_end=None,
-                  items_created=0, status="ok", note=None) -> int:
+def add_skill_run(conn: sqlite3.Connection, skill: str, window_start: str | None = None,
+                  window_end: str | None = None, items_created: int = 0, status: str = "ok",
+                  note: str | None = None) -> int:
     """Record a skill run in skill_runs (audit + lookback anchor). Returns the new id."""
     cur = conn.execute(
         "INSERT INTO skill_runs (skill, window_start, window_end, items_created, status, note) "
