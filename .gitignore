@@ -6,3 +6,5 @@ __pycache__/
 *.sqlite-shm
 .venv/
 backend/<sqlite3.Connection*
+.claude/scheduled_tasks.lock
+screenshots/

@@ -109,3 +109,7 @@ def main():  # pragma: no cover - process entry, not unit-tested
     import uvicorn
     db_path, token, port = _runtime_params(os.environ)
     uvicorn.run(http_app(db_path, token), host="127.0.0.1", port=port)
+
+
+if __name__ == "__main__":
+    main()

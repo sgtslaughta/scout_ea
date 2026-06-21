@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    command: python serve.py
+    ports:
+      - "127.0.0.1:8765:8765"
+    volumes:
+      - eadata:/data
+    environment:
+      EA_DB_PATH: /data/ea.sqlite
+      EA_WEB_PORT: 8765
+
+  mcp:
+    build: .
+    command: python -m mcp_server.server
+    ports:
+      - "127.0.0.1:8766:8766"
+    volumes:
+      - eadata:/data
+    environment:
+      EA_DB_PATH: /data/ea.sqlite
+      EA_MCP_PORT: 8766
+      EA_MCP_TOKEN: ${EA_MCP_TOKEN}
+
+volumes:
+  eadata:

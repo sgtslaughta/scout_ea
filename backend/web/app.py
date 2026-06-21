@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from ea import db
 from web import changes
@@ -35,7 +36,7 @@ def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
 
-def create_app(db_path) -> FastAPI:
+def create_app(db_path, static_dir=None) -> FastAPI:
     app = FastAPI(title="Scout EA")
     db_path = Path(db_path)
 
@@ -162,5 +163,8 @@ def create_app(db_path) -> FastAPI:
         tasks = [dict(r) for r in conn.execute(
             "SELECT * FROM tasks WHERE status IN ('open','in_progress')")]
         return _outlook.assemble(now, deadlines, trends, proactive, tasks)
+
+    if static_dir is not None and Path(static_dir).is_dir():
+        app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
 
     return app
