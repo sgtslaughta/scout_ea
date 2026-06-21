@@ -1,8 +1,13 @@
 """FastAPI app over EA_DB — browser-facing surface."""
 from __future__ import annotations
 from pathlib import Path
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
 from ea import db
+
+
+class StatusBody(BaseModel):
+    status: str
 
 
 def _rows(conn, sql, params=()):
@@ -50,5 +55,15 @@ def create_app(db_path) -> FastAPI:
     @app.get("/api/events")
     def list_events(conn=Depends(get_db)):
         return _rows(conn, "SELECT * FROM events ORDER BY created_at DESC, id DESC")
+
+    @app.post("/api/{table}/{row_id}/status")
+    def set_status(table: str, row_id: int, body: StatusBody, conn=Depends(get_db)):
+        try:
+            n = db.update_status(conn, table, row_id, body.status)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"status not allowed on {table}")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="row not found")
+        return {"updated": n}
 
     return app
