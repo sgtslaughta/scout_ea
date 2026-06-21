@@ -138,4 +138,11 @@ def create_app(db_path) -> FastAPI:
             raise HTTPException(status_code=400, detail=f"config key not writable: {key}")
         return {"key": key, "value": body.value}
 
+    @app.get("/api/trends")
+    def list_trends(window_start: str | None = None, conn=Depends(get_db)):
+        w = window_start or db.latest_trend_window(conn)
+        if w is None:
+            return []
+        return [dict(r) for r in db.list_trends(conn, w)]
+
     return app

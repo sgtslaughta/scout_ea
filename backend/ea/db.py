@@ -169,3 +169,9 @@ def list_trends(conn, window_start):
         "SELECT * FROM trends WHERE window_start=? ORDER BY score DESC, term ASC",
         (window_start,),
     ).fetchall()
+
+
+def latest_trend_window(conn):
+    """Return the most recent window_start present in trends, or None."""
+    row = conn.execute("SELECT MAX(window_start) AS w FROM trends").fetchone()
+    return row["w"] if row and row["w"] is not None else None
