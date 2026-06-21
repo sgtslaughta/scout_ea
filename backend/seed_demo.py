@@ -1,4 +1,5 @@
 """Seed realistic demo data for the Scout EA dashboard."""
+import json
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from ea import db
@@ -140,6 +141,94 @@ def seed(db_path):
     for run in skill_runs:
         db.add_skill_run(conn, **run)
 
+    # More signals — varied types + statuses (so Inbox filters have content)
+    more_signals = [
+        {"external_ref": "demo:signal:4", "type": "teams", "source": "teams",
+         "source_skill": "triage_teams", "title": "Mike: can we get RVP into the launch review?",
+         "status": "new", "priority": 2},
+        {"external_ref": "demo:signal:5", "type": "research", "source": "email",
+         "source_skill": "extract_research_training_email",
+         "title": "Webinar: Agentic workflows in production (Thu 2pm)",
+         "status": "triaged", "priority": 3},
+        {"external_ref": "demo:signal:6", "type": "email", "source": "email",
+         "title": "Re: contract renewal — needs your sign-off", "status": "actioned", "priority": 2},
+        {"external_ref": "demo:signal:7", "type": "email", "source": "email",
+         "title": "FYI newsletter — weekly digest", "status": "dismissed", "priority": 5},
+    ]
+    for sig in more_signals:
+        db.upsert_signal(conn, **sig)
+
+    # More tasks — varied statuses
+    for task in [
+        {"title": "Draft launch announcement", "detail": "First pass for marketing review",
+         "due_at": iso_offset(48), "priority": 2, "status": "in_progress"},
+        {"title": "Approve vendor invoice", "due_at": iso_offset(-24), "priority": 2, "status": "done"},
+        {"title": "Book travel for RVP visit", "due_at": iso_offset(72), "priority": 3, "status": "open"},
+    ]:
+        db.add_task(conn, **task)
+
+    # Calendar events — agenda + approvals (suggested events get Approve/Reject in the UI)
+    events = [
+        {"external_ref": "demo:event:1", "title": "Sync with Dr. Vance",
+         "body": "Align on Q3 roadmap and RVP asks.",
+         "proposed_times": json.dumps([iso_offset(26), iso_offset(28), iso_offset(50)]),
+         "attendees": json.dumps([1]), "status": "suggested"},
+        {"external_ref": "demo:event:2", "title": "Q3 planning review",
+         "body": "Lock the roadmap for next quarter.",
+         "chosen_time": iso_offset(30), "attendees": json.dumps([1, 2, 3]), "status": "approved"},
+        {"external_ref": "demo:event:3", "title": "1:1 with Mike Chen",
+         "proposed_times": json.dumps([iso_offset(5), iso_offset(7)]),
+         "attendees": json.dumps([2]), "status": "suggested"},
+    ]
+    for ev in events:
+        conn.execute(
+            "INSERT INTO events (title, body, proposed_times, chosen_time, attendees, status, external_ref) "
+            "VALUES (:title, :body, :proposed_times, :chosen_time, :attendees, :status, :external_ref) "
+            "ON CONFLICT(external_ref) DO NOTHING",
+            {"body": None, "proposed_times": None, "chosen_time": None, "attendees": None, **ev},
+        )
+
+    # Key personnel + research topics (for People/Topics, and to resolve attendees)
+    people = [
+        (1, "Dr. Vance", "Regional VP", "Acme Corp", 1),
+        (2, "Mike Chen", "Engineering Lead", "Acme Corp", 2),
+        (3, "Julie Park", "Product Manager", "Acme Corp", 2),
+    ]
+    for pid, name, role, org, importance in people:
+        conn.execute(
+            "INSERT INTO people (id, name, role, org, importance) VALUES (?,?,?,?,?) "
+            "ON CONFLICT(id) DO NOTHING", (pid, name, role, org, importance))
+    for tid, name, desc, prio in [
+        (1, "AI agents", "Autonomous agent frameworks and tooling", 2),
+        (2, "Cloud security", "Posture, IAM, and zero-trust developments", 2),
+        (3, "Product analytics", "Activation, retention, and funnel tooling", 3),
+    ]:
+        conn.execute(
+            "INSERT INTO topics (id, name, description, priority) VALUES (?,?,?,?) "
+            "ON CONFLICT(id) DO NOTHING", (tid, name, desc, prio))
+
+    # Learning items (research/training queue)
+    for kind, source, title, synopsis, ext in [
+        ("read", "web", "How agentic RAG cuts hallucination", "Survey of retrieval-augmented agents.", "demo:learn:1"),
+        ("webinar", "email", "Zero-trust for AI workloads", "Live session Thursday 2pm.", "demo:learn:2"),
+        ("course", "web", "Product analytics foundations", "4-week self-paced.", "demo:learn:3"),
+    ]:
+        conn.execute(
+            "INSERT INTO learning (kind, source, title, synopsis, external_ref, status) "
+            "VALUES (?,?,?,?,?,'suggested') ON CONFLICT(external_ref) DO NOTHING",
+            (kind, source, title, synopsis, ext))
+
+    # Trend findings (drill-down for /trending)
+    db.add_trend_finding(conn, title="Anthropic ships agent SDK update", url="https://example.com/a",
+                         external_ref="https://example.com/a", source="news", relevance=1)
+    db.add_trend_finding(conn, title="OSS framework hits 20k stars", url="https://example.com/b",
+                         external_ref="https://example.com/b", source="web", relevance=2)
+
+    # Alerts (severity bar / unread count)
+    for sev, title in [("critical", "P1 meeting request — Dr. Vance"), ("warning", "Reply needed — contract renewal")]:
+        conn.execute("INSERT INTO alerts (severity, title, status) VALUES (?,?,'unread')", (sev, title))
+
+    conn.commit()
     conn.close()
     print(f"Demo data seeded to {db_path}")
 
