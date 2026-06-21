@@ -41,9 +41,10 @@ export interface Signal {
 export interface Task {
   id: number
   title: string
+  detail?: string
   due_at?: string
-  status: string
   priority: number
+  status: string
 }
 
 export interface Skill {
@@ -60,6 +61,16 @@ export interface Activity {
   items_created: number
   status: string
   note?: string
+}
+
+export interface EventItem {
+  id: number
+  title: string
+  body?: string
+  proposed_times?: string
+  chosen_time?: string
+  attendees?: string
+  status: string
 }
 
 export interface OutlookResponse {
@@ -116,3 +127,7 @@ export const setConfig = (key: string, value: string) =>
 
 export const setSignalStatus = (table: string, id: number, status: string) =>
   postJson<{ updated: number }>(`/api/${table}/${id}/status`, { status })
+
+export const getTasks = () => fetchJson<Task[]>('/api/tasks')
+
+export const getEvents = () => fetchJson<EventItem[]>('/api/events')
