@@ -77,3 +77,50 @@ def update_status(conn, table, row_id, status) -> int:
 def data_version(conn) -> int:
     """PRAGMA data_version — changes when another connection commits a write."""
     return conn.execute("PRAGMA data_version").fetchone()[0]
+
+
+# --- deadline helpers ------------------------------------------------------
+
+def add_deadline(conn, **fields) -> int:
+    """Insert a critical deadline, deduping on external_ref. Returns rowcount.
+
+    Requires 'external_ref' in fields (manual entries use 'manual:<uuid>').
+    """
+    if "external_ref" not in fields:
+        raise ValueError("add_deadline requires 'external_ref' in fields")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO critical_deadlines ({cols}) VALUES ({placeholders}) "
+        "ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def list_deadlines(conn, respect_global=True):
+    """Active, visible deadlines ordered by due_at asc.
+
+    Returns [] when respect_global and config.deadlines_visible_global != '1'.
+    """
+    if respect_global:
+        row = conn.execute(
+            "SELECT value FROM config WHERE key='deadlines_visible_global'"
+        ).fetchone()
+        if row is None or row["value"] != "1":
+            return []
+    return conn.execute(
+        "SELECT * FROM critical_deadlines "
+        "WHERE status='active' AND visible=1 ORDER BY due_at ASC"
+    ).fetchall()
+
+
+def set_deadline_visible(conn, deadline_id, visible) -> int:
+    """Set per-row visibility (1/0). Returns rows affected."""
+    cur = conn.execute(
+        "UPDATE critical_deadlines SET visible=? WHERE id=?",
+        (1 if visible else 0, deadline_id),
+    )
+    conn.commit()
+    return cur.rowcount
