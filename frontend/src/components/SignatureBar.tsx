@@ -1,20 +1,32 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Sun } from 'lucide-react'
+import { Sun, Moon } from 'lucide-react'
+import { resolveTheme, setStoredMode } from '@/lib/theme'
 
 interface SignatureBarProps {
   onCommandOpen?: () => void
   onOpenBriefing?: () => void
 }
 
-export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProps) {
+export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
   const [time, setTime] = useState(new Date())
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
       setPrefersReducedMotion(mediaQuery.matches)
+      // Update resolved theme on mount
+      const stored = localStorage.getItem('ea-theme') as any
+      setResolvedTheme(resolveTheme(stored) || 'dark')
+      // Listen for class changes
+      const observer = new MutationObserver(() => {
+        const isDark = !document.documentElement.classList.contains('light')
+        setResolvedTheme(isDark ? 'dark' : 'light')
+      })
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+      return () => observer.disconnect()
     }
   }, [])
 
@@ -74,12 +86,12 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
       </div>
       <span className="ml-4 text-muted text-xs font-mono">last ran 14:32</span>
       <button
-        onClick={onOpenBriefing}
+        onClick={() => setStoredMode(resolvedTheme === 'dark' ? 'light' : 'dark')}
         className="ml-3 h-5 w-5 text-muted hover:text-accent transition-colors flex-shrink-0"
-        title="Today's briefing"
-        aria-label="Open today's briefing"
+        title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        <Sun size={16} />
+        {resolvedTheme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
       </button>
       <button
         onClick={onCommandOpen}

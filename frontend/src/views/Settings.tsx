@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
+import { getStoredMode, setStoredMode, type ThemeMode } from '@/lib/theme'
 
 const ACCENT_COLORS = [
   { name: 'Amber', hex: '#F2A65A' },
@@ -16,6 +17,7 @@ export function SettingsView() {
     }
     return '#F2A65A'
   })
+  const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => getStoredMode())
 
   useEffect(() => {
     document.documentElement.style.setProperty('--color-accent', currentAccent)
@@ -72,10 +74,29 @@ export function SettingsView() {
               </p>
             </div>
 
-            {/* Theme info */}
-            <div className="p-3 bg-surface-2 border border-border rounded-lg">
-              <p className="text-xs text-muted">
-                Theme: <span className="text-text font-medium">Dark</span>
+            {/* Theme selector */}
+            <div>
+              <label className="text-sm text-muted block mb-3">Theme</label>
+              <div className="flex gap-2">
+                {(['dark', 'light', 'system'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      setCurrentTheme(mode)
+                      setStoredMode(mode)
+                    }}
+                    className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
+                      currentTheme === mode
+                        ? 'bg-accent text-bg'
+                        : 'bg-surface-2 text-text border border-border hover:border-accent'
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted mt-2">
+                Currently: <span className="font-mono">{currentTheme}</span>
               </p>
             </div>
           </div>
