@@ -72,15 +72,19 @@ def create_app(db_path) -> FastAPI:
     @app.get("/api/events/stream")
     def events_stream():
         def gen():
-            last = changes.current_version(db_path)
-            yield f"event: db-changed\ndata: {json.dumps({'version': last})}\n\n"
-            while True:
-                v = changes.wait_for_change(db_path, last, timeout=25)
-                if v != last:
-                    last = v
-                    yield f"event: db-changed\ndata: {json.dumps({'version': v})}\n\n"
-                else:
-                    yield ": keep-alive\n\n"
+            conn = db.get_conn(db_path)
+            try:
+                last = changes.current_version(conn)
+                yield f"event: db-changed\ndata: {json.dumps({'version': last})}\n\n"
+                while True:
+                    v = changes.wait_for_change(conn, last, timeout=25)
+                    if v != last:
+                        last = v
+                        yield f"event: db-changed\ndata: {json.dumps({'version': v})}\n\n"
+                    else:
+                        yield ": keep-alive\n\n"
+            finally:
+                conn.close()
         return StreamingResponse(gen(), media_type="text/event-stream")
 
     return app
