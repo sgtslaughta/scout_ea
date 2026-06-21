@@ -11,6 +11,8 @@ import { SettingsView } from '@/views/Settings'
 import { InboxView } from '@/views/Inbox'
 import { TasksView } from '@/views/Tasks'
 import { CalendarView } from '@/views/Calendar'
+import { PeopleView } from '@/views/People'
+import { TopicsView } from '@/views/Topics'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
 import { applyTheme, getStoredMode } from '@/lib/theme'
@@ -76,6 +78,10 @@ export function App() {
         return <TasksView />
       case 'calendar':
         return <CalendarView />
+      case 'people':
+        return <PeopleView />
+      case 'topics':
+        return <TopicsView />
       default:
         return <DashboardView />
     }

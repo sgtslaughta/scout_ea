@@ -73,6 +73,25 @@ export interface EventItem {
   status: string
 }
 
+export interface Person {
+  id: number
+  name: string
+  role?: string
+  org?: string
+  importance: number
+  notes?: string
+  active: number
+}
+
+export interface Topic {
+  id: number
+  name: string
+  description?: string
+  priority: number
+  max_suggest: number
+  active: number
+}
+
 export interface OutlookResponse {
   date: string
   deadlines: Deadline[]
@@ -116,6 +135,25 @@ async function postJson<T>(url: string, body: Record<string, unknown>): Promise<
   return res.json()
 }
 
+async function patchJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  return res.json()
+}
+
+async function del<T>(url: string): Promise<T> {
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+  })
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  return res.json()
+}
+
 export const addDeadline = (title: string, due_at: string, detail?: string) =>
   postJson<{ id: number }>('/api/deadlines', { title, due_at, detail })
 
@@ -131,3 +169,31 @@ export const setSignalStatus = (table: string, id: number, status: string) =>
 export const getTasks = () => fetchJson<Task[]>('/api/tasks')
 
 export const getEvents = () => fetchJson<EventItem[]>('/api/events')
+
+export const getPeople = (includeInactive?: boolean) => {
+  const qs = includeInactive ? '?include_inactive=true' : ''
+  return fetchJson<Person[]>(`/api/people${qs}`)
+}
+
+export const addPerson = (body: Partial<Person>) =>
+  postJson<{ id: number }>('/api/people', body)
+
+export const updatePerson = (id: number, body: Partial<Person>) =>
+  patchJson<{ updated: number }>(`/api/people/${id}`, body)
+
+export const deletePerson = (id: number) =>
+  del<{ deactivated: number }>(`/api/people/${id}`)
+
+export const getTopics = (includeInactive?: boolean) => {
+  const qs = includeInactive ? '?include_inactive=true' : ''
+  return fetchJson<Topic[]>(`/api/topics${qs}`)
+}
+
+export const addTopic = (body: Partial<Topic>) =>
+  postJson<{ id: number }>('/api/topics', body)
+
+export const updateTopic = (id: number, body: Partial<Topic>) =>
+  patchJson<{ updated: number }>(`/api/topics/${id}`, body)
+
+export const deleteTopic = (id: number) =>
+  del<{ deactivated: number }>(`/api/topics/${id}`)
