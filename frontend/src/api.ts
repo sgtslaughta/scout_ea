@@ -53,6 +53,15 @@ export interface Skill {
   body: string
 }
 
+export interface Activity {
+  id: number
+  skill: string
+  ran_at: string
+  items_created: number
+  status: string
+  note?: string
+}
+
 export interface OutlookResponse {
   date: string
   deadlines: Deadline[]
@@ -82,6 +91,9 @@ export const getSignals = (status?: string) => {
   const qs = status ? `?status=${encodeURIComponent(status)}` : ''
   return fetchJson<Signal[]>(`/api/signals${qs}`)
 }
+
+export const getActivity = (limit: number = 20) =>
+  fetchJson<Activity[]>(`/api/activity?limit=${limit}`)
 
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(url, {

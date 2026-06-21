@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Sun } from 'lucide-react'
 
 interface SignatureBarProps {
   onCommandOpen?: () => void
+  onOpenBriefing?: () => void
 }
 
-export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
+export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProps) {
   const [time, setTime] = useState(new Date())
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
@@ -71,6 +73,14 @@ export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
         ))}
       </div>
       <span className="ml-4 text-muted text-xs font-mono">last ran 14:32</span>
+      <button
+        onClick={onOpenBriefing}
+        className="ml-3 h-5 w-5 text-muted hover:text-accent transition-colors flex-shrink-0"
+        title="Today's briefing"
+        aria-label="Open today's briefing"
+      >
+        <Sun size={16} />
+      </button>
       <button
         onClick={onCommandOpen}
         className="ml-3 text-muted text-xs border border-border rounded px-1.5 py-0.5 hover:border-accent hover:text-accent transition-colors cursor-pointer"
