@@ -93,13 +93,19 @@ def http_app(db_path, token):
     return app
 
 
+def _runtime_params(environ):
+    """Resolve (db_path, token, port) from the environment. Fails closed on missing token."""
+    from pathlib import Path
+    token = environ.get("EA_MCP_TOKEN")
+    if not token:
+        raise RuntimeError("EA_MCP_TOKEN environment variable is required")
+    db_path = Path(environ.get("EA_DB_PATH", "ea.sqlite"))
+    port = int(environ.get("EA_MCP_PORT", "8766"))
+    return db_path, token, port
+
+
 def main():  # pragma: no cover - process entry, not unit-tested
-    import uvicorn
-    conn = db.get_conn(db.DEFAULT_SCHEMA.with_name("ea.sqlite"))
-    cfg = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM config")}
-    conn.close()
     import os
-    token = os.environ.get("EA_MCP_TOKEN", "dev-token")
-    port = int(cfg.get("mcp_port", "8766"))
-    uvicorn.run(http_app(db.DEFAULT_SCHEMA.with_name("ea.sqlite"), token),
-                host="127.0.0.1", port=port)
+    import uvicorn
+    db_path, token, port = _runtime_params(os.environ)
+    uvicorn.run(http_app(db_path, token), host="127.0.0.1", port=port)
