@@ -96,7 +96,7 @@ export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
       <button
         onClick={onCommandOpen}
         className="ml-3 text-muted text-xs border border-border rounded px-1.5 py-0.5 hover:border-accent hover:text-accent transition-colors cursor-pointer"
-        title="Open command palette"
+        aria-label="Open command palette"
       >
         ⌘K
       </button>

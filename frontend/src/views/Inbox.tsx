@@ -81,7 +81,7 @@ export function InboxView() {
           </div>
         ) : signals.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            Inbox is clear.
+            Inbox is clear. Check back later for new signals.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">

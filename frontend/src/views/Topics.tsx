@@ -124,10 +124,11 @@ export function TopicsView() {
           <div className="bg-surface border border-border rounded-lg p-4">
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="topics-name" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Name *
                 </label>
                 <input
+                  id="topics-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -136,10 +137,11 @@ export function TopicsView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="topics-description" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Description (optional)
                 </label>
                 <textarea
+                  id="topics-description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Topic description"
@@ -148,10 +150,11 @@ export function TopicsView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="topics-priority" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Priority
                 </label>
                 <select
+                  id="topics-priority"
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
                   className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
@@ -164,10 +167,11 @@ export function TopicsView() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="topics-maxSuggest" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Max Suggestions
                 </label>
                 <input
+                  id="topics-maxSuggest"
                   type="number"
                   value={formData.max_suggest}
                   onChange={(e) => setFormData({ ...formData, max_suggest: Number(e.target.value) })}
@@ -213,7 +217,7 @@ export function TopicsView() {
           </div>
         ) : topics.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No topics yet.
+            No topics yet. Add one above to get started.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">

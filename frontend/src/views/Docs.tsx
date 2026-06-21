@@ -55,7 +55,7 @@ export function DocsView() {
 
         {/* Empty state */}
         {!isLoading && !error && (!data || data.length === 0) && (
-          <p className="text-center text-muted py-12">No skills found.</p>
+          <p className="text-center text-muted py-12">No skills yet. Create one to get started.</p>
         )}
 
         {/* Skills grid */}
@@ -81,7 +81,7 @@ export function DocsView() {
                   <button
                     onClick={() => copySkill(skill.name, skill.body)}
                     className="flex-shrink-0 p-2 rounded hover:bg-surface-2 transition-colors text-accent"
-                    title="Copy skill"
+                    aria-label={`Copy ${skill.name} to clipboard`}
                   >
                     <Copy size={18} />
                   </button>
