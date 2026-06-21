@@ -33,6 +33,12 @@
   --color-border: #CBD5E6;
   --color-text: #0B1220;
   --color-muted: #5B6678;
+  --color-accent: #E67E22;
+  --color-accent-2: #3498DB;
+  --color-crit: #C0392B;
+  --color-warn: #E67E22;
+  --color-info: #3498DB;
+  --color-ok: #27AE60;
 }
 
 * {
