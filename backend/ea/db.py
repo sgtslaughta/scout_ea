@@ -5,6 +5,7 @@ from pathlib import Path
 
 DEFAULT_SCHEMA = Path(__file__).with_name("schema.sql")
 DEFAULT_SEED = Path(__file__).with_name("seed.sql")
+DEFAULT_FEATURES = Path(__file__).with_name("features.sql")
 
 
 def get_conn(db_path) -> sqlite3.Connection:
@@ -20,6 +21,7 @@ def init_db(db_path, schema_path=DEFAULT_SCHEMA, seed_path=None) -> sqlite3.Conn
     """Create a connection and apply schema (+ optional seed). Idempotent."""
     conn = get_conn(db_path)
     conn.executescript(Path(schema_path).read_text())
+    conn.executescript(Path(DEFAULT_FEATURES).read_text())
     if seed_path is not None:
         conn.executescript(Path(seed_path).read_text())
     conn.commit()
@@ -75,3 +77,78 @@ def update_status(conn, table, row_id, status) -> int:
 def data_version(conn) -> int:
     """PRAGMA data_version — changes when another connection commits a write."""
     return conn.execute("PRAGMA data_version").fetchone()[0]
+
+
+# --- deadline helpers ------------------------------------------------------
+
+def add_deadline(conn, **fields) -> int:
+    """Insert a critical deadline, deduping on external_ref. Returns rowcount.
+
+    Requires 'external_ref' in fields (manual entries use 'manual:<uuid>').
+    """
+    if "external_ref" not in fields:
+        raise ValueError("add_deadline requires 'external_ref' in fields")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO critical_deadlines ({cols}) VALUES ({placeholders}) "
+        "ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def list_deadlines(conn, respect_global=True):
+    """Active, visible deadlines ordered by due_at asc.
+
+    Returns [] when respect_global and config.deadlines_visible_global != '1'.
+    """
+    if respect_global:
+        row = conn.execute(
+            "SELECT value FROM config WHERE key='deadlines_visible_global'"
+        ).fetchone()
+        if row is None or row["value"] != "1":
+            return []
+    return conn.execute(
+        "SELECT * FROM critical_deadlines "
+        "WHERE status='active' AND visible=1 ORDER BY due_at ASC"
+    ).fetchall()
+
+
+def set_deadline_visible(conn, deadline_id, visible) -> int:
+    """Set per-row visibility (1/0). Returns rows affected."""
+    cur = conn.execute(
+        "UPDATE critical_deadlines SET visible=? WHERE id=?",
+        (1 if visible else 0, deadline_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+# --- trend helpers ---------------------------------------------------------
+
+def upsert_trend(conn, term, kind, window_start, window_end,
+                 score=0, count=0, delta=None, sources=None, source_skill=None) -> int:
+    """Upsert a trend on (term, window_start). Returns the row id."""
+    conn.execute(
+        "INSERT INTO trends (term, kind, window_start, window_end, score, count, "
+        "delta, sources, source_skill) VALUES (?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(term, window_start) DO UPDATE SET "
+        "score=excluded.score, count=excluded.count, delta=excluded.delta, "
+        "window_end=excluded.window_end, sources=excluded.sources",
+        (term, kind, window_start, window_end, score, count, delta, sources, source_skill),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id FROM trends WHERE term=? AND window_start=?", (term, window_start)
+    ).fetchone()
+    return row["id"]
+
+
+def list_trends(conn, window_start):
+    """Trends for a window, highest score first."""
+    return conn.execute(
+        "SELECT * FROM trends WHERE window_start=? ORDER BY score DESC, term ASC",
+        (window_start,),
+    ).fetchall()
