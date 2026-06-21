@@ -12,6 +12,7 @@ from ea import db
 from web import changes
 from lib import deadlines as _deadlines
 from lib import outlook as _outlook
+from lib import skills as _skills
 
 
 class StatusBody(BaseModel):
@@ -36,7 +37,7 @@ def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
 
-def create_app(db_path, static_dir=None) -> FastAPI:
+def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     app = FastAPI(title="Scout EA")
     db_path = Path(db_path)
 
@@ -168,6 +169,10 @@ def create_app(db_path, static_dir=None) -> FastAPI:
         tasks = [dict(r) for r in conn.execute(
             "SELECT * FROM tasks WHERE status IN ('open','in_progress')")]
         return _outlook.assemble(now, deadlines, trends, proactive, tasks)
+
+    @app.get("/api/skills")
+    def get_skills():
+        return _skills.list_skills(skills_dir) if skills_dir else []
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
