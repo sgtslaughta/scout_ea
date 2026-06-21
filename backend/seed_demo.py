@@ -129,6 +129,17 @@ def seed(db_path):
     for task in tasks:
         db.add_task(conn, **task)
 
+    # ~4 skill runs with varied skills, items_created, and one error status
+    skill_runs = [
+        {"skill": "triage_email", "items_created": 5},
+        {"skill": "parse_deadlines", "items_created": 2},
+        {"skill": "compute_trends", "items_created": 8},
+        {"skill": "daily_outlook", "items_created": 0, "status": "error", "note": "API timeout"},
+    ]
+
+    for run in skill_runs:
+        db.add_skill_run(conn, **run)
+
     conn.close()
     print(f"Demo data seeded to {db_path}")
 

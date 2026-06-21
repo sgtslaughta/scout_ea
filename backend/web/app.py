@@ -150,6 +150,10 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
             raise HTTPException(status_code=400, detail=f"config key not writable: {key}")
         return {"key": key, "value": body.value}
 
+    @app.get("/api/activity")
+    def get_activity(limit: int = 20, conn=Depends(get_db)):
+        return _rows(conn, "SELECT * FROM skill_runs ORDER BY ran_at DESC, id DESC LIMIT ?", (int(limit),))
+
     @app.get("/api/trends")
     def get_trends(window_start: str | None = None, conn=Depends(get_db)):
         w = window_start or db.latest_trend_window(conn)

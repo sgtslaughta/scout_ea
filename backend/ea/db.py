@@ -249,3 +249,11 @@ def add_skill_run(conn: sqlite3.Connection, skill: str, window_start: str | None
     )
     conn.commit()
     return cur.lastrowid
+
+
+def list_skill_runs(conn, limit=20):
+    """Recent skill runs (audit feed), newest first."""
+    return conn.execute(
+        "SELECT * FROM skill_runs ORDER BY ran_at DESC, id DESC LIMIT ?",
+        (int(limit),),
+    ).fetchall()
