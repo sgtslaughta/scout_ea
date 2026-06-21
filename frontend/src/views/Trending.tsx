@@ -2,25 +2,29 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { getTrends, type Trend } from '@/api'
 import { TrendingUp, TrendingDown } from 'lucide-react'
+import { SkeletonRow } from '@/components/SkeletonRow'
 
 export function TrendingView() {
-  const { data: trends = [], isLoading, error } = useQuery<Trend[]>({
+  const { data: trends = [], isLoading, error, refetch: refetchTrends } = useQuery<Trend[]>({
     queryKey: ['trends'],
     queryFn: () => getTrends(),
   })
 
   if (error) {
     return (
-      <main className="flex-1 overflow-y-auto p-6" style={{ background: '#0B1220' }}>
+      <main className="flex-1 overflow-y-auto p-6 bg-bg">
         <div className="max-w-[1080px] mx-auto">
-          <div className="text-red-500 text-sm">Error loading trends</div>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
+            <span>Error loading trends</span>
+            <button onClick={() => refetchTrends()} className="underline hover:no-underline">Retry</button>
+          </div>
         </div>
       </main>
     )
   }
 
   return (
-    <main className="flex-1 overflow-y-auto p-6" style={{ background: '#0B1220' }}>
+    <main className="flex-1 overflow-y-auto p-6 bg-bg">
       <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
         <div className="mb-6">
           <h2 className="text-3xl font-display font-semibold text-text">Trending</h2>
@@ -28,7 +32,11 @@ export function TrendingView() {
         </div>
 
         {isLoading ? (
-          <div className="text-xs text-muted py-8">Loading trends…</div>
+          <div className="space-y-0">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
         ) : trends.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             No trending data yet.

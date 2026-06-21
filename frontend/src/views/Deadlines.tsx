@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { getDeadlines, addDeadline, setDeadlineVisible, setConfig } from '@/api'
 import { toast } from 'sonner'
+import { SkeletonRow } from '@/components/SkeletonRow'
 
 const formatCountdown = (seconds: number): string => {
   if (seconds < 0) return 'Overdue'
@@ -25,7 +26,7 @@ export function DeadlinesView() {
   const [detail, setDetail] = useState('')
   const [showForm, setShowForm] = useState(false)
 
-  const { data: deadlines = [], isLoading, error } = useQuery({
+  const { data: deadlines = [], isLoading, error, refetch } = useQuery({
     queryKey: ['deadlines'],
     queryFn: getDeadlines,
   })
@@ -79,7 +80,7 @@ export function DeadlinesView() {
   }
 
   return (
-    <main className="flex-1 overflow-y-auto p-6" style={{ background: '#0B1220' }}>
+    <main className="flex-1 overflow-y-auto p-6 bg-bg">
       <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-3xl font-display font-semibold text-text">Deadlines</h2>
@@ -108,8 +109,9 @@ export function DeadlinesView() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400">
-            Error loading deadlines
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
+            <span>Error loading deadlines</span>
+            <button onClick={() => refetch()} className="underline hover:no-underline">Retry</button>
           </div>
         )}
 
@@ -187,7 +189,11 @@ export function DeadlinesView() {
 
         {/* Deadlines list */}
         {isLoading ? (
-          <div className="text-xs text-muted py-8">Loading deadlines…</div>
+          <div className="space-y-0">
+            <SkeletonRow />
+            <SkeletonRow />
+            <SkeletonRow />
+          </div>
         ) : deadlines.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             No deadlines. {!globalEnabled && 'Enable the toggle above to see all.'}

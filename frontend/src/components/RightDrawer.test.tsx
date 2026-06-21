@@ -2,7 +2,6 @@ import { describe, it, expect, vi } from 'vitest'
 import { render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RightDrawer } from './RightDrawer'
-import * as api from '@/api'
 
 // Mock the API
 vi.mock('@/api', () => ({

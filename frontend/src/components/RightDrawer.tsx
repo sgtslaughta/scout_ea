@@ -27,7 +27,7 @@ export function RightDrawer() {
   const deadlinesError_ = (deadlinesError || trendsError) as Error | null
 
   return (
-    <div className="w-[300px] border-l border-border flex flex-col overflow-hidden" style={{ background: '#0B1220' }}>
+    <div className="w-[300px] border-l border-border flex flex-col overflow-hidden bg-bg">
       {deadlinesError_ && (
         <div className="text-xs text-red-500 p-4">Error loading drawer</div>
       )}
@@ -73,10 +73,7 @@ export function RightDrawer() {
               {trends.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between px-3 py-2 rounded text-xs border border-border transition-colors"
-                  style={{ background: '#1C2840' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#253a52'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = '#1C2840'}
+                  className="flex items-center justify-between px-3 py-2 rounded text-xs border border-border bg-surface-2 hover:bg-[#253a52] transition-colors"
                 >
                   <span className="text-xs text-text font-medium flex-1">{item.term}</span>
                   <div className="flex items-center gap-1.5 flex-shrink-0">

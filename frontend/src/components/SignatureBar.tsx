@@ -34,7 +34,7 @@ export function SignatureBar() {
         <motion.div
           data-horizon
           className="absolute left-0 right-0 top-1/2 h-[3px] rounded"
-          style={{ background: "linear-gradient(90deg,#F2A65A,#6C8FE5)", originX: 0 }}
+          style={{ background: "linear-gradient(90deg,var(--color-accent),var(--color-accent-2))", originX: 0 }}
           initial={prefersReducedMotion ? { scaleX: 1 } : { scaleX: 0 }}
           animate={prefersReducedMotion ? { scaleX: 1 } : { scaleX: 1 }}
           transition={{ duration: 1.2, ease: 'easeInOut' }}
