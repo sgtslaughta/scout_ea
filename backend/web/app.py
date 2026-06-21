@@ -26,6 +26,10 @@ class VisibleBody(BaseModel):
     visible: bool
 
 
+class ConfigBody(BaseModel):
+    value: str
+
+
 def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
@@ -125,5 +129,13 @@ def create_app(db_path) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="deadline not found")
         return {"updated": n}
+
+    @app.post("/api/config/{key}")
+    def set_config(key: str, body: ConfigBody, conn=Depends(get_db)):
+        try:
+            db.set_config(conn, key, body.value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"config key not writable: {key}")
+        return {"key": key, "value": body.value}
 
     return app

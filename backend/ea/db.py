@@ -126,6 +126,23 @@ def set_deadline_visible(conn, deadline_id, visible) -> int:
     return cur.rowcount
 
 
+# --- config helpers --------------------------------------------------------
+
+WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days"}
+
+
+def set_config(conn, key, value) -> None:
+    """Upsert a writable config key. Raises ValueError for non-whitelisted keys."""
+    if key not in WRITABLE_CONFIG:
+        raise ValueError(f"config key not writable: {key}")
+    conn.execute(
+        "INSERT INTO config(key, value) VALUES(?, ?) "
+        "ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+        (key, str(value)),
+    )
+    conn.commit()
+
+
 # --- trend helpers ---------------------------------------------------------
 
 def upsert_trend(conn, term, kind, window_start, window_end,
