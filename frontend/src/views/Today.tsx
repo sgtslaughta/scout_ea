@@ -35,12 +35,6 @@ const MOCK_PROACTIVE = [
   },
 ]
 
-const SEVERITY_COLORS = {
-  P1: { dot: 'bg-crit', badge: 'bg-crit/20 text-crit border border-crit/30' },
-  P2: { dot: 'bg-warn', badge: 'bg-warn/20 text-warn border border-warn/30' },
-  P3: { dot: 'bg-info', badge: 'bg-info/20 text-info border border-info/30' },
-}
-
 const SOURCE_BADGE_STYLE = (source: string) => {
   if (source.includes('triage')) {
     // Skill badge - amber tint
@@ -75,7 +69,7 @@ export function TodayView() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="p-6 bg-bg text-text"
+      className="p-6 text-text" style={{ background: '#0B1220' }}
     >
       {/* Header */}
       <div className="mb-8">
@@ -89,11 +83,11 @@ export function TodayView() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-8 max-w-xs">
-        <div className="bg-surface border border-border rounded-md px-4 py-3">
+        <div className="border border-border rounded-lg px-4 py-3" data-card style={{ background: '#131C2B' }}>
           <div className="text-xs text-muted font-mono mb-2 uppercase tracking-wide">Meetings</div>
           <div className="text-xl font-display font-semibold text-text">3</div>
         </div>
-        <div className="bg-surface border border-border rounded-md px-4 py-3">
+        <div className="border border-border rounded-lg px-4 py-3" data-card style={{ background: '#131C2B' }}>
           <div className="text-xs text-muted font-mono mb-2 uppercase tracking-wide">Due Today</div>
           <div className="text-xl font-display font-semibold text-text">2</div>
         </div>
@@ -105,19 +99,20 @@ export function TodayView() {
           Triaged Signals
         </h3>
         <div className="space-y-2 max-w-2xl">
-          {visibleSignals.map((signal, idx) => (
+          {visibleSignals.map((signal, idx) => {
+            const dotColor = signal.severity === 'P1' ? '#E5484D' : signal.severity === 'P2' ? '#F2A65A' : '#6C8FE5'
+            return (
             <motion.div
               key={signal.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
-              className="flex items-center gap-3 bg-surface border border-border rounded-md px-4 py-3 hover:bg-surface-2 hover:border-border transition-colors group"
+              className="flex items-center gap-3 border border-border rounded-lg px-4 py-3 transition-colors group" style={{ background: '#131C2B' }} onMouseEnter={(e) => e.currentTarget.style.background = '#1C2840'} onMouseLeave={(e) => e.currentTarget.style.background = '#131C2B'}
             >
               {/* Severity dot */}
               <div
-                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                  SEVERITY_COLORS[signal.severity].dot
-                }`}
+                data-severity-dot
+                style={{ background: dotColor, width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0 }}
               />
 
               {/* Content */}
@@ -149,7 +144,8 @@ export function TodayView() {
                 <X size={14} />
               </button>
             </motion.div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -167,7 +163,7 @@ export function TodayView() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.15 }}
-                  className="flex items-center gap-4 bg-surface border border-border rounded-md px-4 py-3"
+                  className="flex items-center gap-4 border border-border rounded-lg px-4 py-3" style={{ background: '#131C2B' }}
                 >
                   {/* Icon */}
                   <AlertCircle size={18} className="text-accent flex-shrink-0" />
@@ -181,7 +177,8 @@ export function TodayView() {
                       onClick={() =>
                         setProactiveDismissed((prev) => new Set([...prev, item.id]))
                       }
-                      className="px-3 py-1.5 text-xs font-medium bg-accent text-bg rounded-md hover:bg-accent/90 transition-colors flex items-center gap-1.5"
+                      className="px-3 py-1.5 text-xs font-medium rounded-md hover:opacity-90 transition-colors flex items-center gap-1.5"
+                      style={{ background: '#F2A65A', color: '#0B1220' }}
                       aria-label="Accept suggestion"
                     >
                       <Check size={12} />

@@ -1,35 +1,50 @@
 import { chromium } from 'playwright';
 
-async function captureScreenshot() {
+(async () => {
   const browser = await chromium.launch({
-    channel: 'chrome',
     executablePath: '/usr/bin/google-chrome',
+    headless: true
   });
 
-  const page = await browser.newPage({
-    viewport: { width: 1440, height: 900 },
-  });
+  const page = await browser.newPage();
+  page.setViewportSize({ width: 1440, height: 900 });
 
-  // Wait for vite preview to be running (try multiple ports)
-  let url = 'http://localhost:4173';
   try {
-    await page.goto(url, { waitUntil: 'networkidle' });
-  } catch {
-    url = 'http://localhost:4174';
-    await page.goto(url, { waitUntil: 'networkidle' });
+    // Navigate to the local dev server
+    await page.goto('http://localhost:5173', { waitUntil: 'networkidle' });
+
+    // Wait extra time for fonts and animations to settle
+    await page.waitForTimeout(900);
+
+    // Evaluate computed styles and log them
+    const computedBg = await page.evaluate(() => {
+      const cardEl = document.querySelector('[data-card]');
+      if (cardEl) {
+        return getComputedStyle(cardEl).backgroundColor;
+      }
+      // Fallback: check first surface div
+      const fallback = document.querySelector('.bg-surface');
+      if (fallback) {
+        return getComputedStyle(fallback).backgroundColor;
+      }
+      return 'NOT FOUND';
+    });
+
+    const dotCount = await page.evaluate(() => {
+      return document.querySelectorAll('[data-severity-dot]').length;
+    });
+
+    console.log('=== COMPUTED STYLES CHECK ===');
+    console.log('Card background (should be rgb(19, 28, 43)):', computedBg);
+    console.log('Severity dots found:', dotCount);
+    console.log('===============================');
+
+    // Screenshot
+    await page.screenshot({ path: 'screenshots/today.png' });
+    console.log('Screenshot saved to screenshots/today.png');
+  } catch (e) {
+    console.error('Error:', e);
+  } finally {
+    await browser.close();
   }
-
-  // Wait a bit for animations to settle
-  await page.waitForTimeout(500);
-
-  // Take screenshot
-  await page.screenshot({
-    path: './screenshots/today.png',
-    fullPage: false,
-  });
-
-  await browser.close();
-  console.log('Screenshot saved to screenshots/today.png');
-}
-
-captureScreenshot().catch(console.error);
+})();

@@ -14,11 +14,11 @@ const MOCK_TRENDING = [
 
 export function RightDrawer() {
   return (
-    <div className="w-80 bg-bg border-l border-border flex flex-col overflow-hidden">
+    <div className="w-80 border-l border-border flex flex-col overflow-hidden" style={{ background: '#0B1220' }}>
       {/* Container with padding */}
-      <div className="flex-1 overflow-y-auto flex flex-col gap-4 p-4">
+      <div className="flex-1 overflow-y-auto flex flex-col gap-6 p-6">
         {/* Deadlines section - surface card */}
-        <div className="bg-surface border border-border rounded-md overflow-hidden flex-1">
+        <div className="border border-border rounded-lg overflow-hidden" data-card style={{ background: '#131C2B' }}>
           <div className="p-4 border-b border-border">
             <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-3 text-muted">
               Deadlines
@@ -28,11 +28,14 @@ export function RightDrawer() {
             {MOCK_DEADLINES.map((item) => (
               <div
                 key={item.id}
-                className={`px-3 py-2 rounded-md text-xs border transition-colors ${
+                className={`px-3 py-2 rounded-lg text-xs border transition-colors ${
                   item.severity === 'urgent'
-                    ? 'border-crit/40 bg-crit/15 hover:bg-crit/25'
-                    : 'border-border bg-surface-2 hover:bg-surface-2/80'
+                    ? 'border-crit/40'
+                    : 'border-border'
                 }`}
+                style={{
+                  background: item.severity === 'urgent' ? 'rgba(229, 72, 77, 0.15)' : '#1C2840'
+                }}
               >
                 <div className="font-medium text-text mb-1">{item.title}</div>
                 <div className="flex items-center gap-1.5 text-muted font-mono text-xs">
@@ -45,7 +48,7 @@ export function RightDrawer() {
         </div>
 
         {/* Trending section - surface card */}
-        <div className="bg-surface border border-border rounded-md overflow-hidden flex-1">
+        <div className="border border-border rounded-lg overflow-hidden" data-card style={{ background: '#131C2B' }}>
           <div className="p-4 border-b border-border">
             <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-3 text-muted">
               Trending
@@ -55,7 +58,10 @@ export function RightDrawer() {
             {MOCK_TRENDING.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center justify-between px-3 py-2 rounded-md border border-border hover:bg-surface-2 transition-colors"
+                className="flex items-center justify-between px-3 py-2 rounded-lg border border-border transition-colors"
+                style={{ background: '#1C2840' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#253a52'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#1C2840'}
               >
                 <span className="text-xs text-text font-medium flex-1">{item.term}</span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">

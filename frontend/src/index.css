@@ -12,18 +12,19 @@
 
 :root {
   /* Scout Color Palette - Dawn Theme */
-  --bg: #0B1220;
-  --surface: #131C2B;
-  --surface-2: #1C2840;
-  --border: #243149;
-  --text: #E6EDF7;
-  --muted: #8A9AB5;
-  --accent: #F2A65A;
-  --accent-2: #6C8FE5;
-  --crit: #E5484D;
-  --warn: #F2A65A;
-  --info: #6C8FE5;
-  --ok: #3DD68C;
+  /* Prefixed with --color- for Tailwind v4 compatibility */
+  --color-bg: #0B1220;
+  --color-surface: #131C2B;
+  --color-surface-2: #1C2840;
+  --color-border: #243149;
+  --color-text: #E6EDF7;
+  --color-muted: #8A9AB5;
+  --color-accent: #F2A65A;
+  --color-accent-2: #6C8FE5;
+  --color-crit: #E5484D;
+  --color-warn: #F2A65A;
+  --color-info: #6C8FE5;
+  --color-ok: #3DD68C;
 }
 
 * {
@@ -36,8 +37,8 @@ body {
   padding: 0;
   font-family: "Inter", sans-serif;
   font-size: 13px;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--color-bg);
+  color: var(--color-text);
   line-height: 1.5;
 }
 
@@ -75,7 +76,7 @@ button {
 
 /* Keyboard focus rings */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 

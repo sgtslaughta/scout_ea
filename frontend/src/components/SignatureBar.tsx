@@ -19,7 +19,7 @@ export function SignatureBar() {
   const positionPercent = Math.max(0, Math.min(100, ((totalMinutes - workStart) / workDuration) * 100))
 
   return (
-    <div className="bg-surface border-b border-border px-6 py-4">
+    <div className="border-b border-border px-6 py-4" style={{ background: '#131C2B' }}>
       <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="text-2xl font-display font-semibold text-text">
           SCOUT
@@ -29,12 +29,12 @@ export function SignatureBar() {
         </div>
         <div className="flex-1" />
         <div className="text-xs text-muted">
-          <kbd className="px-2 py-1 bg-surface-2 border border-border rounded text-xs">⌘K</kbd>
+          <kbd className="px-2 py-1 bg-surface-2 border border-border rounded-lg text-xs">⌘K</kbd>
         </div>
       </div>
 
       {/* Day horizon strip (7am - 6pm) - SIGNATURE ELEMENT */}
-      <div className="relative h-12 rounded-md bg-gradient-to-r from-[#1C2840] via-[#2a3a52] to-[#1C2840] border border-accent/40 overflow-hidden shadow-lg">
+      <div className="relative h-12 rounded-lg bg-gradient-to-r from-[#1C2840] via-[#2a3a52] to-[#1C2840] border border-accent/40 overflow-hidden shadow-lg">
         {/* Gradient horizon line - amber to indigo, more prominent */}
         <motion.div
           className="absolute inset-x-0 top-5 h-1 bg-gradient-to-r from-transparent via-[#F2A65A] to-transparent"
