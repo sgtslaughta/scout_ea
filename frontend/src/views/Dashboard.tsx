@@ -103,7 +103,7 @@ export function DashboardView() {
 
   // Activity chart data
   const activityChartData = activity.map((a) => ({
-    name: a.skill.slice(0, 8),
+    name: a.skill,
     items: a.items_created || 0,
     status: a.status,
   }))
@@ -114,8 +114,8 @@ export function DashboardView() {
 
   // KPI cards
   const kpiCards = [
-    { label: 'Meetings', value: outlook?.deadlines.length || 0, color: 'accent' },
-    { label: 'Due Today', value: outlook?.tasks_due_today.length || 0, color: 'ok' },
+    { label: 'Proactive', value: outlook?.proactive?.length || 0, color: 'accent' },
+    { label: 'Due Today', value: outlook?.tasks_due_today?.length || 0, color: 'ok' },
     {
       label: 'Urgent (<24h)',
       value: deadlines.filter((d) => d.countdown_seconds < 86400).length,
@@ -210,10 +210,10 @@ export function DashboardView() {
                       Loading…
                     </div>
                   ) : activityChartData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <BarChart data={activityChartData}>
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={activityChartData} margin={{ bottom: 60 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                        <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={80} />
                         <YAxis tick={{ fontSize: 11 }} />
                         <Tooltip
                           contentStyle={{
