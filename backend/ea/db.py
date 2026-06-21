@@ -124,3 +124,31 @@ def set_deadline_visible(conn, deadline_id, visible) -> int:
     )
     conn.commit()
     return cur.rowcount
+
+
+# --- trend helpers ---------------------------------------------------------
+
+def upsert_trend(conn, term, kind, window_start, window_end,
+                 score=0, count=0, delta=None, sources=None, source_skill=None) -> int:
+    """Upsert a trend on (term, window_start). Returns the row id."""
+    conn.execute(
+        "INSERT INTO trends (term, kind, window_start, window_end, score, count, "
+        "delta, sources, source_skill) VALUES (?,?,?,?,?,?,?,?,?) "
+        "ON CONFLICT(term, window_start) DO UPDATE SET "
+        "score=excluded.score, count=excluded.count, delta=excluded.delta, "
+        "window_end=excluded.window_end, sources=excluded.sources",
+        (term, kind, window_start, window_end, score, count, delta, sources, source_skill),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id FROM trends WHERE term=? AND window_start=?", (term, window_start)
+    ).fetchone()
+    return row["id"]
+
+
+def list_trends(conn, window_start):
+    """Trends for a window, highest score first."""
+    return conn.execute(
+        "SELECT * FROM trends WHERE window_start=? ORDER BY score DESC, term ASC",
+        (window_start,),
+    ).fetchall()
