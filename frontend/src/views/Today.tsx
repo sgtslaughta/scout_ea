@@ -36,9 +36,18 @@ const MOCK_PROACTIVE = [
 ]
 
 const SEVERITY_COLORS = {
-  P1: { dot: 'bg-crit', badge: 'bg-crit/20 text-crit' },
-  P2: { dot: 'bg-warn', badge: 'bg-warn/20 text-warn' },
-  P3: { dot: 'bg-info', badge: 'bg-info/20 text-info' },
+  P1: { dot: 'bg-crit', badge: 'bg-crit/20 text-crit border border-crit/30' },
+  P2: { dot: 'bg-warn', badge: 'bg-warn/20 text-warn border border-warn/30' },
+  P3: { dot: 'bg-info', badge: 'bg-info/20 text-info border border-info/30' },
+}
+
+const SOURCE_BADGE_STYLE = (source: string) => {
+  if (source.includes('triage')) {
+    // Skill badge - amber tint
+    return 'bg-accent/15 text-accent border border-accent/30'
+  }
+  // Channel badge - muted/neutral
+  return 'bg-surface-2 text-muted border border-border'
 }
 
 const SOURCE_ICONS: Record<string, React.ReactNode> = {
@@ -69,8 +78,8 @@ export function TodayView() {
       className="p-6 bg-bg text-text"
     >
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-display font-semibold mb-2">
+      <div className="mb-8">
+        <h2 className="text-3xl font-display font-semibold mb-2 text-text">
           TODAY — {dayName} {dateStr}
         </h2>
         <div className="text-xs text-muted font-mono">
@@ -79,54 +88,54 @@ export function TodayView() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6 max-w-xs">
-        <div className="bg-surface border border-border rounded px-4 py-2">
-          <div className="text-xs text-muted font-mono mb-1">Meetings</div>
-          <div className="text-lg font-display font-semibold">3</div>
+      <div className="grid grid-cols-2 gap-4 mb-8 max-w-xs">
+        <div className="bg-surface border border-border rounded-md px-4 py-3">
+          <div className="text-xs text-muted font-mono mb-2 uppercase tracking-wide">Meetings</div>
+          <div className="text-xl font-display font-semibold text-text">3</div>
         </div>
-        <div className="bg-surface border border-border rounded px-4 py-2">
-          <div className="text-xs text-muted font-mono mb-1">Due Today</div>
-          <div className="text-lg font-display font-semibold">2</div>
+        <div className="bg-surface border border-border rounded-md px-4 py-3">
+          <div className="text-xs text-muted font-mono mb-2 uppercase tracking-wide">Due Today</div>
+          <div className="text-xl font-display font-semibold text-text">2</div>
         </div>
       </div>
 
       {/* Triaged Signals */}
       <div className="mb-8">
-        <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-3 text-muted">
+        <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-4 text-muted">
           Triaged Signals
         </h3>
-        <div className="space-y-2 max-w-xl">
+        <div className="space-y-2 max-w-2xl">
           {visibleSignals.map((signal, idx) => (
             <motion.div
               key={signal.id}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
-              className="flex items-center gap-3 bg-surface border border-border rounded px-3 py-2 hover:bg-surface-2 transition-colors"
+              className="flex items-center gap-3 bg-surface border border-border rounded-md px-4 py-3 hover:bg-surface-2 hover:border-border transition-colors group"
             >
               {/* Severity dot */}
               <div
-                className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                   SEVERITY_COLORS[signal.severity].dot
                 }`}
               />
 
               {/* Content */}
               <div className="flex-1 min-w-0">
-                <div className="text-sm text-text truncate">{signal.title}</div>
+                <div className="text-sm font-medium text-text truncate">{signal.title}</div>
                 <div className="text-xs text-muted font-mono">
                   {signal.timestamp}
                 </div>
               </div>
 
-              {/* Badge */}
+              {/* Badge - skill vs channel styling */}
               <div
-                className={`px-2 py-1 rounded text-xs font-mono flex items-center gap-1 flex-shrink-0 ${
-                  SEVERITY_COLORS[signal.severity].badge
+                className={`px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 flex-shrink-0 transition-colors ${
+                  SOURCE_BADGE_STYLE(signal.source)
                 }`}
               >
                 {SOURCE_ICONS[signal.source] || SOURCE_ICONS.default}
-                {signal.source}
+                <span>{signal.source}</span>
               </div>
 
               {/* Dismiss */}
@@ -134,7 +143,7 @@ export function TodayView() {
                 onClick={() =>
                   setDismissed((prev) => new Set([...prev, signal.id]))
                 }
-                className="w-5 h-5 flex items-center justify-center text-muted hover:text-text transition-colors flex-shrink-0"
+                className="w-5 h-5 flex items-center justify-center text-muted group-hover:text-text transition-colors flex-shrink-0"
                 aria-label={`Dismiss: ${signal.title}`}
               >
                 <X size={14} />
@@ -147,10 +156,10 @@ export function TodayView() {
       {/* Proactive Suggestions */}
       {MOCK_PROACTIVE.length > 0 && (
         <div className="mb-8">
-          <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-3 text-muted">
+          <h3 className="text-xs font-display font-semibold uppercase tracking-wide mb-4 text-muted">
             Proactive
           </h3>
-          <div className="space-y-2 max-w-xl">
+          <div className="space-y-2 max-w-2xl">
             {MOCK_PROACTIVE.map((item) => (
               !proactiveDismissed.has(item.id) && (
                 <motion.div
@@ -158,13 +167,13 @@ export function TodayView() {
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.15 }}
-                  className="flex items-center gap-3 bg-surface border border-border rounded px-3 py-2"
+                  className="flex items-center gap-4 bg-surface border border-border rounded-md px-4 py-3"
                 >
                   {/* Icon */}
-                  <AlertCircle size={16} className="text-accent flex-shrink-0" />
+                  <AlertCircle size={18} className="text-accent flex-shrink-0" />
 
                   {/* Text */}
-                  <div className="flex-1 text-sm text-text">{item.title}</div>
+                  <div className="flex-1 text-sm font-medium text-text">{item.title}</div>
 
                   {/* Actions */}
                   <div className="flex gap-2 flex-shrink-0">
@@ -172,7 +181,7 @@ export function TodayView() {
                       onClick={() =>
                         setProactiveDismissed((prev) => new Set([...prev, item.id]))
                       }
-                      className="px-2 py-1 text-xs bg-accent text-bg rounded hover:bg-accent/90 transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 text-xs font-medium bg-accent text-bg rounded-md hover:bg-accent/90 transition-colors flex items-center gap-1.5"
                       aria-label="Accept suggestion"
                     >
                       <Check size={12} />
@@ -182,7 +191,7 @@ export function TodayView() {
                       onClick={() =>
                         setProactiveDismissed((prev) => new Set([...prev, item.id]))
                       }
-                      className="px-2 py-1 text-xs border border-border text-muted rounded hover:border-text transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium border border-border text-muted rounded-md hover:border-text hover:text-text transition-colors"
                       aria-label="Dismiss suggestion"
                     >
                       Dismiss

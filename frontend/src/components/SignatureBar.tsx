@@ -19,8 +19,8 @@ export function SignatureBar() {
   const positionPercent = Math.max(0, Math.min(100, ((totalMinutes - workStart) / workDuration) * 100))
 
   return (
-    <div className="bg-surface border-b border-border px-6 py-3">
-      <div className="flex items-center justify-between gap-4 mb-3">
+    <div className="bg-surface border-b border-border px-6 py-4">
+      <div className="flex items-center justify-between gap-4 mb-4">
         <h1 className="text-2xl font-display font-semibold text-text">
           SCOUT
         </h1>
@@ -33,44 +33,44 @@ export function SignatureBar() {
         </div>
       </div>
 
-      {/* Day horizon strip (7am - 6pm) */}
-      <div className="relative h-8 rounded bg-gradient-to-r from-[#1C2840] via-[#2a3a52] to-[#1C2840] border border-border overflow-hidden">
-        {/* Gradient horizon line */}
+      {/* Day horizon strip (7am - 6pm) - SIGNATURE ELEMENT */}
+      <div className="relative h-12 rounded-md bg-gradient-to-r from-[#1C2840] via-[#2a3a52] to-[#1C2840] border border-accent/40 overflow-hidden shadow-lg">
+        {/* Gradient horizon line - amber to indigo, more prominent */}
         <motion.div
-          className="absolute inset-x-0 top-4 h-px bg-gradient-to-r from-transparent via-accent to-transparent"
+          className="absolute inset-x-0 top-5 h-1 bg-gradient-to-r from-transparent via-[#F2A65A] to-transparent"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 1.5, ease: 'easeInOut' }}
           style={{ originX: 0 }}
         />
 
-        {/* Now marker (triangle pointing down) */}
+        {/* Now marker (triangle pointing down) with glow */}
         <motion.div
-          className="absolute top-2 w-4 h-4 transform -translate-x-1/2"
+          className="absolute top-0.5 w-5 h-6 transform -translate-x-1/2"
           style={{ left: `${positionPercent}%` }}
-          animate={{ opacity: [0.6, 1, 0.6] }}
+          animate={{ opacity: [0.8, 1, 0.8] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          <div className="w-0 h-0 border-l-2 border-r-2 border-t-4 border-l-transparent border-r-transparent border-t-accent" />
+          <div className="w-0 h-0 border-l-2.5 border-r-2.5 border-t-6 border-l-transparent border-r-transparent border-t-[#F2A65A] drop-shadow-lg filter drop-shadow-[0_0_4px_rgba(242,166,90,0.6)]" />
         </motion.div>
 
-        {/* Hour ticks and event markers (simplified) */}
+        {/* Hour ticks */}
         <div className="absolute inset-0 flex">
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="flex-1 flex items-end justify-center pb-1"
+              className="flex-1 flex items-end justify-center pb-2"
             >
-              <div className="w-px h-1 bg-muted opacity-40" />
+              <div className="w-px h-2 bg-accent opacity-60" />
             </div>
           ))}
         </div>
 
         {/* Time labels */}
-        <div className="absolute inset-0 flex px-2 text-[9px] text-muted font-mono select-none">
-          <div className="flex-1 flex items-center">7am</div>
-          <div className="flex-1 flex items-center justify-center">12pm</div>
-          <div className="flex-1 flex items-center justify-end">6pm</div>
+        <div className="absolute inset-0 flex px-3 text-[11px] text-text font-mono select-none font-medium items-center">
+          <div className="flex-1">7am</div>
+          <div className="flex-1 text-center">12pm</div>
+          <div className="flex-1 text-right">6pm</div>
         </div>
       </div>
     </div>
