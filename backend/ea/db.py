@@ -5,6 +5,7 @@ from pathlib import Path
 
 DEFAULT_SCHEMA = Path(__file__).with_name("schema.sql")
 DEFAULT_SEED = Path(__file__).with_name("seed.sql")
+DEFAULT_FEATURES = Path(__file__).with_name("features.sql")
 
 
 def get_conn(db_path) -> sqlite3.Connection:
@@ -20,6 +21,7 @@ def init_db(db_path, schema_path=DEFAULT_SCHEMA, seed_path=None) -> sqlite3.Conn
     """Create a connection and apply schema (+ optional seed). Idempotent."""
     conn = get_conn(db_path)
     conn.executescript(Path(schema_path).read_text())
+    conn.executescript(Path(DEFAULT_FEATURES).read_text())
     if seed_path is not None:
         conn.executescript(Path(seed_path).read_text())
     conn.commit()
