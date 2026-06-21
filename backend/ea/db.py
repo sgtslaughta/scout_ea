@@ -349,3 +349,27 @@ def deactivate_topic(conn: sqlite3.Connection, topic_id: int) -> int:
     cur = conn.execute("UPDATE topics SET active=0 WHERE id=?", (topic_id,))
     conn.commit()
     return cur.rowcount
+
+
+# --- push subscription helpers ---------------------------------------------
+
+def add_subscription(conn: sqlite3.Connection, endpoint: str, p256dh: str, auth: str) -> int:
+    """Add or update a push subscription. Returns rowcount (1 upserted)."""
+    cur = conn.execute(
+        "INSERT INTO push_subscriptions (endpoint, p256dh, auth) VALUES (?,?,?) "
+        "ON CONFLICT(endpoint) DO UPDATE SET p256dh=excluded.p256dh, auth=excluded.auth",
+        (endpoint, p256dh, auth))
+    conn.commit()
+    return cur.rowcount
+
+
+def list_subscriptions(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Return all push subscriptions."""
+    return conn.execute("SELECT * FROM push_subscriptions").fetchall()
+
+
+def delete_subscription(conn: sqlite3.Connection, endpoint: str) -> int:
+    """Delete a push subscription by endpoint. Returns rows affected."""
+    cur = conn.execute("DELETE FROM push_subscriptions WHERE endpoint=?", (endpoint,))
+    conn.commit()
+    return cur.rowcount

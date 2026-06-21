@@ -64,6 +64,11 @@ class TopicPatch(BaseModel):
     max_suggest: int | None = None
 
 
+class SubscribeBody(BaseModel):
+    endpoint: str
+    keys: dict
+
+
 def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
@@ -269,6 +274,27 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="topic not found")
         return {"deactivated": n}
+
+    @app.get("/api/push/vapid-key")
+    def vapid_key(conn=Depends(get_db)):
+        from lib import push
+        pub, _ = push.ensure_vapid(conn)
+        return {"publicKey": pub}
+
+    @app.post("/api/push/subscribe")
+    def subscribe(body: SubscribeBody, conn=Depends(get_db)):
+        db.add_subscription(conn, body.endpoint, body.keys.get("p256dh", ""), body.keys.get("auth", ""))
+        return {"ok": True}
+
+    @app.post("/api/push/unsubscribe")
+    def unsubscribe(body: SubscribeBody, conn=Depends(get_db)):
+        n = db.delete_subscription(conn, body.endpoint)
+        return {"removed": n}
+
+    @app.post("/api/push/test")
+    def push_test(conn=Depends(get_db)):
+        from lib import push
+        return {"sent": push.send_push(conn, "Scout EA", "Test notification")}
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

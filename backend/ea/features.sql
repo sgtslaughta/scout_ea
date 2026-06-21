@@ -56,6 +56,14 @@ BEGIN UPDATE critical_deadlines SET updated_at = datetime('now') WHERE id = NEW.
 CREATE TRIGGER IF NOT EXISTS trg_trends_touch AFTER UPDATE ON trends
 BEGIN UPDATE trends SET updated_at = datetime('now') WHERE id = NEW.id; END;
 
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+    id         INTEGER PRIMARY KEY,
+    endpoint   TEXT NOT NULL UNIQUE,
+    p256dh     TEXT NOT NULL,
+    auth       TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 INSERT OR IGNORE INTO config(key, value) VALUES
   ('deadlines_visible_global', '1'),
   ('outlook_send_time',        '07:00'),
