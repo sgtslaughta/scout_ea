@@ -12,6 +12,7 @@ WORKDIR /app
 COPY backend/ ./
 RUN pip install --no-cache-dir -e .
 COPY --from=builder /fe/dist ./frontend_dist
+COPY skills /app/skills
 
 EXPOSE 8765 8766
 
