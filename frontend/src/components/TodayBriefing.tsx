@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, AlertCircle } from 'lucide-react'
@@ -10,6 +11,8 @@ interface TodayBriefingProps {
 }
 
 export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
   const { data: outlook, isLoading: outlookLoading } = useQuery({
     queryKey: ['outlook'],
     queryFn: getOutlook,
@@ -25,6 +28,28 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const regularSignals = triageSignals.filter(s => s.type !== 'proactive')
   const proactiveSignals = outlook?.proactive || []
   const tasksToday = outlook?.tasks_due_today || []
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!open) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
+
+  // Focus close button when modal opens
+  useEffect(() => {
+    if (open && closeButtonRef.current) {
+      closeButtonRef.current.focus()
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -49,6 +74,7 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
           >
             {/* Close button */}
             <button
+              ref={closeButtonRef}
               onClick={onClose}
               className="absolute top-4 right-4 text-muted hover:text-text transition-colors"
               aria-label="Close briefing"

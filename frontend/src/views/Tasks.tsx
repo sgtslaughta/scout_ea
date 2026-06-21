@@ -85,7 +85,7 @@ export function TasksView() {
           </div>
         ) : filteredTasks.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No tasks yet.
+            No tasks yet. Create one to get started.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">

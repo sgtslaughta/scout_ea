@@ -126,10 +126,11 @@ export function DeadlinesView() {
           <div className="bg-surface border border-border rounded-lg p-4">
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="deadline-title" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Title
                 </label>
                 <input
+                  id="deadline-title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -138,10 +139,11 @@ export function DeadlinesView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="deadline-dueAt" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Due Date & Time
                 </label>
                 <input
+                  id="deadline-dueAt"
                   type="datetime-local"
                   value={dueAt}
                   onChange={(e) => setDueAt(e.target.value)}
@@ -149,10 +151,11 @@ export function DeadlinesView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="deadline-detail" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Details (optional)
                 </label>
                 <textarea
+                  id="deadline-detail"
                   value={detail}
                   onChange={(e) => setDetail(e.target.value)}
                   placeholder="Additional details"
@@ -196,7 +199,7 @@ export function DeadlinesView() {
           </div>
         ) : deadlines.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No deadlines. {!globalEnabled && 'Enable the toggle above to see all.'}
+            No deadlines yet. {!globalEnabled && 'Enable the toggle above to see all.'}
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">

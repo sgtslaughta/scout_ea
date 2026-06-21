@@ -114,10 +114,11 @@ export function PeopleView() {
           <div className="bg-surface border border-border rounded-lg p-4">
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="people-name" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Name *
                 </label>
                 <input
+                  id="people-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -126,10 +127,11 @@ export function PeopleView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="people-role" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Role (optional)
                 </label>
                 <input
+                  id="people-role"
                   type="text"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
@@ -138,10 +140,11 @@ export function PeopleView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="people-org" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Organization (optional)
                 </label>
                 <input
+                  id="people-org"
                   type="text"
                   value={formData.org}
                   onChange={(e) => setFormData({ ...formData, org: e.target.value })}
@@ -150,10 +153,11 @@ export function PeopleView() {
                 />
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="people-importance" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Importance
                 </label>
                 <select
+                  id="people-importance"
                   value={formData.importance}
                   onChange={(e) => setFormData({ ...formData, importance: Number(e.target.value) })}
                   className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
@@ -166,10 +170,11 @@ export function PeopleView() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs uppercase tracking-wider text-muted mb-2">
+                <label htmlFor="people-notes" className="block text-xs uppercase tracking-wider text-muted mb-2">
                   Notes (optional)
                 </label>
                 <textarea
+                  id="people-notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   placeholder="Additional notes"
@@ -215,7 +220,7 @@ export function PeopleView() {
           </div>
         ) : people.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No people yet.
+            No people yet. Add one above to get started.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">
