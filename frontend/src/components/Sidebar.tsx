@@ -7,11 +7,11 @@ import {
   TrendingUp,
   AlertCircle,
   FileText,
-  Sun,
+  Grid3x3,
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
-  { id: 'today', icon: Sun, label: 'Today', active: true },
+  { id: 'dashboard', icon: Grid3x3, label: 'Dashboard', active: true },
   { id: 'inbox', icon: Inbox, label: 'Inbox' },
   { id: 'tasks', icon: CheckSquare, label: 'Tasks' },
   { id: 'calendar', icon: Calendar, label: 'Calendar' },

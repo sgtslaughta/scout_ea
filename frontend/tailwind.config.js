@@ -7,6 +7,9 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        lg: '1100px',
+      },
       colors: {
         bg: "var(--color-bg)",
         surface: "var(--color-surface)",

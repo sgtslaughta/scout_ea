@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Sidebar } from '@/components/Sidebar'
 import { SignatureBar } from '@/components/SignatureBar'
-import { TodayView } from '@/views/Today'
+import { DashboardView } from '@/views/Dashboard'
+import { TodayBriefing } from '@/components/TodayBriefing'
 import { DeadlinesView } from '@/views/Deadlines'
 import { TrendingView } from '@/views/Trending'
 import { DocsView } from '@/views/Docs'
@@ -14,8 +15,9 @@ import './App.css'
 
 export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(false)
-  const [activeView, setActiveView] = useState('today')
+  const [activeView, setActiveView] = useState('dashboard')
   const [commandOpen, setCommandOpen] = useState(false)
+  const [briefingOpen, setBriefingOpen] = useState(false)
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -23,6 +25,12 @@ export function App() {
     const stored = localStorage.getItem('ea-accent')
     if (stored) {
       document.documentElement.style.setProperty('--color-accent', stored)
+    }
+    // Auto-open today's briefing once per day
+    const today = new Date().toISOString().split('T')[0]
+    if (localStorage.getItem('ea-briefing-shown') !== today) {
+      setBriefingOpen(true)
+      localStorage.setItem('ea-briefing-shown', today)
     }
   }, [])
 
@@ -40,6 +48,8 @@ export function App() {
 
   const renderView = () => {
     switch (activeView) {
+      case 'dashboard':
+        return <DashboardView />
       case 'deadlines':
         return <DeadlinesView />
       case 'trending':
@@ -53,7 +63,7 @@ export function App() {
       case 'calendar':
         return <ComingSoonView title={activeView.charAt(0).toUpperCase() + activeView.slice(1)} />
       default:
-        return <TodayView />
+        return <DashboardView />
     }
   }
 
@@ -62,7 +72,7 @@ export function App() {
   }
 
   return (
-    <div className="flex h-screen bg-bg text-text overflow-hidden">
+    <div className="w-full h-screen flex bg-bg text-text overflow-hidden">
       {/* Command palette overlay */}
       <CommandPalette
         open={commandOpen}
@@ -71,21 +81,26 @@ export function App() {
         onRefresh={handleRefresh}
       />
 
+      {/* Briefing modal */}
+      <TodayBriefing open={briefingOpen} onClose={() => setBriefingOpen(false)} />
+
       {/* Left Sidebar - 56px */}
       <Sidebar collapsed={collapsedSidebar} onToggle={setCollapsedSidebar} activeView={activeView} onViewChange={setActiveView} />
 
       {/* Center column - flex-1 with flex flex-col min-w-0 */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top signature bar - 48px tall */}
-        <SignatureBar onCommandOpen={() => setCommandOpen(true)} />
+        <SignatureBar onCommandOpen={() => setCommandOpen(true)} onOpenBriefing={() => setBriefingOpen(true)} />
 
         {/* Main content + right drawer */}
         <div className="flex flex-1 overflow-hidden">
           {/* Main view - flex-1 */}
           {renderView()}
 
-          {/* Right drawer - fixed w-[300px] */}
-          <RightDrawer />
+          {/* Right drawer - hidden below 1100px, fixed w-[300px] on desktop */}
+          <div className="hidden lg:flex">
+            <RightDrawer />
+          </div>
         </div>
       </div>
     </div>
