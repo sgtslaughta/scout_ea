@@ -24,3 +24,49 @@ def init_db(db_path, schema_path=DEFAULT_SCHEMA, seed_path=None) -> sqlite3.Conn
         conn.executescript(Path(seed_path).read_text())
     conn.commit()
     return conn
+
+
+# --- data primitives -------------------------------------------------------
+
+_STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning"}
+
+
+def upsert_signal(conn, **fields) -> int:
+    """Insert a signal, deduping on external_ref. Returns rowcount (1 new, 0 dup)."""
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO signals ({cols}) VALUES ({placeholders}) "
+        "ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def list_signals(conn, status=None):
+    """Return signal rows (newest first), optionally filtered by status."""
+    if status is None:
+        return conn.execute(
+            "SELECT * FROM signals ORDER BY created_at DESC, id DESC"
+        ).fetchall()
+    return conn.execute(
+        "SELECT * FROM signals WHERE status = ? ORDER BY created_at DESC, id DESC",
+        (status,),
+    ).fetchall()
+
+
+def update_status(conn, table, row_id, status) -> int:
+    """Set status on a whitelisted table's row. Returns rows affected."""
+    if table not in _STATUS_TABLES:
+        raise ValueError(f"status updates not allowed on table {table!r}")
+    cur = conn.execute(
+        f"UPDATE {table} SET status = ? WHERE id = ?", (status, row_id)
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def data_version(conn) -> int:
+    """PRAGMA data_version — changes when another connection commits a write."""
+    return conn.execute("PRAGMA data_version").fetchone()[0]
