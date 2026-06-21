@@ -32,14 +32,21 @@ def init_db(db_path, schema_path=DEFAULT_SCHEMA, seed_path=None) -> sqlite3.Conn
 
 _STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning"}
 
+_SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summary",
+                "who", "what", "when_rel", "why", "url", "person_id", "topic_id",
+                "priority", "triage_rank", "status", "occurred_at"}
+
 
 def upsert_signal(conn, **fields) -> int:
     """Insert a signal, deduping on external_ref. Returns rowcount (1 new, 0 dup).
 
-    Requires 'external_ref' in fields — dedup engages on it. Raises ValueError if absent.
+    Requires 'external_ref' in fields. Column names validated against _SIGNAL_COLS.
     """
     if "external_ref" not in fields:
         raise ValueError("upsert_signal requires 'external_ref' in fields")
+    bad = set(fields) - _SIGNAL_COLS
+    if bad:
+        raise ValueError(f"unknown signal columns: {bad}")
     cols = ", ".join(fields)
     placeholders = ", ".join("?" for _ in fields)
     cur = conn.execute(
@@ -81,13 +88,20 @@ def data_version(conn) -> int:
 
 # --- deadline helpers ------------------------------------------------------
 
+_DEADLINE_COLS = {"title", "detail", "due_at", "source", "source_skill", "external_ref",
+                  "person_id", "signal_id", "priority", "visible", "status"}
+
+
 def add_deadline(conn, **fields) -> int:
     """Insert a critical deadline, deduping on external_ref. Returns rowcount.
 
-    Requires 'external_ref' in fields (manual entries use 'manual:<uuid>').
+    Requires 'external_ref'. Column names validated against _DEADLINE_COLS.
     """
     if "external_ref" not in fields:
         raise ValueError("add_deadline requires 'external_ref' in fields")
+    bad = set(fields) - _DEADLINE_COLS
+    if bad:
+        raise ValueError(f"unknown deadline columns: {bad}")
     cols = ", ".join(fields)
     placeholders = ", ".join("?" for _ in fields)
     cur = conn.execute(
@@ -177,8 +191,15 @@ def latest_trend_window(conn):
     return row["w"] if row and row["w"] is not None else None
 
 
+_TASK_COLS = {"title", "detail", "due_at", "priority", "status",
+              "person_id", "source_signal_id"}
+
+
 def add_task(conn, **fields) -> int:
-    """Insert a task row; returns the new id."""
+    """Insert a task row; returns the new id. Columns validated against _TASK_COLS."""
+    bad = set(fields) - _TASK_COLS
+    if bad:
+        raise ValueError(f"unknown task columns: {bad}")
     cols = ", ".join(fields)
     placeholders = ", ".join("?" for _ in fields)
     cur = conn.execute(
