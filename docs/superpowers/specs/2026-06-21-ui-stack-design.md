@@ -37,7 +37,7 @@ Docs section**.
 | Command palette | **cmdk** | ⌘K nav + quick actions. |
 | Motion | **Framer Motion**, used with restraint | One orchestrated welcome + micro-interactions only (see §4.4). |
 | Backend (web) | **FastAPI + uvicorn**, SSE for live updates | Async, typed, serves the browser. |
-| Backend (agent) | **MCP server** (Python) | Skills call it to add/read/remove `EA_DB` rows + trigger M365 actions. |
+| Backend (agent) | **MCP server** (Python), **HTTP transport on a container port** | Skills call it to add/read/remove `EA_DB` rows + trigger M365 actions. Port-based so Scout (running outside the container) can reach it. |
 | DB | **SQLite (`EA_DB`)**, WAL | Unchanged from base spec. |
 | Container | **Multi-stage Docker, Alpine runtime** | Node stage builds static assets; Python/Alpine runtime serves API + MCP + static. |
 
@@ -65,6 +65,11 @@ Docs section**.
 
 - **One DB, two doors.** Browser never speaks MCP; skills never speak HTTP. WAL allows
   concurrent reads while either writes — same `PRAGMA data_version` trick drives live updates.
+- **MCP transport: HTTP on a published container port** (decided). Scout runs *outside* the
+  container, so the MCP server listens on its own port (separate from the web API port), mapped
+  out via `docker compose`. Bound to `127.0.0.1:<mcp_port>` on the host (loopback only) — local
+  single-user, never the LAN. A shared bearer token (from the secret vault) gates MCP calls so
+  only Scout can reach it.
 - **MCP server tools** (sketch, finalize at build): `ea.add_signal`, `ea.list(table,filter)`,
   `ea.update_status`, `ea.add_deadline`, `ea.upsert_trend`, `ea.run_skill_log`, plus
   **M365 passthrough** — the MCP server brokers calls to the external **Microsoft/M365 MCP**
@@ -248,8 +253,11 @@ copies skills straight into MS Scout.
   spec), copies built assets, runs uvicorn (serves `/api`, `/events`, static) + the MCP server.
 - **Volumes:** `EA_DB` sqlite file + token vault on a mounted volume (persist across restarts).
 - **Runtime secrets:** M365 client creds + vault key injected via env / mounted secret.
+- **Ports:** web API + static on one published port (`127.0.0.1:<web_port>`); **MCP server on a
+  separate published port** (`127.0.0.1:<mcp_port>`), both loopback-only. MCP gated by a bearer
+  token from the vault.
 - **One `docker compose up`** brings up the app; Scout runs externally and reaches the MCP
-  server (stdio or container port, decided at build).
+  server over its host-mapped port.
 
 ---
 
