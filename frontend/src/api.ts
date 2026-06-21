@@ -73,3 +73,25 @@ export const getSignals = (status?: string) => {
   const qs = status ? `?status=${encodeURIComponent(status)}` : ''
   return fetchJson<Signal[]>(`/api/signals${qs}`)
 }
+
+async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
+  return res.json()
+}
+
+export const addDeadline = (title: string, due_at: string, detail?: string) =>
+  postJson<{ id: number }>('/api/deadlines', { title, due_at, detail })
+
+export const setDeadlineVisible = (id: number, visible: boolean) =>
+  postJson<{ updated: number }>(`/api/deadlines/${id}/visible`, { visible })
+
+export const setConfig = (key: string, value: string) =>
+  postJson<{ key: string; value: string }>(`/api/config/${key}`, { value })
+
+export const setSignalStatus = (table: string, id: number, status: string) =>
+  postJson<{ updated: number }>(`/api/${table}/${id}/status`, { status })
