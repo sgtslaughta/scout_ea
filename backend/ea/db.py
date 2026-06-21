@@ -191,6 +191,28 @@ def latest_trend_window(conn):
     return row["w"] if row and row["w"] is not None else None
 
 
+_FINDING_COLS = {"trend_id", "topic_id", "title", "synopsis", "url",
+                 "source", "source_skill", "external_ref", "relevance"}
+
+
+def add_trend_finding(conn, **fields) -> int:
+    """Insert a trend finding, deduping on external_ref (the URL). Returns rowcount."""
+    if "external_ref" not in fields:
+        raise ValueError("add_trend_finding requires 'external_ref' in fields")
+    bad = set(fields) - _FINDING_COLS
+    if bad:
+        raise ValueError(f"unknown trend_finding columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO trend_findings ({cols}) VALUES ({placeholders}) "
+        "ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
 _TASK_COLS = {"title", "detail", "due_at", "priority", "status",
               "person_id", "source_signal_id"}
 

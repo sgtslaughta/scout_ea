@@ -43,3 +43,14 @@ def list_table(conn, table, status=None):
         return [dict(r) for r in conn.execute(sql, (status,)).fetchall()]
     sql = f"SELECT * FROM {table} ORDER BY {order}"
     return [dict(r) for r in conn.execute(sql).fetchall()]
+
+
+def upsert_trend(conn, term, kind, window_start, window_end, score=0, count=0,
+                 delta=None, source_skill=None) -> int:
+    return db.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
+                           window_end=window_end, score=score, count=count,
+                           delta=delta, source_skill=source_skill)
+
+
+def add_trend_finding(conn, **fields) -> int:
+    return db.add_trend_finding(conn, **fields)

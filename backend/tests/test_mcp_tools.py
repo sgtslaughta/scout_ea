@@ -31,3 +31,11 @@ def test_update_status_and_helpers(tmp_path):
                              source="manual", external_ref="manual:x")
     assert did == 1
     assert tools.log_skill_run(conn, "triage_email", items_created=1) >= 1
+
+
+def test_trend_tools(tmp_path):
+    conn = _conn(tmp_path)
+    rid = tools.upsert_trend(conn, "ai", "topic", "2026-06-14", "2026-06-21", score=2.0)
+    assert rid >= 1
+    assert tools.add_trend_finding(conn, title="P", url="http://x",
+                                   external_ref="http://x", source="web") == 1
