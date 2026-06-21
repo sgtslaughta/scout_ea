@@ -1,6 +1,7 @@
 """FastAPI app over EA_DB — browser-facing surface."""
 from __future__ import annotations
 import json
+import sqlite3
 import uuid
 from pathlib import Path
 from datetime import datetime, timezone
@@ -31,6 +32,36 @@ class VisibleBody(BaseModel):
 
 class ConfigBody(BaseModel):
     value: str
+
+
+class PersonBody(BaseModel):
+    name: str
+    role: str | None = None
+    org: str | None = None
+    importance: int = 3
+    notes: str | None = None
+
+
+class PersonPatch(BaseModel):
+    name: str | None = None
+    role: str | None = None
+    org: str | None = None
+    importance: int | None = None
+    notes: str | None = None
+
+
+class TopicBody(BaseModel):
+    name: str
+    description: str | None = None
+    priority: int = 3
+    max_suggest: int = 5
+
+
+class TopicPatch(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    priority: int | None = None
+    max_suggest: int | None = None
 
 
 def _rows(conn, sql, params=()):
@@ -177,6 +208,67 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     @app.get("/api/skills")
     def get_skills():
         return _skills.list_skills(skills_dir) if skills_dir else []
+
+    @app.get("/api/people")
+    def list_people(include_inactive: bool = False, conn=Depends(get_db)):
+        return [dict(r) for r in db.list_people(conn, include_inactive=include_inactive)]
+
+    @app.post("/api/people")
+    def create_person(body: PersonBody, conn=Depends(get_db)):
+        pid = db.add_person(conn, **body.model_dump(exclude_none=True))
+        return {"id": pid}
+
+    @app.patch("/api/people/{person_id}")
+    def update_person_endpoint(person_id: int, body: PersonPatch, conn=Depends(get_db)):
+        fields = body.model_dump(exclude_none=True)
+        if not fields:
+            return {"updated": 0}
+        try:
+            n = db.update_person(conn, person_id, **fields)
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="update failed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="person not found")
+        return {"updated": n}
+
+    @app.delete("/api/people/{person_id}")
+    def delete_person_endpoint(person_id: int, conn=Depends(get_db)):
+        n = db.deactivate_person(conn, person_id)
+        if n == 0:
+            raise HTTPException(status_code=404, detail="person not found")
+        return {"deactivated": n}
+
+    @app.get("/api/topics")
+    def list_topics(include_inactive: bool = False, conn=Depends(get_db)):
+        return [dict(r) for r in db.list_topics(conn, include_inactive=include_inactive)]
+
+    @app.post("/api/topics")
+    def create_topic(body: TopicBody, conn=Depends(get_db)):
+        try:
+            tid = db.add_topic(conn, **body.model_dump(exclude_none=True))
+        except sqlite3.IntegrityError:
+            raise HTTPException(status_code=409, detail="topic name must be unique")
+        return {"id": tid}
+
+    @app.patch("/api/topics/{topic_id}")
+    def update_topic_endpoint(topic_id: int, body: TopicPatch, conn=Depends(get_db)):
+        fields = body.model_dump(exclude_none=True)
+        if not fields:
+            return {"updated": 0}
+        try:
+            n = db.update_topic(conn, topic_id, **fields)
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="update failed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="topic not found")
+        return {"updated": n}
+
+    @app.delete("/api/topics/{topic_id}")
+    def delete_topic_endpoint(topic_id: int, conn=Depends(get_db)):
+        n = db.deactivate_topic(conn, topic_id)
+        if n == 0:
+            raise HTTPException(status_code=404, detail="topic not found")
+        return {"deactivated": n}
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

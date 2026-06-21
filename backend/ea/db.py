@@ -257,3 +257,95 @@ def list_skill_runs(conn, limit=20):
         "SELECT * FROM skill_runs ORDER BY ran_at DESC, id DESC LIMIT ?",
         (int(limit),),
     ).fetchall()
+
+
+# --- people helpers --------------------------------------------------------
+
+_PERSON_COLS = {"name", "role", "org", "importance", "notes", "active"}
+
+
+def list_people(conn: sqlite3.Connection, include_inactive: bool = False) -> list[sqlite3.Row]:
+    """Return people sorted by importance, name. Excludes inactive by default."""
+    if include_inactive:
+        return conn.execute("SELECT * FROM people ORDER BY importance, name").fetchall()
+    return conn.execute("SELECT * FROM people WHERE active=1 ORDER BY importance, name").fetchall()
+
+
+def add_person(conn: sqlite3.Connection, **fields) -> int:
+    """Insert a person row; returns the new id. Columns validated against _PERSON_COLS."""
+    bad = set(fields) - _PERSON_COLS
+    if bad:
+        raise ValueError(f"unknown person columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO people ({cols}) VALUES ({placeholders})", list(fields.values())
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_person(conn: sqlite3.Connection, person_id: int, **fields) -> int:
+    """Update a person row. Returns rows affected. Columns validated against _PERSON_COLS."""
+    bad = set(fields) - _PERSON_COLS
+    if bad:
+        raise ValueError(f"unknown person columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(f"UPDATE people SET {sets} WHERE id=?", [*fields.values(), person_id])
+    conn.commit()
+    return cur.rowcount
+
+
+def deactivate_person(conn: sqlite3.Connection, person_id: int) -> int:
+    """Soft-delete a person by setting active=0. Returns rows affected."""
+    cur = conn.execute("UPDATE people SET active=0 WHERE id=?", (person_id,))
+    conn.commit()
+    return cur.rowcount
+
+
+# --- topics helpers --------------------------------------------------------
+
+_TOPIC_COLS = {"name", "description", "priority", "max_suggest", "active"}
+
+
+def list_topics(conn: sqlite3.Connection, include_inactive: bool = False) -> list[sqlite3.Row]:
+    """Return topics sorted by priority, name. Excludes inactive by default."""
+    if include_inactive:
+        return conn.execute("SELECT * FROM topics ORDER BY priority, name").fetchall()
+    return conn.execute("SELECT * FROM topics WHERE active=1 ORDER BY priority, name").fetchall()
+
+
+def add_topic(conn: sqlite3.Connection, **fields) -> int:
+    """Insert a topic row; returns the new id. Columns validated against _TOPIC_COLS."""
+    bad = set(fields) - _TOPIC_COLS
+    if bad:
+        raise ValueError(f"unknown topic columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO topics ({cols}) VALUES ({placeholders})", list(fields.values())
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_topic(conn: sqlite3.Connection, topic_id: int, **fields) -> int:
+    """Update a topic row. Returns rows affected. Columns validated against _TOPIC_COLS."""
+    bad = set(fields) - _TOPIC_COLS
+    if bad:
+        raise ValueError(f"unknown topic columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(f"UPDATE topics SET {sets} WHERE id=?", [*fields.values(), topic_id])
+    conn.commit()
+    return cur.rowcount
+
+
+def deactivate_topic(conn: sqlite3.Connection, topic_id: int) -> int:
+    """Soft-delete a topic by setting active=0. Returns rows affected."""
+    cur = conn.execute("UPDATE topics SET active=0 WHERE id=?", (topic_id,))
+    conn.commit()
+    return cur.rowcount
