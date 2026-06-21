@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 
-export function SignatureBar() {
+interface SignatureBarProps {
+  onCommandOpen?: () => void
+}
+
+export function SignatureBar({ onCommandOpen }: SignatureBarProps) {
   const [time, setTime] = useState(new Date())
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
 
@@ -67,7 +71,13 @@ export function SignatureBar() {
         ))}
       </div>
       <span className="ml-4 text-muted text-xs font-mono">last ran 14:32</span>
-      <span className="ml-3 text-muted text-xs border border-border rounded px-1.5 py-0.5">⌘K</span>
+      <button
+        onClick={onCommandOpen}
+        className="ml-3 text-muted text-xs border border-border rounded px-1.5 py-0.5 hover:border-accent hover:text-accent transition-colors cursor-pointer"
+        title="Open command palette"
+      >
+        ⌘K
+      </button>
     </div>
   )
 }

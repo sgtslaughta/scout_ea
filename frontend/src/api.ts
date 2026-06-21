@@ -46,6 +46,13 @@ export interface Task {
   priority: number
 }
 
+export interface Skill {
+  name: string
+  description: string
+  schedule?: string
+  body: string
+}
+
 export interface OutlookResponse {
   date: string
   deadlines: Deadline[]
@@ -68,6 +75,8 @@ export const getTrends = (windowStart?: string) => {
   const qs = windowStart ? `?window_start=${encodeURIComponent(windowStart)}` : ''
   return fetchJson<Trend[]>(`/api/trends${qs}`)
 }
+
+export const getSkills = () => fetchJson<Skill[]>('/api/skills')
 
 export const getSignals = (status?: string) => {
   const qs = status ? `?status=${encodeURIComponent(status)}` : ''
