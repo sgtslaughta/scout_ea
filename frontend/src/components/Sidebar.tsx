@@ -8,6 +8,8 @@ import {
   AlertCircle,
   FileText,
   Grid3x3,
+  Users,
+  Hash,
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
@@ -17,6 +19,8 @@ const SIDEBAR_ITEMS = [
   { id: 'calendar', icon: Calendar, label: 'Calendar' },
   { id: 'trending', icon: TrendingUp, label: 'Trending' },
   { id: 'deadlines', icon: AlertCircle, label: 'Deadlines' },
+  { id: 'people', icon: Users, label: 'People' },
+  { id: 'topics', icon: Hash, label: 'Topics' },
   { id: 'docs', icon: FileText, label: 'Docs' },
   { id: 'settings', icon: Cog, label: 'Settings' },
 ]
