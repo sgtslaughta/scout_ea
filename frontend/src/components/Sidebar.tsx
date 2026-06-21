@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   Calendar,
   CheckSquare,
@@ -25,10 +24,11 @@ const SIDEBAR_ITEMS = [
 interface SidebarProps {
   collapsed: boolean
   onToggle: (collapsed: boolean) => void
+  activeView: string
+  onViewChange: (view: string) => void
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-  const [activeItem, setActiveItem] = useState('today')
+export function Sidebar({ collapsed, onToggle, activeView, onViewChange }: SidebarProps) {
 
   return (
     <div
@@ -53,18 +53,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {SIDEBAR_ITEMS.map((item) => (
           <button
             key={item.id}
-            onClick={() => setActiveItem(item.id)}
+            onClick={() => onViewChange(item.id)}
             className={`h-11 w-11 flex items-center justify-center rounded-md transition-all relative group ${
-              activeItem === item.id
+              activeView === item.id
                 ? 'text-accent'
                 : 'text-muted hover:bg-surface-2 hover:text-text'
             }`}
             title={item.label}
             aria-label={item.label}
-            aria-current={activeItem === item.id ? 'page' : undefined}
+            aria-current={activeView === item.id ? 'page' : undefined}
           >
             <item.icon size={20} />
-            {activeItem === item.id && (
+            {activeView === item.id && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
             )}
 

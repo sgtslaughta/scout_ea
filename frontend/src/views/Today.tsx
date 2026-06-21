@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Check, X, AlertCircle, Mail, Zap } from 'lucide-react'
-import { getOutlook, getSignals } from '@/api'
+import { getOutlook, getSignals, setSignalStatus } from '@/api'
+import { toast } from 'sonner'
 
 const SOURCE_BADGE_STYLE = (source: string) => {
   if (source.includes('triage')) {
@@ -24,6 +25,7 @@ const severityFromPriority = (priority: number): 'P1' | 'P2' | 'P3' => {
 }
 
 export function TodayView() {
+  const queryClient = useQueryClient()
   const { data: outlook, isLoading: outlookLoading, error: outlookError } = useQuery({
     queryKey: ['outlook'],
     queryFn: getOutlook,
@@ -37,6 +39,24 @@ export function TodayView() {
 
   const [dismissed, setDismissed] = useState(new Set<string>())
   const [proactiveDismissed, setProactiveDismissed] = useState(new Set<string>())
+
+  const dismissMutation = useMutation({
+    mutationFn: (id: number) => setSignalStatus('signals', id, 'dismissed'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['signals'] }),
+  })
+
+  const acceptMutation = useMutation({
+    mutationFn: (id: number) => setSignalStatus('signals', id, 'actioned'),
+    onSuccess: () => {
+      toast.success('Suggestion accepted')
+      queryClient.invalidateQueries({ queryKey: ['outlook'] })
+    },
+  })
+
+  const rejectMutation = useMutation({
+    mutationFn: (id: number) => setSignalStatus('signals', id, 'dismissed'),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['outlook'] }),
+  })
 
   const today = new Date()
   const dayName = today.toLocaleDateString('en-US', { weekday: 'short' })
@@ -144,7 +164,10 @@ export function TodayView() {
                       <span>{signal.source}</span>
                     </div>
                     <button
-                      onClick={() => setDismissed((prev) => new Set([...prev, String(signal.id)]))}
+                      onClick={() => {
+                        setDismissed((prev) => new Set([...prev, String(signal.id)]))
+                        dismissMutation.mutate(signal.id)
+                      }}
                       className="w-5 h-5 flex items-center justify-center text-muted group-hover:text-text transition-colors flex-shrink-0"
                       aria-label={`Dismiss: ${signal.title}`}
                     >
@@ -174,8 +197,12 @@ export function TodayView() {
                   <div className="flex-1 text-sm font-medium text-text">{item.title}</div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button
-                      onClick={() => setProactiveDismissed((prev) => new Set([...prev, String(item.id)]))}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md hover:opacity-90 transition-colors flex items-center gap-1.5"
+                      onClick={() => {
+                        setProactiveDismissed((prev) => new Set([...prev, String(item.id)]))
+                        acceptMutation.mutate(item.id)
+                      }}
+                      disabled={acceptMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md hover:opacity-90 transition-colors flex items-center gap-1.5 disabled:opacity-50"
                       style={{ background: '#F2A65A', color: '#0B1220' }}
                       aria-label="Accept suggestion"
                     >
@@ -183,8 +210,12 @@ export function TodayView() {
                       Accept
                     </button>
                     <button
-                      onClick={() => setProactiveDismissed((prev) => new Set([...prev, String(item.id)]))}
-                      className="px-3 py-1.5 text-xs font-medium border border-border text-muted rounded-md hover:border-text hover:text-text transition-colors"
+                      onClick={() => {
+                        setProactiveDismissed((prev) => new Set([...prev, String(item.id)]))
+                        rejectMutation.mutate(item.id)
+                      }}
+                      disabled={rejectMutation.isPending}
+                      className="px-3 py-1.5 text-xs font-medium border border-border text-muted rounded-md hover:border-text hover:text-text transition-colors disabled:opacity-50"
                       aria-label="Dismiss suggestion"
                     >
                       Dismiss
