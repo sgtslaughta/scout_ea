@@ -1,6 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
+import { toast } from 'sonner'
 import { getStoredMode, setStoredMode, type ThemeMode } from '@/lib/theme'
+import {
+  getSubscriptionState,
+  enablePush,
+  disablePush,
+  sendTestPush,
+  type SubscriptionState
+} from '@/lib/push'
 
 const ACCENT_COLORS = [
   { name: 'Amber', hex: '#F2A65A' },
@@ -18,11 +26,64 @@ export function SettingsView() {
     return '#F2A65A'
   })
   const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => getStoredMode())
+  const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
+  const [loadingPush, setLoadingPush] = useState(false)
 
   useEffect(() => {
     document.documentElement.style.setProperty('--color-accent', currentAccent)
     localStorage.setItem('ea-accent', currentAccent)
   }, [currentAccent])
+
+  useEffect(() => {
+    const loadPushState = async () => {
+      const state = await getSubscriptionState()
+      setPushState(state)
+    }
+    loadPushState()
+  }, [])
+
+  const handleEnablePush = async () => {
+    setLoadingPush(true)
+    try {
+      await enablePush()
+      toast.success('Notifications enabled')
+      const state = await getSubscriptionState()
+      setPushState(state)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to enable notifications'
+      toast.error(msg)
+    } finally {
+      setLoadingPush(false)
+    }
+  }
+
+  const handleDisablePush = async () => {
+    setLoadingPush(true)
+    try {
+      await disablePush()
+      toast.success('Notifications disabled')
+      const state = await getSubscriptionState()
+      setPushState(state)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to disable notifications'
+      toast.error(msg)
+    } finally {
+      setLoadingPush(false)
+    }
+  }
+
+  const handleSendTest = async () => {
+    setLoadingPush(true)
+    try {
+      const n = await sendTestPush()
+      toast.success(`Sent ${n}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to send test'
+      toast.error(msg)
+    } finally {
+      setLoadingPush(false)
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -97,6 +158,69 @@ export function SettingsView() {
               </div>
               <p className="text-xs text-muted mt-2">
                 Currently: <span className="font-mono">{currentTheme}</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Notifications section */}
+        <div className="mb-8">
+          <h2 className="text-display text-base text-text font-medium mb-4">
+            Notifications
+          </h2>
+
+          <div className="space-y-4">
+            {/* Push notification control */}
+            <div>
+              <label className="text-sm text-muted block mb-3">Browser Notifications</label>
+              <div className="flex items-center gap-3">
+                {pushState === 'unsupported' && (
+                  <>
+                    <button
+                      disabled
+                      className="flex-1 py-2 px-3 rounded text-sm font-medium bg-surface-2 text-muted opacity-50 cursor-not-allowed"
+                      aria-label="Notifications not supported"
+                    >
+                      Notifications not supported
+                    </button>
+                  </>
+                )}
+                {pushState === 'denied' && (
+                  <p className="text-sm text-muted">Notifications blocked in browser settings.</p>
+                )}
+                {pushState === 'unsubscribed' && (
+                  <button
+                    onClick={handleEnablePush}
+                    disabled={loadingPush}
+                    className="flex-1 py-2 px-3 rounded text-sm font-medium bg-accent text-bg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                    aria-label="Enable browser notifications"
+                  >
+                    {loadingPush ? 'Enabling...' : 'Enable notifications'}
+                  </button>
+                )}
+                {pushState === 'subscribed' && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDisablePush}
+                      disabled={loadingPush}
+                      className="flex-1 py-2 px-3 rounded text-sm font-medium bg-surface-2 text-text border border-border hover:border-accent disabled:opacity-50 transition-colors"
+                      aria-label="Disable browser notifications"
+                    >
+                      {loadingPush ? 'Disabling...' : 'Disable notifications'}
+                    </button>
+                    <button
+                      onClick={handleSendTest}
+                      disabled={loadingPush}
+                      className="py-2 px-4 rounded text-sm font-medium bg-accent text-bg hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+                      aria-label="Send test notification"
+                    >
+                      {loadingPush ? 'Sending...' : 'Send test'}
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted mt-2">
+                State: <span className="font-mono">{pushState}</span>
               </p>
             </div>
           </div>
