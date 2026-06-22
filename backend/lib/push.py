@@ -43,6 +43,31 @@ def ensure_vapid(conn):
     return pub, priv
 
 
+def valid_push_endpoint(endpoint: str) -> bool:
+    """SSRF guard: a push endpoint must be https and not target localhost/private/link-local.
+
+    Hostnames (real push services) are accepted without DNS resolution; only literal
+    private/loopback/link-local/reserved IPs and localhost names are rejected.
+    """
+    from urllib.parse import urlparse
+    import ipaddress
+    try:
+        u = urlparse(endpoint or "")
+    except Exception:
+        return False
+    if u.scheme != "https" or not u.hostname:
+        return False
+    host = u.hostname
+    if host == "localhost" or host.endswith(".localhost"):
+        return False
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return True  # public hostname
+    return not (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified)
+
+
 def send_push(conn, title, body, claims_email="mailto:admin@scout-ea.local"):
     """Send a push to every subscription. Returns count sent. Deletes dead subs (404/410)."""
     if not _vapid_available():

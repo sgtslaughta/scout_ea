@@ -226,3 +226,24 @@ def test_push_pending_alerts_marks_and_counts(tmp_path, monkeypatch):
     assert row["notified_push"] == 1
     # second run: already marked -> nothing new
     assert push.push_pending_alerts(conn) == 0
+
+
+def test_valid_push_endpoint_rules():
+    from lib import push
+    assert push.valid_push_endpoint("https://fcm.googleapis.com/fcm/send/abc") is True
+    assert push.valid_push_endpoint("http://fcm.googleapis.com/x") is False
+    assert push.valid_push_endpoint("https://localhost/x") is False
+    assert push.valid_push_endpoint("https://127.0.0.1/x") is False
+    assert push.valid_push_endpoint("https://10.0.0.5/x") is False
+    assert push.valid_push_endpoint("https://192.168.1.1/x") is False
+    assert push.valid_push_endpoint("") is False
+
+
+def test_subscribe_rejects_private_endpoint(tmp_path):
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    c = TestClient(create_app(p))
+    bad = c.post("/api/push/subscribe", json={"endpoint": "https://127.0.0.1/x", "keys": {"p256dh": "a", "auth": "b"}})
+    assert bad.status_code == 400
+    ok = c.post("/api/push/subscribe", json={"endpoint": "https://fcm.googleapis.com/fcm/send/ok", "keys": {"p256dh": "a", "auth": "b"}})
+    assert ok.status_code == 200

@@ -283,6 +283,9 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
 
     @app.post("/api/push/subscribe")
     def subscribe(body: SubscribeBody, conn=Depends(get_db)):
+        from lib import push
+        if not push.valid_push_endpoint(body.endpoint):
+            raise HTTPException(status_code=400, detail="invalid push endpoint")
         db.add_subscription(conn, body.endpoint, body.keys.get("p256dh", ""), body.keys.get("auth", ""))
         return {"ok": True}
 
