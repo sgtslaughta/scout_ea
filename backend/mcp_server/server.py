@@ -117,6 +117,26 @@ def build_server(db_path) -> FastMCP:
         finally:
             conn.close()
 
+    @mcp.tool()
+    def m365_status() -> dict:
+        """Whether M365 actions are enabled (an external M365 MCP is configured)."""
+        from mcp_server import m365
+        return {"configured": m365.configured()}
+
+    @mcp.tool()
+    def m365_send_mail(to: str, subject: str, body: str) -> dict:
+        """Send an email via the connected Microsoft 365 account (if configured)."""
+        from mcp_server import m365
+        return m365.call("send_mail", {"to": to, "subject": subject, "body": body})
+
+    @mcp.tool()
+    def m365_create_event(title: str, start: str, end: str | None = None,
+                          attendees: str | None = None) -> dict:
+        """Create a calendar event via the connected Microsoft 365 account (if configured)."""
+        from mcp_server import m365
+        return m365.call("create_event",
+                         {"title": title, "start": start, "end": end, "attendees": attendees})
+
     return mcp
 
 
