@@ -202,3 +202,27 @@ def test_push_test_endpoint(tmp_path, monkeypatch):
     assert resp.status_code == 200
     assert resp.json()["sent"] == 1
     assert len(calls) == 1
+
+
+def test_push_pending_alerts_marks_and_counts(tmp_path, monkeypatch):
+    """push_pending_alerts sends critical alerts and marks notified_push=1."""
+    import pywebpush
+    from lib import push
+
+    calls = []
+    monkeypatch.setattr(pywebpush, "webpush", lambda **kw: calls.append(kw))
+
+    p = tmp_path / "ea.sqlite"
+    conn = db.init_db(p, seed_path=db.DEFAULT_SEED)
+    db.add_subscription(conn, "https://push/ep1", "p", "a")
+    conn.execute("INSERT INTO alerts (severity,title,body,status) VALUES ('critical','P1 mtg','Dr. Vance','unread')")
+    conn.execute("INSERT INTO alerts (severity,title,body,status) VALUES ('warning','low','x','unread')")
+    conn.commit()
+
+    n = push.push_pending_alerts(conn)
+    assert n == 1                                  # only the critical one
+    assert len(calls) == 1                          # one sub
+    row = conn.execute("SELECT notified_push FROM alerts WHERE severity='critical'").fetchone()
+    assert row["notified_push"] == 1
+    # second run: already marked -> nothing new
+    assert push.push_pending_alerts(conn) == 0

@@ -2,6 +2,7 @@ import uvicorn
 from pathlib import Path
 from ea import db
 from web.app import create_app
+from lib.push_worker import start_push_worker
 
 p = Path("ea.sqlite")
 db.init_db(p, seed_path=db.DEFAULT_SEED)
@@ -12,4 +13,5 @@ skills_dir = backend_dir.parent / "skills" if (backend_dir.parent / "skills").is
 app = create_app(p, static_dir=static_dir, skills_dir=skills_dir)
 
 if __name__ == "__main__":
+    start_push_worker(p)
     uvicorn.run(app, host="127.0.0.1", port=8765)

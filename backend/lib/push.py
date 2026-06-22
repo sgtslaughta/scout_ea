@@ -71,3 +71,24 @@ def send_push(conn, title, body, claims_email="mailto:admin@scout-ea.local"):
                 db.delete_subscription(conn, s["endpoint"])
 
     return sent
+
+
+def push_pending_alerts(conn, limit=20) -> int:
+    """Send Web Push for unpushed critical alerts; mark them notified_push=1. Returns count sent.
+
+    The web server is the single owner of push (no double-fire). No-op (returns 0) when
+    pywebpush is unavailable or there are no subscriptions.
+    """
+    if not _vapid_available():
+        return 0
+    rows = conn.execute(
+        "SELECT id, title, body FROM alerts "
+        "WHERE notified_push=0 AND severity='critical' "
+        "ORDER BY created_at DESC LIMIT ?", (int(limit),)).fetchall()
+    sent = 0
+    for a in rows:
+        send_push(conn, a["title"], a["body"] or "")
+        conn.execute("UPDATE alerts SET notified_push=1 WHERE id=?", (a["id"],))
+        sent += 1
+    conn.commit()
+    return sent
