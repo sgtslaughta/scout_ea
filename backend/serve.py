@@ -4,6 +4,7 @@ import uvicorn
 from pathlib import Path
 from ea import db
 from web.app import create_app
+from lib.push_worker import start_push_worker
 
 if __name__ == "__main__":
     db_path = Path(os.environ.get("EA_DB_PATH", "/data/ea.sqlite"))
@@ -15,4 +16,5 @@ if __name__ == "__main__":
     db.init_db(db_path, seed_path=db.DEFAULT_SEED)
 
     app = create_app(db_path, static_dir=static_dir, skills_dir=skills_dir)
+    start_push_worker(db_path)
     uvicorn.run(app, host="0.0.0.0", port=port)
