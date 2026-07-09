@@ -1,16 +1,10 @@
 import { NavLink } from 'react-router-dom'
+import Box from '@mui/material/Box'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
 import {
-  Calendar,
-  CheckSquare,
-  Cog,
-  Inbox,
-  Menu,
-  TrendingUp,
-  AlertCircle,
-  FileText,
-  Grid3x3,
-  Users,
-  Hash,
+  Calendar, CheckSquare, Cog, Inbox, Menu, TrendingUp,
+  AlertCircle, FileText, Grid3x3, Users, Hash,
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
@@ -32,62 +26,53 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
-
   return (
-    <div
-      className="w-14 flex flex-col bg-surface border-r border-border"
-      role="navigation"
+    <Box
+      component="nav"
       aria-label="Main navigation"
+      sx={{
+        width: 56,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        bgcolor: 'background.paper',
+        borderRight: 1,
+        borderColor: 'divider',
+      }}
     >
-      {/* Menu toggle */}
-      <div className="h-14 flex items-center justify-center">
-        <button
-          onClick={() => onToggle(!collapsed)}
-          className="h-11 w-11 flex items-center justify-center rounded-md hover:bg-surface-2 transition-colors text-accent"
-          title="Toggle sidebar"
-          aria-label="Toggle sidebar"
-        >
+      <Box sx={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <IconButton onClick={() => onToggle(!collapsed)} aria-label="Toggle sidebar" color="primary">
           <Menu size={20} />
-        </button>
-      </div>
-
-      {/* Navigation items */}
-      <nav className="flex-1 flex flex-col gap-0 px-2 py-3">
+        </IconButton>
+      </Box>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, py: 1.5 }}>
         {SIDEBAR_ITEMS.map((item) => (
-          <NavLink
-            key={item.id}
-            to={item.route}
-            end={item.route === '/'}
-            title={item.label}
-            aria-label={item.label}
-            className={({ isActive }) =>
-              `h-11 w-11 flex items-center justify-center rounded-md transition-all relative ${
-                isActive ? 'text-accent' : 'text-muted hover:bg-surface-2 hover:text-text'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <item.icon size={20} />
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
-                )}
-              </>
-            )}
-          </NavLink>
+          <Tooltip key={item.id} title={item.label} placement="right">
+            <NavLink to={item.route} end={item.route === '/'} aria-label={item.label} style={{ position: 'relative' }}>
+              {({ isActive }) => (
+                <>
+                  <IconButton component="span" color={isActive ? 'primary' : 'default'} aria-hidden>
+                    <item.icon size={20} />
+                  </IconButton>
+                  {isActive && (
+                    <Box
+                      sx={{
+                        position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)',
+                        width: 3, height: 24, bgcolor: 'primary.main', borderRadius: '0 3px 3px 0',
+                      }}
+                    />
+                  )}
+                </>
+              )}
+            </NavLink>
+          </Tooltip>
         ))}
-      </nav>
-
-      {/* Bottom section */}
-      <div className="h-14 flex items-center justify-center border-t border-border">
-        <button
-          className="h-11 w-11 flex items-center justify-center rounded-md hover:bg-surface-2 text-muted hover:text-text transition-colors"
-          title="Help"
-          aria-label="Help"
-        >
-          <span className="text-xs font-mono">?</span>
-        </button>
-      </div>
-    </div>
+      </Box>
+      <Box sx={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'center', borderTop: 1, borderColor: 'divider' }}>
+        <Tooltip title="Help" placement="right">
+          <IconButton aria-label="Help" size="small">?</IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
   )
 }
