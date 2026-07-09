@@ -57,7 +57,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   {isActive && (
                     <Box
                       sx={{
-                        position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)',
+                        position: 'absolute', right: '100%', top: '50%', transform: 'translateY(-50%)',
                         width: 3, height: 24, bgcolor: 'primary.main', borderRadius: '0 3px 3px 0',
                       }}
                     />
