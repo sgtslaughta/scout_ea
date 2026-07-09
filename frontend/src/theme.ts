@@ -1,10 +1,10 @@
-import { createTheme as muiCreateTheme } from '@mui/material/styles'
+import { createTheme } from '@mui/material/styles'
 
 export const ACCENT_KEY = 'ea-accent'
 
 const display = '"Space Grotesk", sans-serif'
 
-const baseTheme = muiCreateTheme({
+export const theme = createTheme({
   cssVariables: { colorSchemeSelector: 'class' },
   colorSchemes: {
     dark: {
@@ -46,12 +46,6 @@ const baseTheme = muiCreateTheme({
   },
   shape: { borderRadius: 8 },
 })
-
-// Add cssVariables to theme for test contract
-export const theme = {
-  ...baseTheme,
-  cssVariables: { colorSchemeSelector: 'class' },
-}
 
 // Accent personalization: one call updates Tailwind var + MUI var.
 export function applyAccent(color: string) {

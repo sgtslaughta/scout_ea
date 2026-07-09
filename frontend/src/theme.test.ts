@@ -15,7 +15,7 @@ describe('theme', () => {
   })
 
   it('uses class-based color scheme selector (matches Tailwind tokens)', () => {
-    expect(theme.cssVariables).toMatchObject({ colorSchemeSelector: 'class' })
+    expect(theme.colorSchemeSelector).toBe('class')
   })
 
   it('applyAccent persists and sets both CSS var systems', () => {
