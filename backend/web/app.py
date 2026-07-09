@@ -8,12 +8,26 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from pydantic import BaseModel
 from ea import db
 from web import changes
 from lib import deadlines as _deadlines
 from lib import outlook as _outlook
 from lib import skills as _skills
+
+
+class SPAStaticFiles(StaticFiles):
+    """Serve index.html for unknown non-API paths (client-side routing)."""
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except StarletteHTTPException as e:
+            # Only serve SPA fallback for non-API paths
+            if e.status_code == 404 and not scope["path"].startswith("/api"):
+                return await super().get_response("index.html", scope)
+            raise
 
 
 class StatusBody(BaseModel):
@@ -300,6 +314,6 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return {"sent": push.send_push(conn, "Scout EA", "Test notification")}
 
     if static_dir is not None and Path(static_dir).is_dir():
-        app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")
+        app.mount("/", SPAStaticFiles(directory=str(static_dir), html=True), name="static")
 
     return app

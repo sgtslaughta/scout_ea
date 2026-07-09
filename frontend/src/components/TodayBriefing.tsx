@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
+import Dialog from '@mui/material/Dialog'
 import { X, AlertCircle } from 'lucide-react'
 import { getOutlook, getSignals } from '@/api'
 import { SkeletonRow } from '@/components/SkeletonRow'
@@ -54,24 +54,7 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   if (!open) return null
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
-          />
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] max-w-[600px] max-h-[80vh] bg-surface border border-border rounded-lg p-6 z-50 overflow-y-auto"
-          >
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { position: 'relative' } } }}>
             {/* Close button */}
             <button
               ref={closeButtonRef}
@@ -185,9 +168,6 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
                 </button>
               </div>
             )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    </Dialog>
   )
 }
