@@ -3,12 +3,18 @@ import { motion } from 'framer-motion'
 import { getTrends, type Trend } from '@/api'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { SkeletonRow } from '@/components/SkeletonRow'
+import { useSearchParams } from 'react-router-dom'
+import { Chip } from '@mui/material'
 
 export function TrendingView() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: trends = [], isLoading, error, refetch: refetchTrends } = useQuery<Trend[]>({
     queryKey: ['trends'],
     queryFn: () => getTrends(),
   })
+
+  const risingOnly = searchParams.get('dir') === 'rising'
+  const visibleTrends = risingOnly ? trends.filter((t) => (t.delta ?? 0) > 0) : trends
 
   if (error) {
     return (
@@ -31,19 +37,27 @@ export function TrendingView() {
           <div className="text-xs text-muted font-mono">Top trends from your signals</div>
         </div>
 
+        {risingOnly && (
+          <Chip
+            label="Rising"
+            onDelete={() => setSearchParams({})}
+            size="small"
+          />
+        )}
+
         {isLoading ? (
           <div className="space-y-0">
             <SkeletonRow />
             <SkeletonRow />
             <SkeletonRow />
           </div>
-        ) : trends.length === 0 ? (
+        ) : visibleTrends.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             No trending data yet.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {trends.map((t, idx) => (
+            {visibleTrends.map((t, idx) => (
               <motion.div
                 key={t.id}
                 initial={{ opacity: 0, y: 8 }}

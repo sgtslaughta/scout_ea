@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Chip } from '@mui/material'
 import { getSignals, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 import { SkeletonRow } from '@/components/SkeletonRow'
@@ -9,13 +11,25 @@ const statusFilters = ['new', 'triaged', 'actioned', 'dismissed']
 
 export function InboxView() {
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeStatus, setActiveStatus] = useState('new')
+
+  // Initialize activeStatus from query param if present
+  useEffect(() => {
+    const statusParam = searchParams.get('status')
+    if (statusParam) setActiveStatus(statusParam)
+  }, [searchParams])
 
   const { data: signals = [], isLoading, error, refetch } = useQuery({
     queryKey: ['signals', activeStatus],
     queryFn: () => getSignals(activeStatus),
     refetchInterval: 15000,
   })
+
+  const proactiveOnly = searchParams.get('type') === 'proactive'
+  const visibleSignals = proactiveOnly
+    ? signals.filter((s) => s.type === 'proactive')
+    : signals
 
   const dismissMutation = useMutation({
     mutationFn: (id: number) =>
@@ -48,6 +62,17 @@ export function InboxView() {
       <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
         <h2 className="text-3xl font-display font-semibold text-text mb-6">Inbox</h2>
 
+        {/* Drill-down type filter chip */}
+        {proactiveOnly && (
+          <div className="mb-4">
+            <Chip
+              label="Proactive"
+              onDelete={() => setSearchParams({})}
+              size="small"
+            />
+          </div>
+        )}
+
         {/* Status filter chips */}
         <div className="flex gap-2 mb-4">
           {statusFilters.map((status) => (
@@ -79,13 +104,13 @@ export function InboxView() {
             <SkeletonRow />
             <SkeletonRow />
           </div>
-        ) : signals.length === 0 ? (
+        ) : visibleSignals.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             Inbox is clear. Check back later for new signals.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {signals.map((s, idx) => (
+            {visibleSignals.map((s, idx) => (
               <motion.div
                 key={s.id}
                 initial={{ opacity: 0, y: 8 }}

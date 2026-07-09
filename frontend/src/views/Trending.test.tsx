@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MemoryRouter } from 'react-router-dom'
 import { TrendingView } from './Trending'
 
 describe('Trending view', () => {
@@ -46,9 +47,11 @@ describe('Trending view', () => {
     })
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <TrendingView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <TrendingView />
+        </QueryClientProvider>
+      </MemoryRouter>
     )
 
     await waitFor(() => {
@@ -81,14 +84,68 @@ describe('Trending view', () => {
     })
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <TrendingView />
-      </QueryClientProvider>
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <TrendingView />
+        </QueryClientProvider>
+      </MemoryRouter>
     )
 
     await waitFor(() => {
       expect(screen.getByText('Machine Learning')).toBeDefined()
       expect(screen.getByText(/technology/i)).toBeDefined()
     })
+  })
+
+  it('pre-filters via drill-down query param (dir=rising)', async () => {
+    const mockTrends = [
+      {
+        id: 1,
+        term: 'Growing Trend',
+        kind: 'topic',
+        window_start: '2026-06-21T00:00:00',
+        window_end: '2026-06-22T00:00:00',
+        score: 8.5,
+        delta: 2.3,
+        count: 5,
+      },
+      {
+        id: 2,
+        term: 'Declining Trend',
+        kind: 'topic',
+        window_start: '2026-06-21T00:00:00',
+        window_end: '2026-06-22T00:00:00',
+        score: 6.0,
+        delta: -1.0,
+        count: 3,
+      },
+    ]
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/trends')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockTrends),
+        })
+      }
+      return Promise.reject(new Error(`Unexpected URL: ${url}`))
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/trending?dir=rising']}>
+        <QueryClientProvider client={queryClient}>
+          <TrendingView />
+        </QueryClientProvider>
+      </MemoryRouter>
+    )
+
+    // Wait for data to load
+    await screen.findByText('Growing Trend')
+
+    // Growing Trend should be visible
+    expect(screen.getByText('Growing Trend')).toBeDefined()
+
+    // Declining Trend should NOT be in the document
+    expect(screen.queryByText('Declining Trend')).toBeNull()
   })
 })
