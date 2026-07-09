@@ -7,6 +7,9 @@ import { theme } from './theme'
 import { App } from './App'
 
 function renderAt(path: string) {
+  // Suppress briefing auto-open: set today's date so App doesn't open modal
+  localStorage.setItem('ea-briefing-shown', new Date().toISOString().split('T')[0])
+
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={qc}>
