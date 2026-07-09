@@ -24,4 +24,20 @@ export const WIDGETS: WidgetDef[] = [
     component: lazy(() => import('./KpiStrip')),
     queryKeys: [['outlook'], ['deadlines'], ['trends'], ['signals'], ['activity']],
   },
+  {
+    key: 'deadlines',
+    title: 'Deadlines',
+    size: 'md',
+    component: lazy(() => import('./DeadlinesWidget')),
+    drillDown: '/deadlines',
+    queryKeys: [['deadlines']],
+  },
+  {
+    key: 'signals',
+    title: 'Signals',
+    size: 'md',
+    component: lazy(() => import('./SignalsWidget')),
+    drillDown: '/inbox?status=new',
+    queryKeys: [['signals']],
+  },
 ]
