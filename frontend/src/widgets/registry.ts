@@ -55,4 +55,12 @@ export const WIDGETS: WidgetDef[] = [
     component: lazy(() => import('./ActivityWidget')),
     queryKeys: [['activity']],
   },
+  {
+    key: 'today',
+    title: 'Today',
+    size: 'lg',
+    component: lazy(() => import('./TodayWidget')),
+    drillDown: '/calendar',
+    queryKeys: [['events'], ['tasks']],
+  },
 ]
