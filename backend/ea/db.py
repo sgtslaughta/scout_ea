@@ -10,7 +10,8 @@ DEFAULT_FEATURES = Path(__file__).with_name("features.sql")
 
 def get_conn(db_path) -> sqlite3.Connection:
     """Open a connection with EA pragmas on and Row factory."""
-    conn = sqlite3.connect(str(db_path))
+    # per-request/sequential use across FastAPI threadpool threads; never shared concurrently
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
