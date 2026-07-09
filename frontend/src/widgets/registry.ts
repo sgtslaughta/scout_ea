@@ -40,4 +40,19 @@ export const WIDGETS: WidgetDef[] = [
     drillDown: '/inbox?status=new',
     queryKeys: [['signals']],
   },
+  {
+    key: 'trending',
+    title: 'Trending',
+    size: 'md',
+    component: lazy(() => import('./TrendingWidget')),
+    drillDown: '/trending?dir=rising',
+    queryKeys: [['trends']],
+  },
+  {
+    key: 'activity',
+    title: 'Skill Activity',
+    size: 'md',
+    component: lazy(() => import('./ActivityWidget')),
+    queryKeys: [['activity']],
+  },
 ]
