@@ -50,7 +50,7 @@ export function RightDrawer() {
                   variant="outlined"
                   sx={{
                     px: 1.5, py: 1,
-                    ...(isUrgent(item.countdown_seconds) && { borderColor: 'error.main', bgcolor: 'rgba(229, 72, 77, 0.1)' }),
+                    ...(isUrgent(item.countdown_seconds) && { borderColor: 'error.main', bgcolor: 'rgba(var(--mui-palette-error-mainChannel) / 0.1)' }),
                   }}
                 >
                   <Typography variant="body2" sx={{ fontWeight: 500 }}>{item.title}</Typography>
