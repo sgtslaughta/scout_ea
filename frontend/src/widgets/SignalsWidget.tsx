@@ -35,8 +35,8 @@ const columns: GridColDef<Signal>[] = [
       <Tooltip
         title={
           <Box sx={{ p: 0.5 }}>
-            <Typography variant="body2" fontWeight={600}>{p.row.title}</Typography>
-            <Typography variant="caption" display="block">{p.row.source}{p.row.source_skill ? ` · ${p.row.source_skill}` : ''}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.row.title}</Typography>
+            <Typography variant="caption" sx={{ display: 'block' }}>{p.row.source}{p.row.source_skill ? ` · ${p.row.source_skill}` : ''}</Typography>
             <Typography variant="caption" color="text.secondary">{new Date(p.row.created_at).toLocaleString()} · priority {p.row.priority}</Typography>
           </Box>
         }
@@ -50,7 +50,7 @@ const columns: GridColDef<Signal>[] = [
     headerName: 'When',
     width: 80,
     renderCell: (p) => (
-      <Typography variant="caption" fontFamily='"JetBrains Mono", monospace' color="text.secondary">{relativeTime(p.value)}</Typography>
+      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }} color="text.secondary">{relativeTime(p.value)}</Typography>
     ),
   },
 ]

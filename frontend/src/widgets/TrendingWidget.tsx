@@ -23,12 +23,10 @@ export default function TrendingWidget() {
     <Box>
       <BarChart
         height={140}
-        series={[{ data: top.map((t) => t.score), color: ACCENT, valueFormatter: (v) => `${v}` }]}
+        series={[{ data: top.map((t) => t.score), color: ACCENT, valueFormatter: (v) => `${v}`, barLabel: 'value' }]}
         xAxis={[{ scaleType: 'band', data: top.map((t) => t.term), tickLabelStyle: { fontSize: 10 } }]}
-        barLabel="value"
         borderRadius={4}
         margin={{ top: 8, bottom: 4 }}
-        slotProps={{ legend: { hidden: true } }}
       />
       <Stack spacing={0.5} sx={{ mt: 1 }}>
         {top.map((t) => (

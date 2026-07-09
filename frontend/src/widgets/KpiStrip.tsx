@@ -36,7 +36,7 @@ function StatTile({ tile }: { tile: Tile }) {
     >
       <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1.4 }}>{tile.label}</Typography>
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
-        <Typography variant="h5" fontFamily='"JetBrains Mono", monospace' color="primary">{tile.value}</Typography>
+        <Typography variant="h5" sx={{ fontFamily: '"JetBrains Mono", monospace' }} color="primary">{tile.value}</Typography>
         {tile.spark && tile.spark.some((v) => v > 0) && (
           <Box sx={{ flex: 1, height: 28, minWidth: 0 }}>
             <SparkLineChart data={tile.spark} height={28} color={ACCENT} />

@@ -25,10 +25,10 @@ const columns: GridColDef<Deadline>[] = [
       <Tooltip
         title={
           <Box sx={{ p: 0.5 }}>
-            <Typography variant="body2" fontWeight={600}>{p.row.title}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.row.title}</Typography>
             <Typography variant="caption">Due {new Date(p.row.due_at).toLocaleString()}</Typography>
-            {p.row.detail && <Typography variant="caption" display="block">{p.row.detail}</Typography>}
-            <Typography variant="caption" color="text.secondary" display="block">source: {p.row.source}</Typography>
+            {p.row.detail && <Typography variant="caption" sx={{ display: 'block' }}>{p.row.detail}</Typography>}
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>source: {p.row.source}</Typography>
           </Box>
         }
       >
@@ -43,7 +43,7 @@ const columns: GridColDef<Deadline>[] = [
     renderCell: (p) => (
       <Typography
         variant="caption"
-        fontFamily='"JetBrains Mono", monospace'
+        sx={{ fontFamily: '"JetBrains Mono", monospace' }}
         color={p.value <= 0 ? 'error.main' : p.value < 86400 ? 'warning.main' : 'text.secondary'}
       >
         {formatCountdown(p.value)}

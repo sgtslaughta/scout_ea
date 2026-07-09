@@ -27,12 +27,10 @@ export default function ActivityWidget() {
     <Box>
       <BarChart
         height={150}
-        series={[{ data: skills.map((s) => bySkill.get(s) ?? 0), color: ACCENT }]}
+        series={[{ data: skills.map((s) => bySkill.get(s) ?? 0), color: ACCENT, barLabel: 'value' }]}
         xAxis={[{ scaleType: 'band', data: skills, tickLabelStyle: { fontSize: 10, angle: -25 } }]}
-        barLabel="value"
         borderRadius={4}
         margin={{ top: 8, bottom: 24 }}
-        slotProps={{ legend: { hidden: true } }}
       />
       <Stack spacing={0.25} sx={{ mt: 1 }}>
         {data.slice(0, 5).map((a) => (
@@ -41,7 +39,7 @@ export default function ActivityWidget() {
               {a.status === 'error'
                 ? <X size={13} aria-label="error" style={{ color: 'var(--mui-palette-error-main)' }} />
                 : <Check size={13} aria-label="ok" style={{ color: 'var(--mui-palette-success-main)' }} />}
-              <Typography variant="caption" fontFamily='"JetBrains Mono", monospace' sx={{ flex: 1 }} noWrap>{a.skill}</Typography>
+              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', flex: 1 }} noWrap>{a.skill}</Typography>
               <Typography variant="caption" color="text.secondary">{a.items_created} items</Typography>
             </Box>
           </Tooltip>
