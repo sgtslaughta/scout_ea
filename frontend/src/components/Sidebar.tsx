@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import {
   Calendar,
   CheckSquare,
@@ -13,26 +14,24 @@ import {
 } from 'lucide-react'
 
 const SIDEBAR_ITEMS = [
-  { id: 'dashboard', icon: Grid3x3, label: 'Dashboard', active: true },
-  { id: 'inbox', icon: Inbox, label: 'Inbox' },
-  { id: 'tasks', icon: CheckSquare, label: 'Tasks' },
-  { id: 'calendar', icon: Calendar, label: 'Calendar' },
-  { id: 'trending', icon: TrendingUp, label: 'Trending' },
-  { id: 'deadlines', icon: AlertCircle, label: 'Deadlines' },
-  { id: 'people', icon: Users, label: 'People' },
-  { id: 'topics', icon: Hash, label: 'Topics' },
-  { id: 'docs', icon: FileText, label: 'Docs' },
-  { id: 'settings', icon: Cog, label: 'Settings' },
+  { id: 'dashboard', route: '/', icon: Grid3x3, label: 'Dashboard' },
+  { id: 'inbox', route: '/inbox', icon: Inbox, label: 'Inbox' },
+  { id: 'tasks', route: '/tasks', icon: CheckSquare, label: 'Tasks' },
+  { id: 'calendar', route: '/calendar', icon: Calendar, label: 'Calendar' },
+  { id: 'trending', route: '/trending', icon: TrendingUp, label: 'Trending' },
+  { id: 'deadlines', route: '/deadlines', icon: AlertCircle, label: 'Deadlines' },
+  { id: 'people', route: '/people', icon: Users, label: 'People' },
+  { id: 'topics', route: '/topics', icon: Hash, label: 'Topics' },
+  { id: 'docs', route: '/docs', icon: FileText, label: 'Docs' },
+  { id: 'settings', route: '/settings', icon: Cog, label: 'Settings' },
 ]
 
 interface SidebarProps {
   collapsed: boolean
   onToggle: (collapsed: boolean) => void
-  activeView: string
-  onViewChange: (view: string) => void
 }
 
-export function Sidebar({ collapsed, onToggle, activeView, onViewChange }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
   return (
     <div
@@ -55,25 +54,27 @@ export function Sidebar({ collapsed, onToggle, activeView, onViewChange }: Sideb
       {/* Navigation items */}
       <nav className="flex-1 flex flex-col gap-0 px-2 py-3">
         {SIDEBAR_ITEMS.map((item) => (
-          <button
+          <NavLink
             key={item.id}
-            onClick={() => onViewChange(item.id)}
-            className={`h-11 w-11 flex items-center justify-center rounded-md transition-all relative group ${
-              activeView === item.id
-                ? 'text-accent'
-                : 'text-muted hover:bg-surface-2 hover:text-text'
-            }`}
+            to={item.route}
+            end={item.route === '/'}
             title={item.label}
             aria-label={item.label}
-            aria-current={activeView === item.id ? 'page' : undefined}
+            className={({ isActive }) =>
+              `h-11 w-11 flex items-center justify-center rounded-md transition-all relative ${
+                isActive ? 'text-accent' : 'text-muted hover:bg-surface-2 hover:text-text'
+              }`
+            }
           >
-            <item.icon size={20} />
-            {activeView === item.id && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
+            {({ isActive }) => (
+              <>
+                <item.icon size={20} />
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-accent rounded-r" />
+                )}
+              </>
             )}
-            {/* ponytail: native title tooltip (line 62) instead of a custom div —
-                a left-rail overlay tooltip bleeds over same-y page content. aria-label covers SR. */}
-          </button>
+          </NavLink>
         ))}
       </nav>
 
