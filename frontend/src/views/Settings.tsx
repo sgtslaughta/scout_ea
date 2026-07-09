@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { toast } from 'sonner'
-import { getStoredMode, setStoredMode, type ThemeMode } from '@/lib/theme'
+import { useColorScheme } from '@mui/material/styles'
+import { applyAccent } from '@/theme'
 import {
   getSubscriptionState,
   enablePush,
@@ -19,19 +20,18 @@ const ACCENT_COLORS = [
 ]
 
 export function SettingsView() {
+  const { mode, setMode } = useColorScheme()
   const [currentAccent, setCurrentAccent] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('ea-accent') || '#F2A65A'
     }
     return '#F2A65A'
   })
-  const [currentTheme, setCurrentTheme] = useState<ThemeMode>(() => getStoredMode())
   const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
   const [loadingPush, setLoadingPush] = useState(false)
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--color-accent', currentAccent)
-    localStorage.setItem('ea-accent', currentAccent)
+    applyAccent(currentAccent)
   }, [currentAccent])
 
   useEffect(() => {
@@ -139,25 +139,24 @@ export function SettingsView() {
             <div>
               <label className="text-sm text-muted block mb-3">Theme</label>
               <div className="flex gap-2">
-                {(['dark', 'light', 'system'] as const).map((mode) => (
+                {(['dark', 'light', 'system'] as const).map((themeMode) => (
                   <button
-                    key={mode}
+                    key={themeMode}
                     onClick={() => {
-                      setCurrentTheme(mode)
-                      setStoredMode(mode)
+                      setMode(themeMode)
                     }}
                     className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
-                      currentTheme === mode
+                      mode === themeMode
                         ? 'bg-accent text-bg'
                         : 'bg-surface-2 text-text border border-border hover:border-accent'
                     }`}
                   >
-                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                    {themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}
                   </button>
                 ))}
               </div>
               <p className="text-xs text-muted mt-2">
-                Currently: <span className="font-mono">{currentTheme}</span>
+                Currently: <span className="font-mono">{mode ?? 'system'}</span>
               </p>
             </div>
           </div>
