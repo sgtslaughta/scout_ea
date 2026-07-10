@@ -1,14 +1,26 @@
+import { Box, Typography } from '@mui/material'
+
 interface ComingSoonProps {
   title: string
 }
 
 export function ComingSoonView({ title }: ComingSoonProps) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-display text-2xl text-text mb-2">{title}</h1>
-        <p className="text-muted">Coming soon</p>
-      </div>
-    </div>
+    <Box
+      sx={{
+        flex: 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Box sx={{ textAlign: 'center' }}>
+        <Typography variant="h4" sx={{ mb: 1 }}>
+          {title}
+        </Typography>
+        <Typography color="text.secondary">Coming soon</Typography>
+      </Box>
+    </Box>
   )
 }

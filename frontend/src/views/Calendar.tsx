@@ -5,10 +5,10 @@ import {
   Typography,
   Chip,
   Tooltip,
+  Skeleton,
 } from '@mui/material'
 import { getEvents, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
-import { SkeletonRow } from '@/components/SkeletonRow'
 
 export function CalendarView() {
   const queryClient = useQueryClient()
@@ -88,9 +88,9 @@ export function CalendarView() {
         {/* Events list */}
         {isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
+            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
           </Box>
         ) : events.length === 0 ? (
           <Box
