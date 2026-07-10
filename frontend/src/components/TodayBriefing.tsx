@@ -37,21 +37,6 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const proactiveSignals = outlook?.proactive || []
   const tasksToday = outlook?.tasks_due_today || []
 
-  // Handle Escape key to close modal
-  useEffect(() => {
-    if (!open) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, onClose])
-
   // Focus close button when modal opens
   useEffect(() => {
     if (open && closeButtonRef.current) {

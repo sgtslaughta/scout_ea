@@ -134,7 +134,10 @@ describe('TodayBriefing', () => {
     await waitFor(() => {
       expect(screen.getByText(/TODAY'S BRIEFING/i)).toBeInTheDocument()
     })
-    fireEvent.keyDown(window, { key: 'Escape' })
+    const dialog = document.querySelector('[role="dialog"]')
+    if (dialog) {
+      fireEvent.keyDown(dialog, { key: 'Escape' })
+    }
     expect(onClose).toHaveBeenCalled()
   })
 
