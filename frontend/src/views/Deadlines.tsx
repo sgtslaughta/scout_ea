@@ -22,11 +22,6 @@ import { getDeadlines, addDeadline, setDeadlineVisible, setConfig, type Deadline
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { toast } from 'sonner'
 
-const getUrgencyColor = (seconds: number): string => {
-  if (seconds < 86400) return '#E5484D' // < 24h: red
-  if (seconds < 604800) return '#F2A65A' // < 7d: orange
-  return '#6C8FE5' // blue
-}
 
 export function DeadlinesView() {
   const queryClient = useQueryClient()
@@ -93,6 +88,9 @@ export function DeadlinesView() {
   }
 
   const handleCloseDialog = () => {
+    setTitle('')
+    setDueAt('')
+    setDetail('')
     setAddOpen(false)
   }
 
@@ -122,9 +120,13 @@ export function DeadlinesView() {
       headerName: 'In',
       width: 100,
       renderCell: (params) => (
-        <span style={{ color: getUrgencyColor(params.value) }}>
+        <Typography
+          variant="caption"
+          sx={{ fontFamily: '"JetBrains Mono", monospace' }}
+          color={params.value <= 0 ? 'error.main' : params.value < 86400 ? 'warning.main' : 'text.secondary'}
+        >
           {formatCountdown(params.value)}
-        </span>
+        </Typography>
       ),
     },
     {
@@ -286,26 +288,30 @@ export function DeadlinesView() {
           </DialogActions>
         </Dialog>
 
-        {/* DataGrid */}
-        <Box
-          component={motion.div}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <DataGrid
-            rows={visibleDeadlines}
-            columns={columns}
-            loading={isLoading}
-            density="compact"
-            disableColumnMenu
-            pageSizeOptions={[25, 50]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 25 } },
-            }}
-            sx={{ border: 0 }}
-          />
-        </Box>
+        {/* Empty state or DataGrid */}
+        {!isLoading && visibleDeadlines.length === 0 ? (
+          <Typography variant="caption" color="text.secondary">No deadlines yet.</Typography>
+        ) : (
+          <Box
+            component={motion.div}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <DataGrid
+              rows={visibleDeadlines}
+              columns={columns}
+              loading={isLoading}
+              density="compact"
+              disableColumnMenu
+              pageSizeOptions={[25, 50]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } },
+              }}
+              sx={{ border: 0 }}
+            />
+          </Box>
+        )}
       </Box>
     </Box>
   )
