@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Eye, Plus } from 'lucide-react'
 import {
   Box,
@@ -292,25 +291,18 @@ export function DeadlinesView() {
         {!isLoading && visibleDeadlines.length === 0 ? (
           <Typography variant="caption" color="text.secondary">No deadlines yet.</Typography>
         ) : (
-          <Box
-            component={motion.div}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DataGrid
-              rows={visibleDeadlines}
-              columns={columns}
-              loading={isLoading}
-              density="compact"
-              disableColumnMenu
-              pageSizeOptions={[25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 25 } },
-              }}
-              sx={{ border: 0 }}
-            />
-          </Box>
+          <DataGrid
+            rows={visibleDeadlines}
+            columns={columns}
+            loading={isLoading}
+            density="compact"
+            disableColumnMenu
+            pageSizeOptions={[25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } },
+            }}
+            sx={{ border: 0 }}
+          />
         )}
       </Box>
     </Box>

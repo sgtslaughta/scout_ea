@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   Box,
   Typography,
@@ -9,7 +8,6 @@ import {
   Tab,
   Chip,
   Tooltip,
-  useTheme,
 } from '@mui/material'
 import {
   DataGrid,
@@ -21,11 +19,12 @@ import { getSignals, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 import { relativeTime } from '@/widgets/SignalsWidget'
 
+const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
+
 const statusFilters = ['new', 'triaged', 'actioned', 'dismissed']
 
 export function InboxView() {
   const queryClient = useQueryClient()
-  const theme = useTheme()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeStatus, setActiveStatus] = useState('new')
 
@@ -66,12 +65,6 @@ export function InboxView() {
     onError: () => toast.error('Failed to triage'),
   })
 
-  const getPriorityColor = (priority: number): string => {
-    if (priority <= 1) return theme.palette.error.main
-    if (priority === 2) return theme.palette.warning.main
-    return theme.palette.info.main
-  }
-
   const columns: GridColDef[] = [
     {
       field: 'priority',
@@ -80,15 +73,7 @@ export function InboxView() {
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <div
-          style={{
-            background: getPriorityColor(params.row.priority),
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            margin: 'auto',
-          }}
-        />
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PRIORITY_COLOR[params.row.priority] ?? 'info.main' }} aria-label={`priority ${params.row.priority}`} />
       ),
     },
     {
@@ -97,8 +82,13 @@ export function InboxView() {
       flex: 1,
       renderCell: (params) => (
         <Tooltip
-          title={params.row.title}
-          arrow
+          title={
+            <Box sx={{ p: 0.5 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{params.row.title}</Typography>
+              <Typography variant="caption" sx={{ display: 'block' }}>{params.row.source}{params.row.source_skill ? ` · ${params.row.source_skill}` : ''}</Typography>
+              <Typography variant="caption" color="text.secondary">{new Date(params.row.created_at).toLocaleString()} · priority {params.row.priority}</Typography>
+            </Box>
+          }
         >
           <span>{params.row.title}</span>
         </Tooltip>
@@ -239,30 +229,24 @@ export function InboxView() {
 
         {/* DataGrid */}
         {visibleSignals.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DataGrid
-              rows={visibleSignals}
-              columns={columns}
-              loading={isLoading}
-              disableRowSelectionOnClick
-              pageSizeOptions={[10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10, page: 0 } },
-              }}
-              sx={{
-                '& .MuiDataGrid-root': {
-                  border: 'none',
-                },
-                '& .MuiDataGrid-cell': {
-                  py: 1,
-                },
-              }}
-            />
-          </motion.div>
+          <DataGrid
+            rows={visibleSignals}
+            columns={columns}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10, page: 0 } },
+            }}
+            sx={{
+              '& .MuiDataGrid-root': {
+                border: 'none',
+              },
+              '& .MuiDataGrid-cell': {
+                py: 1,
+              },
+            }}
+          />
         )}
       </Box>
     </Box>

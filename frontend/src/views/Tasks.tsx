@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   Box,
   Typography,
@@ -21,6 +20,7 @@ import { getTasks, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 
 const statusFilters = ['open', 'in_progress', 'done', 'dismissed']
+const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
 
 export function TasksView() {
   const queryClient = useQueryClient()
@@ -63,12 +63,6 @@ export function TasksView() {
     onError: () => toast.error('Failed to dismiss'),
   })
 
-  const getPriorityColor = (priority: number): string => {
-    if (priority <= 1) return theme.palette.error.main
-    if (priority === 2) return theme.palette.warning.main
-    return theme.palette.info.main
-  }
-
   const formatDueDate = (dueAt: string): string => {
     const dueDate = new Date(dueAt)
     const today = new Date()
@@ -109,15 +103,7 @@ export function TasksView() {
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <div
-          style={{
-            background: getPriorityColor(params.row.priority),
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            margin: 'auto',
-          }}
-        />
+        <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: PRIORITY_COLOR[params.row.priority] ?? 'info.main' }} aria-label={`priority ${params.row.priority}`} />
       ),
     },
     {
@@ -272,30 +258,24 @@ export function TasksView() {
 
         {/* DataGrid */}
         {visibleTasks.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DataGrid
-              rows={visibleTasks}
-              columns={columns}
-              loading={isLoading}
-              disableRowSelectionOnClick
-              pageSizeOptions={[10, 25, 50]}
-              initialState={{
-                pagination: { paginationModel: { pageSize: 10, page: 0 } },
-              }}
-              sx={{
-                '& .MuiDataGrid-root': {
-                  border: 'none',
-                },
-                '& .MuiDataGrid-cell': {
-                  py: 1,
-                },
-              }}
-            />
-          </motion.div>
+          <DataGrid
+            rows={visibleTasks}
+            columns={columns}
+            loading={isLoading}
+            disableRowSelectionOnClick
+            pageSizeOptions={[10, 25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 10, page: 0 } },
+            }}
+            sx={{
+              '& .MuiDataGrid-root': {
+                border: 'none',
+              },
+              '& .MuiDataGrid-cell': {
+                py: 1,
+              },
+            }}
+          />
         )}
       </Box>
     </Box>
