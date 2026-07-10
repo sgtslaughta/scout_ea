@@ -175,7 +175,7 @@ export function TopicsView() {
         <GridActionsCellItem
           key="delete"
           icon={<Trash2 size={16} />}
-          label="Delete"
+          label="Deactivate"
           onClick={() => handleDeleteClick(params.row)}
           showInMenu={false}
         />,

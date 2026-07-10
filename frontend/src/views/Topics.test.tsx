@@ -121,13 +121,13 @@ describe('Topics view', () => {
     })
   })
 
-  it('renders Delete button in actions column', async () => {
+  it('renders Deactivate button in actions column', async () => {
     mockFetch(mockTopicsData)
     renderWithRouter(<TopicsView />)
 
     await waitFor(() => {
-      const deleteButtons = screen.getAllByLabelText(/Delete/)
-      expect(deleteButtons.length).toBeGreaterThanOrEqual(2)
+      const deactivateButtons = screen.getAllByLabelText(/Deactivate/)
+      expect(deactivateButtons.length).toBeGreaterThanOrEqual(2)
     })
   })
 
@@ -186,17 +186,17 @@ describe('Topics view', () => {
     })
   })
 
-  it('opens delete confirmation dialog when Delete button is clicked', async () => {
+  it('opens deactivate confirmation dialog when Deactivate button is clicked', async () => {
     mockFetch(mockTopicsData)
     renderWithRouter(<TopicsView />)
 
     await waitFor(() => {
-      const deleteButtons = screen.getAllByLabelText(/Delete/)
-      expect(deleteButtons[0]).toBeDefined()
+      const deactivateButtons = screen.getAllByLabelText(/Deactivate/)
+      expect(deactivateButtons[0]).toBeDefined()
     })
 
-    const deleteButtons = screen.getAllByLabelText(/Delete/)
-    deleteButtons[0].click()
+    const deactivateButtons = screen.getAllByLabelText(/Deactivate/)
+    deactivateButtons[0].click()
 
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /Deactivate AI Strategy/i })).toBeDefined()
@@ -284,17 +284,17 @@ describe('Topics view', () => {
     })
   })
 
-  it('renders deactivate confirmation dialog when delete is clicked', async () => {
+  it('renders deactivate confirmation dialog when deactivate is clicked', async () => {
     mockFetch(mockTopicsData)
     renderWithRouter(<TopicsView />)
 
     await waitFor(() => {
-      const deleteButtons = screen.getAllByLabelText(/Delete/)
-      expect(deleteButtons[0]).toBeDefined()
+      const deactivateButtons = screen.getAllByLabelText(/Deactivate/)
+      expect(deactivateButtons[0]).toBeDefined()
     })
 
-    const deleteButtons = screen.getAllByLabelText(/Delete/)
-    deleteButtons[0].click()
+    const deactivateButtons = screen.getAllByLabelText(/Deactivate/)
+    deactivateButtons[0].click()
 
     await waitFor(
       () => {
