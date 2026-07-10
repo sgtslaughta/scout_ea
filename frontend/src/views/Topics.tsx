@@ -1,103 +1,94 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { useSearchParams } from 'react-router-dom'
+import { Edit2, Plus, Trash2 } from 'lucide-react'
+import {
+  Box,
+  Typography,
+  FormControlLabel,
+  Switch,
+  Button,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Tooltip,
+} from '@mui/material'
+import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { getTopics, addTopic, updateTopic, deleteTopic, type Topic } from '@/api'
 import { toast } from 'sonner'
-import { SkeletonRow } from '@/components/SkeletonRow'
-
-const PRIORITY_LEVELS = [
-  { value: 1, label: 'Critical' },
-  { value: 2, label: 'High' },
-  { value: 3, label: 'Medium' },
-  { value: 4, label: 'Low' },
-  { value: 5, label: 'Very Low' },
-]
-
-const getPriorityColor = (priority: number): string => {
-  if (priority === 1) return 'var(--color-crit)'
-  if (priority <= 3) return 'var(--color-warn)'
-  return 'var(--color-info)'
-}
 
 export function TopicsView() {
   const queryClient = useQueryClient()
-  const [showForm, setShowForm] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [priority, setPriority] = useState(3)
+  const [max_suggest, setMax_suggest] = useState(1)
+  const [addOpen, setAddOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    priority: 3,
-    max_suggest: 5,
-  })
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Topic | null>(null)
 
+  const includeInactive = searchParams.get('include-inactive') === 'true'
   const { data: topics = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['topics'],
-    queryFn: () => getTopics(),
+    queryKey: ['topics', includeInactive],
+    queryFn: () => getTopics(includeInactive),
   })
 
   const addMutation = useMutation({
-    mutationFn: () => addTopic(formData),
+    mutationFn: () =>
+      addTopic({
+        name: name.trim(),
+        description: description.trim(),
+        priority,
+        max_suggest,
+      }),
     onSuccess: () => {
-      toast.success(`Added topic "${formData.name}"`)
+      toast.success('Topic added')
       queryClient.invalidateQueries({ queryKey: ['topics'] })
-      resetForm()
+      handleCloseDialog()
     },
-    onError: (err: any) => {
-      if (err.message.includes('409')) {
-        toast.error('A topic with that name already exists.')
-      } else {
-        toast.error('Failed to add topic')
-      }
-    },
+    onError: () => toast.error('Failed to add topic'),
   })
-
   const updateMutation = useMutation({
-    mutationFn: () => updateTopic(editingId!, formData),
+    mutationFn: () =>
+      updateTopic(editingId!, {
+        name: name.trim(),
+        description: description.trim(),
+        priority,
+        max_suggest,
+      }),
     onSuccess: () => {
-      toast.success(`Updated topic "${formData.name}"`)
+      toast.success('Topic updated')
       queryClient.invalidateQueries({ queryKey: ['topics'] })
-      resetForm()
+      handleCloseDialog()
     },
-    onError: (err: any) => {
-      if (err.message.includes('409')) {
-        toast.error('A topic with that name already exists.')
-      } else {
-        toast.error('Failed to update topic')
-      }
-    },
+    onError: () => toast.error('Failed to update topic'),
   })
-
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deleteTopic(id),
-    onSuccess: (_, id) => {
-      const topic = topics.find(t => t.id === id)
-      toast.success(`Removed topic "${topic?.name}"`)
+    onSuccess: () => {
+      toast.success(`Deactivated ${deleteTarget?.name}`)
       queryClient.invalidateQueries({ queryKey: ['topics'] })
+      setDeleteConfirmOpen(false)
+      setDeleteTarget(null)
     },
-    onError: () => toast.error('Failed to remove topic'),
+    onError: () => toast.error('Failed to deactivate topic'),
   })
-
-  const resetForm = () => {
-    setFormData({ name: '', description: '', priority: 3, max_suggest: 5 })
+  const handleCloseDialog = () => {
+    setName('')
+    setDescription('')
+    setPriority(3)
+    setMax_suggest(1)
     setEditingId(null)
-    setShowForm(false)
+    setAddOpen(false)
   }
-
-  const handleEdit = (topic: Topic) => {
-    setFormData({
-      name: topic.name,
-      description: topic.description || '',
-      priority: topic.priority,
-      max_suggest: topic.max_suggest,
-    })
-    setEditingId(topic.id)
-    setShowForm(true)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.name.trim()) {
-      toast.error('Name is required')
+  const handleAddSubmit = () => {
+    if (!name.trim() || max_suggest < 1) {
+      toast.error('Name required, max_suggest must be >= 1')
       return
     }
     if (editingId) {
@@ -106,165 +97,245 @@ export function TopicsView() {
       addMutation.mutate()
     }
   }
-
+  const handleEdit = (topic: Topic) => {
+    setName(topic.name)
+    setDescription(topic.description || '')
+    setPriority(topic.priority)
+    setMax_suggest(topic.max_suggest)
+    setEditingId(topic.id)
+    setAddOpen(true)
+  }
+  const handleDeleteClick = (topic: Topic) => {
+    setDeleteTarget(topic)
+    setDeleteConfirmOpen(true)
+  }
+  const getPriorityColor = (p: number): 'error' | 'warning' | 'info' => {
+    if (p === 1) return 'error'
+    if (p <= 3) return 'warning'
+    return 'info'
+  }
+  const columns: GridColDef<Topic>[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      renderCell: (params) => (
+        <Tooltip
+          title={params.row.description || 'No description'}
+          arrow
+        >
+          <span>{params.row.name}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'priority',
+      headerName: 'Priority',
+      width: 120,
+      renderCell: (params) => {
+        const labels = ['', 'Critical', 'High', 'Medium', 'Low', 'Very Low']
+        return <Chip size="small" label={`${params.value} - ${labels[params.value]}`} color={getPriorityColor(params.value)} variant="outlined" />
+      },
+    },
+    {
+      field: 'max_suggest',
+      headerName: 'Max Suggest',
+      width: 120,
+      type: 'number',
+    },
+    ...(includeInactive
+      ? [
+          {
+            field: 'active',
+            headerName: 'Status',
+            width: 100,
+            renderCell: (params: any) => (
+              <Chip
+                size="small"
+                label={params.row.active ? 'Active' : 'Inactive'}
+                color={params.row.active ? 'success' : 'default'}
+                variant="outlined"
+              />
+            ),
+          },
+        ]
+      : []),
+    {
+      field: 'actions',
+      type: 'actions',
+      width: 90,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="edit"
+          icon={<Edit2 size={16} />}
+          label="Edit"
+          onClick={() => handleEdit(params.row)}
+          showInMenu={false}
+        />,
+        <GridActionsCellItem
+          key="delete"
+          icon={<Trash2 size={16} />}
+          label="Delete"
+          onClick={() => handleDeleteClick(params.row)}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ]
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-bg">
-      <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
-        <h2 className="text-3xl font-display font-semibold text-text mb-6">Topics</h2>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
-            <span>Error loading topics</span>
-            <button onClick={() => refetch()} className="underline hover:no-underline">Retry</button>
-          </div>
-        )}
-
-        {/* Add/Edit form */}
-        {showForm ? (
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label htmlFor="topics-name" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Name *
-                </label>
-                <input
-                  id="topics-name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Topic name"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label htmlFor="topics-description" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Description (optional)
-                </label>
-                <textarea
-                  id="topics-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Topic description"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent resize-none"
-                  rows={2}
-                />
-              </div>
-              <div>
-                <label htmlFor="topics-priority" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Priority
-                </label>
-                <select
-                  id="topics-priority"
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: Number(e.target.value) })}
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
-                >
-                  {PRIORITY_LEVELS.map((level) => (
-                    <option key={level.value} value={level.value}>
-                      {level.value} - {level.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="topics-maxSuggest" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Max Suggestions
-                </label>
-                <input
-                  id="topics-maxSuggest"
-                  type="number"
-                  value={formData.max_suggest}
-                  onChange={(e) => setFormData({ ...formData, max_suggest: Number(e.target.value) })}
-                  min="1"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={addMutation.isPending || updateMutation.isPending}
-                  className="flex-1 bg-accent text-surface rounded-md px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                >
-                  {updateMutation.isPending || addMutation.isPending
-                    ? editingId ? 'Updating...' : 'Adding...'
-                    : editingId ? 'Save Changes' : 'Add Topic'}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 bg-surface-2 border border-border text-muted rounded-md px-3 py-2 text-sm font-medium hover:border-text"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-accent/10 border border-accent/30 text-accent rounded-lg px-4 py-3 text-sm font-medium hover:bg-accent/20 transition-colors"
+    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Typography variant="h5">Topics</Typography>
+          <Box sx={{ flex: 1 }} />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeInactive}
+                onChange={() =>
+                  setSearchParams(includeInactive ? {} : { 'include-inactive': 'true' })
+                }
+              />
+            }
+            label="Include inactive"
+          />
+          <Button
+            variant="contained"
+            startIcon={<Plus size={16} />}
+            onClick={() => setAddOpen(true)}
+            size="small"
           >
-            + Add Topic
-          </button>
+            Add topic
+          </Button>
+        </Box>
+
+        {/* Error alert */}
+        {error && (
+          <Box
+            sx={{
+              bgcolor: 'error.main',
+              opacity: 0.3,
+              border: '1px solid',
+              borderColor: 'error.main',
+              borderRadius: 1,
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: 'error.main' }}>
+              Error loading topics
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => refetch()}
+              sx={{ color: 'error.main', textDecoration: 'underline' }}
+            >
+              Retry
+            </Button>
+          </Box>
         )}
 
-        {/* Topics list */}
-        {isLoading ? (
-          <div className="space-y-0">
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-          </div>
-        ) : topics.length === 0 ? (
-          <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No topics yet. Add one above to get started.
-          </div>
+        {/* Add/Edit dialog */}
+        <Dialog open={addOpen} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>{editingId ? 'Edit topic' : 'Add topic'}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              required
+              fullWidth
+            />
+            <TextField
+              label="Description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              multiline
+              rows={2}
+              fullWidth
+            />
+            <TextField
+              label="Priority"
+              select
+              value={priority}
+              onChange={(e) => setPriority(Number(e.target.value))}
+              required
+              fullWidth
+              slotProps={{ select: { native: true } }}
+            >
+              <option value={1}>1 - Critical</option>
+              <option value={2}>2 - High</option>
+              <option value={3}>3 - Medium</option>
+              <option value={4}>4 - Low</option>
+              <option value={5}>5 - Very Low</option>
+            </TextField>
+            <TextField
+              label="Max Suggestions"
+              type="number"
+              value={max_suggest}
+              onChange={(e) => setMax_suggest(Math.max(1, Number(e.target.value)))}
+              required
+              fullWidth
+              slotProps={{ input: { inputProps: { min: 1 } } }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={!name.trim() || max_suggest < 1}
+              onClick={handleAddSubmit}
+            >
+              {editingId ? 'Save' : 'Add'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+          <DialogTitle>Deactivate {deleteTarget?.name}?</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2">
+              This topic will be deactivated and hidden from active lists.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+            >
+              Deactivate
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Empty state or DataGrid */}
+        {!isLoading && topics.length === 0 ? (
+          <Typography variant="caption" color="text.secondary">
+            No topics yet.
+          </Typography>
         ) : (
-          <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {topics.map((topic, idx) => (
-              <motion.div
-                key={topic.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="flex items-center justify-between gap-4 p-4 hover:bg-surface-2 transition-colors group"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getPriorityColor(topic.priority) }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-text truncate">{topic.name}</div>
-                    {topic.description && (
-                      <div className="text-xs text-muted truncate">{topic.description}</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="px-2 py-1 text-xs bg-surface-2 border border-border/50 text-muted rounded font-mono">
-                    max {topic.max_suggest}
-                  </div>
-                  <button
-                    onClick={() => handleEdit(topic)}
-                    className="px-3 py-1 text-xs bg-surface-2 border border-border text-text rounded hover:border-accent transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteMutation.mutate(topic.id)}
-                    disabled={deleteMutation.isPending}
-                    className="px-3 py-1 text-xs bg-red-500/10 border border-red-500/30 text-red-400 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <DataGrid
+            rows={topics}
+            columns={columns}
+            loading={isLoading}
+            density="compact"
+            disableColumnMenu
+            pageSizeOptions={[25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } },
+            }}
+            sx={{ border: 0 }}
+          />
         )}
-      </div>
-    </main>
+      </Box>
+    </Box>
   )
 }

@@ -1,9 +1,26 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { useSearchParams } from 'react-router-dom'
+import { Plus, Pencil, Trash2 } from 'lucide-react'
+import {
+  Box,
+  Typography,
+  FormControlLabel,
+  Switch,
+  Button,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Select,
+  MenuItem,
+  Tooltip,
+} from '@mui/material'
+import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { getPeople, addPerson, updatePerson, deletePerson, type Person } from '@/api'
 import { toast } from 'sonner'
-import { SkeletonRow } from '@/components/SkeletonRow'
 
 const IMPORTANCE_LEVELS = [
   { value: 1, label: 'Critical' },
@@ -13,80 +30,81 @@ const IMPORTANCE_LEVELS = [
   { value: 5, label: 'Very Low' },
 ]
 
-const getImportanceColor = (importance: number): string => {
-  if (importance === 1) return 'var(--color-crit)'
-  if (importance <= 3) return 'var(--color-warn)'
-  return 'var(--color-info)'
+const getImportanceColor = (importance: number): 'error' | 'warning' | 'info' => {
+  if (importance === 1) return 'error'
+  if (importance <= 3) return 'warning'
+  return 'info'
 }
 
 export function PeopleView() {
   const queryClient = useQueryClient()
-  const [showForm, setShowForm] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [name, setName] = useState('')
+  const [role, setRole] = useState('')
+  const [org, setOrg] = useState('')
+  const [importance, setImportance] = useState<number>(3)
+  const [notes, setNotes] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    role: '',
-    org: '',
-    importance: 3,
-    notes: '',
-  })
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deletingPerson, setDeletingPerson] = useState<Person | null>(null)
+
+  const includeInactive = searchParams.get('include-inactive') === 'true'
 
   const { data: people = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['people'],
-    queryFn: () => getPeople(),
+    queryKey: ['people', { includeInactive }],
+    queryFn: () => getPeople(includeInactive),
   })
 
+  const filteredPeople = includeInactive ? people : people.filter((p) => p.active === 1)
+
   const addMutation = useMutation({
-    mutationFn: () => addPerson(formData),
+    mutationFn: () =>
+      addPerson({
+        name,
+        role: role || undefined,
+        org: org || undefined,
+        importance,
+        notes: notes || undefined,
+      }),
     onSuccess: () => {
-      toast.success(`Added ${formData.name}`)
+      toast.success(`Added ${name}`)
       queryClient.invalidateQueries({ queryKey: ['people'] })
-      resetForm()
+      handleCloseDialog()
     },
     onError: () => toast.error('Failed to add person'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: () => updatePerson(editingId!, formData),
+    mutationFn: () =>
+      updatePerson(editingId!, {
+        name,
+        role: role || undefined,
+        org: org || undefined,
+        importance,
+        notes: notes || undefined,
+      }),
     onSuccess: () => {
-      toast.success(`Updated ${formData.name}`)
+      toast.success(`Updated ${name}`)
       queryClient.invalidateQueries({ queryKey: ['people'] })
-      resetForm()
+      handleCloseDialog()
     },
     onError: () => toast.error('Failed to update person'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => deletePerson(id),
-    onSuccess: (_, id) => {
-      const person = people.find(p => p.id === id)
-      toast.success(`Removed ${person?.name}`)
+    onSuccess: () => {
+      toast.success(`Deactivated ${deletingPerson?.name}`)
       queryClient.invalidateQueries({ queryKey: ['people'] })
+      setDeleteConfirmOpen(false)
+      setDeletingPerson(null)
     },
-    onError: () => toast.error('Failed to remove person'),
+    onError: () => toast.error('Failed to deactivate person'),
   })
 
-  const resetForm = () => {
-    setFormData({ name: '', role: '', org: '', importance: 3, notes: '' })
-    setEditingId(null)
-    setShowForm(false)
-  }
-
-  const handleEdit = (person: Person) => {
-    setFormData({
-      name: person.name,
-      role: person.role || '',
-      org: person.org || '',
-      importance: person.importance,
-      notes: person.notes || '',
-    })
-    setEditingId(person.id)
-    setShowForm(true)
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.name.trim()) {
+  const handleAddSubmit = () => {
+    if (!name.trim()) {
       toast.error('Name is required')
       return
     }
@@ -97,179 +115,271 @@ export function PeopleView() {
     }
   }
 
+  const handleCloseDialog = () => {
+    setName('')
+    setRole('')
+    setOrg('')
+    setImportance(3)
+    setNotes('')
+    setAddOpen(false)
+    setEditingId(null)
+  }
+
+  const handleEdit = (person: Person) => {
+    setName(person.name)
+    setRole(person.role || '')
+    setOrg(person.org || '')
+    setImportance(person.importance || 3)
+    setNotes(person.notes || '')
+    setEditingId(person.id)
+    setAddOpen(true)
+  }
+
+  const handleDeleteClick = (person: Person) => {
+    setDeletingPerson(person)
+    setDeleteConfirmOpen(true)
+  }
+
+  const handleConfirmDelete = () => {
+    if (deletingPerson) {
+      deleteMutation.mutate(deletingPerson.id)
+    }
+  }
+
+  // DataGrid columns
+  const columns: GridColDef<Person>[] = [
+    {
+      field: 'name',
+      headerName: 'Name',
+      flex: 1,
+      minWidth: 150,
+      renderCell: (params) => (
+        <Tooltip
+          title={params.row.notes || 'No notes'}
+          arrow
+        >
+          <span>{params.row.name}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'role',
+      headerName: 'Role',
+      width: 150,
+      renderCell: (params) => params.value || '—',
+    },
+    {
+      field: 'org',
+      headerName: 'Organization',
+      width: 150,
+      renderCell: (params) => params.value || '—',
+    },
+    {
+      field: 'importance',
+      headerName: 'Importance',
+      width: 120,
+      renderCell: (params) => (
+        <Chip
+          size="small"
+          label={IMPORTANCE_LEVELS.find((l) => l.value === params.value)?.label}
+          color={getImportanceColor(params.value)}
+        />
+      ),
+    },
+    {
+      field: 'active',
+      headerName: 'Status',
+      width: 90,
+      renderCell: (params) => (
+        <Chip
+          size="small"
+          variant="outlined"
+          label={params.row.active === 0 ? 'Inactive' : 'Active'}
+          color={params.row.active === 0 ? 'default' : 'success'}
+        />
+      ),
+    },
+    {
+      field: 'actions',
+      type: 'actions',
+      width: 80,
+      getActions: (params) => [
+        <GridActionsCellItem
+          key="edit"
+          icon={<Pencil size={16} />}
+          label="Edit"
+          onClick={() => handleEdit(params.row as Person)}
+          showInMenu={false}
+        />,
+        <GridActionsCellItem
+          key="delete"
+          icon={<Trash2 size={16} />}
+          label="Deactivate"
+          onClick={() => handleDeleteClick(params.row as Person)}
+          showInMenu={false}
+        />,
+      ],
+    },
+  ]
+
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-bg">
-      <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
-        <h2 className="text-3xl font-display font-semibold text-text mb-6">People</h2>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
-            <span>Error loading people</span>
-            <button onClick={() => refetch()} className="underline hover:no-underline">Retry</button>
-          </div>
-        )}
-
-        {/* Add/Edit form */}
-        {showForm ? (
-          <div className="bg-surface border border-border rounded-lg p-4">
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <div>
-                <label htmlFor="people-name" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Name *
-                </label>
-                <input
-                  id="people-name"
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Person name"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label htmlFor="people-role" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Role (optional)
-                </label>
-                <input
-                  id="people-role"
-                  type="text"
-                  value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  placeholder="Job title or role"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label htmlFor="people-org" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Organization (optional)
-                </label>
-                <input
-                  id="people-org"
-                  type="text"
-                  value={formData.org}
-                  onChange={(e) => setFormData({ ...formData, org: e.target.value })}
-                  placeholder="Company or organization"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label htmlFor="people-importance" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Importance
-                </label>
-                <select
-                  id="people-importance"
-                  value={formData.importance}
-                  onChange={(e) => setFormData({ ...formData, importance: Number(e.target.value) })}
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text focus:outline-none focus:border-accent"
-                >
-                  {IMPORTANCE_LEVELS.map((level) => (
-                    <option key={level.value} value={level.value}>
-                      {level.value} - {level.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="people-notes" className="block text-xs uppercase tracking-wider text-muted mb-2">
-                  Notes (optional)
-                </label>
-                <textarea
-                  id="people-notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="Additional notes"
-                  className="w-full bg-surface-2 border border-border rounded-md px-3 py-2 text-sm text-text placeholder:text-muted focus:outline-none focus:border-accent resize-none"
-                  rows={2}
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={addMutation.isPending || updateMutation.isPending}
-                  className="flex-1 bg-accent text-surface rounded-md px-3 py-2 text-sm font-medium hover:opacity-90 disabled:opacity-50"
-                >
-                  {updateMutation.isPending || addMutation.isPending
-                    ? editingId ? 'Updating...' : 'Adding...'
-                    : editingId ? 'Save Changes' : 'Add Person'}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="flex-1 bg-surface-2 border border-border text-muted rounded-md px-3 py-2 text-sm font-medium hover:border-text"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-accent/10 border border-accent/30 text-accent rounded-lg px-4 py-3 text-sm font-medium hover:bg-accent/20 transition-colors"
+    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+          <Typography variant="h5">People</Typography>
+          <Box sx={{ flex: 1 }} />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={includeInactive}
+                onChange={() =>
+                  setSearchParams(
+                    includeInactive ? {} : { 'include-inactive': 'true' }
+                  )
+                }
+              />
+            }
+            label="Include inactive"
+          />
+          <Button
+            variant="contained"
+            startIcon={<Plus size={16} />}
+            onClick={() => setAddOpen(true)}
+            size="small"
           >
-            + Add Person
-          </button>
+            Add person
+          </Button>
+        </Box>
+
+        {/* Error alert */}
+        {error && (
+          <Box
+            sx={{
+              bgcolor: 'error.main',
+              opacity: 0.3,
+              border: '1px solid',
+              borderColor: 'error.main',
+              borderRadius: 1,
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: 'error.main' }}>
+              Error loading people
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => refetch()}
+              sx={{ color: 'error.main', textDecoration: 'underline' }}
+            >
+              Retry
+            </Button>
+          </Box>
         )}
 
-        {/* People list */}
-        {isLoading ? (
-          <div className="space-y-0">
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-          </div>
-        ) : people.length === 0 ? (
-          <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No people yet. Add one above to get started.
-          </div>
+        {/* Add/Edit dialog */}
+        <Dialog open={addOpen} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
+          <DialogTitle>{editingId ? 'Edit person' : 'Add person'}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField
+              label="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoFocus
+              required
+              fullWidth
+            />
+            <TextField
+              label="Role"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              fullWidth
+            />
+            <TextField
+              label="Organization"
+              value={org}
+              onChange={(e) => setOrg(e.target.value)}
+              fullWidth
+            />
+            <Select
+              label="Importance"
+              value={importance}
+              onChange={(e) => setImportance(e.target.value as number)}
+              fullWidth
+            >
+              {IMPORTANCE_LEVELS.map((level) => (
+                <MenuItem key={level.value} value={level.value}>
+                  {level.value} - {level.label}
+                </MenuItem>
+              ))}
+            </Select>
+            <TextField
+              label="Notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              multiline
+              rows={2}
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
+            <Button
+              variant="contained"
+              disabled={!name.trim()}
+              onClick={handleAddSubmit}
+              loading={addMutation.isPending || updateMutation.isPending}
+            >
+              {editingId ? 'Save' : 'Add'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete confirmation dialog */}
+        <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+          <DialogTitle>Deactivate {deletingPerson?.name}?</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2">
+              This person will be marked inactive. You can restore them with the include-inactive filter.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+            >
+              Deactivate
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Empty state or DataGrid */}
+        {!isLoading && filteredPeople.length === 0 ? (
+          <Typography variant="caption" color="text.secondary">
+            {includeInactive ? 'No people yet.' : 'No active people. Enable include-inactive to see all.'}
+          </Typography>
         ) : (
-          <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {people.map((person, idx) => (
-              <motion.div
-                key={person.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="flex items-center justify-between gap-4 p-4 hover:bg-surface-2 transition-colors group"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: getImportanceColor(person.importance) }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-text truncate">{person.name}</div>
-                    {(person.role || person.org) && (
-                      <div className="text-xs text-muted truncate">
-                        {[person.role, person.org].filter(Boolean).join(' · ')}
-                      </div>
-                    )}
-                    {person.notes && (
-                      <div className="text-xs text-muted truncate">{person.notes}</div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <button
-                    onClick={() => handleEdit(person)}
-                    className="px-3 py-1 text-xs bg-surface-2 border border-border text-text rounded hover:border-accent transition-colors"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteMutation.mutate(person.id)}
-                    disabled={deleteMutation.isPending}
-                    className="px-3 py-1 text-xs bg-red-500/10 border border-red-500/30 text-red-400 rounded hover:bg-red-500/20 transition-colors disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+          <DataGrid
+            rows={filteredPeople}
+            columns={columns}
+            loading={isLoading}
+            density="compact"
+            disableColumnMenu
+            pageSizeOptions={[25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } },
+            }}
+            sx={{ border: 0 }}
+          />
         )}
-      </div>
-    </main>
+      </Box>
+    </Box>
   )
 }
