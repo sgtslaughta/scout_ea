@@ -28,6 +28,12 @@ const ACCENT_COLORS = [
   { name: 'Violet', hex: '#A78BFA' },
 ]
 
+const getCheckColor = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
+  return lum > 150 ? '#000' : '#fff'
+}
+
 export function SettingsView() {
   const { mode, setMode } = useColorScheme()
   const [currentAccent, setCurrentAccent] = useState(() => {
@@ -137,7 +143,7 @@ export function SettingsView() {
                     }}
                   >
                     {currentAccent === color.hex && (
-                      <Check size={20} style={{ color: '#fff' }} />
+                      <Check size={20} style={{ color: getCheckColor(color.hex) }} />
                     )}
                   </IconButton>
                 ))}
