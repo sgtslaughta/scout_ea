@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { getSkills } from '@/api'
 import { Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { Box, Typography, Paper, CircularProgress, useTheme } from '@mui/material'
+import { Box, Typography, Paper, CircularProgress, useTheme, Button, IconButton } from '@mui/material'
 
 export function DocsView() {
   const theme = useTheme()
@@ -59,20 +59,14 @@ export function DocsView() {
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 Failed to load skills
               </Typography>
-              <button
+              <Button
+                variant="outlined"
+                size="small"
                 onClick={() => refetch()}
-                style={{
-                  fontSize: '0.75rem',
-                  marginTop: '0.5rem',
-                  color: theme.palette.primary.main,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                }}
+                sx={{ textDecoration: 'underline', textTransform: 'none', mt: 0.5 }}
               >
                 Try again
-              </button>
+              </Button>
             </Box>
           </Box>
         )}
@@ -133,24 +127,14 @@ export function DocsView() {
                       </Box>
                     )}
                   </Box>
-                  <button
+                  <IconButton
+                    size="small"
                     onClick={() => copySkill(skill.name, skill.body)}
-                    style={{
-                      flexShrink: 0,
-                      padding: '0.5rem',
-                      borderRadius: '0.25rem',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: theme.palette.primary.main,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
                     aria-label={`Copy ${skill.name} to clipboard`}
+                    sx={{ color: 'primary.main', flexShrink: 0 }}
                   >
                     <Copy size={18} />
-                  </button>
+                  </IconButton>
                 </Box>
               </Paper>
             ))}
