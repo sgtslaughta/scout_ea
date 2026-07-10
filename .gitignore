@@ -13,3 +13,4 @@ screenshots/
 .venv/
 frontend_dist/
 .claude/worktrees/
+node_modules/
