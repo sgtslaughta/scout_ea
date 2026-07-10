@@ -12,3 +12,4 @@ screenshots/
 *.sqlite-wal
 .venv/
 frontend_dist/
+.claude/worktrees/
