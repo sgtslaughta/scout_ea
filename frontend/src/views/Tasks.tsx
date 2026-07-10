@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Chip } from '@mui/material'
 import { getTasks, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 import { SkeletonRow } from '@/components/SkeletonRow'
@@ -10,12 +12,18 @@ const statusFilters = ['open', 'in_progress', 'done', 'dismissed']
 export function TasksView() {
   const queryClient = useQueryClient()
   const [activeStatus, setActiveStatus] = useState('open')
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const { data: allTasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['tasks'],
     queryFn: getTasks,
     refetchInterval: 15000,
   })
+
+  const dueToday = searchParams.get('due') === 'today'
+  const dueTodayTasks = dueToday
+    ? allTasks.filter((t) => t.due_at && new Date(t.due_at).toDateString() === new Date().toDateString())
+    : allTasks
 
   const completeMutation = useMutation({
     mutationFn: (id: number) =>
@@ -43,9 +51,9 @@ export function TasksView() {
     return 'var(--color-info)'
   }
 
-  const filteredTasks = activeStatus === 'all'
-    ? allTasks
-    : allTasks.filter((t) => t.status === activeStatus)
+  const visibleTasks = activeStatus === 'all'
+    ? dueTodayTasks
+    : dueTodayTasks.filter((t) => t.status === activeStatus)
 
   return (
     <main className="flex-1 overflow-y-auto p-6 bg-bg">
@@ -53,7 +61,7 @@ export function TasksView() {
         <h2 className="text-3xl font-display font-semibold text-text mb-6">Tasks</h2>
 
         {/* Status filter chips */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 items-center">
           {statusFilters.map((status) => (
             <button
               key={status}
@@ -67,6 +75,13 @@ export function TasksView() {
               {status.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
             </button>
           ))}
+          {dueToday && (
+            <Chip
+              label="Due today"
+              onDelete={() => setSearchParams({})}
+              size="small"
+            />
+          )}
         </div>
 
         {error && (
@@ -83,13 +98,13 @@ export function TasksView() {
             <SkeletonRow />
             <SkeletonRow />
           </div>
-        ) : filteredTasks.length === 0 ? (
+        ) : visibleTasks.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             No tasks yet. Create one to get started.
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {filteredTasks.map((t, idx) => (
+            {visibleTasks.map((t, idx) => (
               <motion.div
                 key={t.id}
                 initial={{ opacity: 0, y: 8 }}

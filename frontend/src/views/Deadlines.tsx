@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
+import { Chip } from '@mui/material'
 import { getDeadlines, addDeadline, setDeadlineVisible, setConfig } from '@/api'
 import { toast } from 'sonner'
 import { SkeletonRow } from '@/components/SkeletonRow'
@@ -21,6 +23,7 @@ const getUrgencyColor = (seconds: number): string => {
 
 export function DeadlinesView() {
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
   const [detail, setDetail] = useState('')
@@ -30,6 +33,11 @@ export function DeadlinesView() {
     queryKey: ['deadlines'],
     queryFn: getDeadlines,
   })
+
+  const urgentOnly = searchParams.get('due') === '24h'
+  const visibleDeadlines = urgentOnly
+    ? deadlines.filter((d) => d.countdown_seconds < 86400)
+    : deadlines
 
   const { data: config = {} } = useQuery({
     queryKey: ['config'],
@@ -121,6 +129,14 @@ export function DeadlinesView() {
           </div>
         )}
 
+        {urgentOnly && (
+          <Chip
+            label="Due <24h"
+            onDelete={() => setSearchParams({})}
+            size="small"
+          />
+        )}
+
         {/* Add deadline form */}
         {showForm ? (
           <div className="bg-surface border border-border rounded-lg p-4">
@@ -197,13 +213,13 @@ export function DeadlinesView() {
             <SkeletonRow />
             <SkeletonRow />
           </div>
-        ) : deadlines.length === 0 ? (
+        ) : visibleDeadlines.length === 0 ? (
           <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
             No deadlines yet. {!globalEnabled && 'Enable the toggle above to see all.'}
           </div>
         ) : (
           <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {deadlines.map((d, idx) => (
+            {visibleDeadlines.map((d, idx) => (
               <motion.div
                 key={d.id}
                 initial={{ opacity: 0, y: 8 }}
