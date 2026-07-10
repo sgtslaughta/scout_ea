@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { InboxView } from './Inbox'
@@ -73,9 +73,7 @@ describe('Inbox view', () => {
     )
 
     // Wait for content to load
-    await new Promise(resolve => setTimeout(resolve, 100))
-
-    expect(screen.getByText('Important Alert')).toBeDefined()
+    expect(await screen.findByText('Important Alert')).toBeInTheDocument()
     expect(screen.queryByText('Routine Signal')).toBeNull()
   })
 })
