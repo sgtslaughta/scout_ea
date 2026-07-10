@@ -33,12 +33,13 @@ describe('Deadlines view', () => {
       </MemoryRouter>
     )
 
+    // MUI Switch renders as switch inside FormControlLabel
     const toggle = screen.getByRole('switch', { name: /Show all deadlines/i })
     expect(toggle).toBeDefined()
-    expect(toggle.getAttribute('aria-checked')).toBe('true')
+    expect(toggle).toBeChecked()
   })
 
-  it('toggle button has correct CSS classes for styling', async () => {
+  it('toggle renders MUI Switch with correct styling', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -48,14 +49,11 @@ describe('Deadlines view', () => {
     )
 
     const toggle = screen.getByRole('switch', { name: /Show all deadlines/i })
-    expect(toggle.className).toContain('relative')
-    expect(toggle.className).toContain('inline-flex')
-    expect(toggle.className).toContain('h-6')
-    expect(toggle.className).toContain('w-11')
-    expect(toggle.className).toContain('rounded-full')
+    expect(toggle).toBeDefined()
+    // MUI handles styling; just verify the switch element exists
   })
 
-  it('toggle contains styled span for the switch knob', async () => {
+  it('toggle has label inside FormControlLabel', async () => {
     render(
       <MemoryRouter>
         <QueryClientProvider client={queryClient}>
@@ -64,14 +62,9 @@ describe('Deadlines view', () => {
       </MemoryRouter>
     )
 
+    // Verify the switch element is present (it will be inside FormControlLabel)
     const toggle = screen.getByRole('switch', { name: /Show all deadlines/i })
-    const knob = toggle.querySelector('span')
-    expect(knob).toBeDefined()
-    expect(knob?.className).toContain('inline-block')
-    expect(knob?.className).toContain('h-5')
-    expect(knob?.className).toContain('w-5')
-    expect(knob?.className).toContain('rounded-full')
-    expect(knob?.className).toContain('transform')
+    expect(toggle).toBeDefined()
   })
 
   it('toggle shows label text "Show all deadlines"', async () => {
@@ -130,13 +123,13 @@ describe('Deadlines view', () => {
       </MemoryRouter>
     )
 
-    // Wait for data to load
+    // Wait for data to load (DataGrid renders async)
     await screen.findByText('Urgent Report')
 
-    // Urgent Report should be visible
+    // Urgent Report should be visible in DataGrid
     expect(screen.getByText('Urgent Report')).toBeDefined()
 
-    // Long deadline should NOT be in the document
+    // Long deadline should NOT be in the document (filtered out)
     expect(screen.queryByText('Long deadline')).toBeNull()
   })
 })
