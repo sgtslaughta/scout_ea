@@ -7,7 +7,6 @@ import { TodayBriefing } from '@/components/TodayBriefing'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
 import { loadAccent } from '@/theme'
-import './App.css'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
