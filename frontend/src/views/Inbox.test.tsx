@@ -31,7 +31,7 @@ describe('Inbox view', () => {
       </QueryClientProvider>
     )
 
-    expect(screen.getByText('Inbox')).toBeDefined()
+    expect(screen.getByText('Inbox')).toBeInTheDocument()
   })
 
   it('pre-filters via drill-down query param (status/type)', async () => {
@@ -72,8 +72,8 @@ describe('Inbox view', () => {
       </QueryClientProvider>
     )
 
-    // Wait for content to load
+    // Wait for DataGrid content to load (rows are async-rendered divs)
     expect(await screen.findByText('Important Alert')).toBeInTheDocument()
-    expect(screen.queryByText('Routine Signal')).toBeNull()
+    expect(screen.queryByText('Routine Signal')).not.toBeInTheDocument()
   })
 })

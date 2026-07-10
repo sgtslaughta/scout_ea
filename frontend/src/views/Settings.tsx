@@ -2,6 +2,15 @@ import { useEffect, useState } from 'react'
 import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useColorScheme } from '@mui/material/styles'
+import {
+  Box,
+  Button,
+  Chip,
+  Typography,
+  ToggleButton,
+  ToggleButtonGroup,
+  IconButton,
+} from '@mui/material'
 import { applyAccent } from '@/theme'
 import {
   getSubscriptionState,
@@ -18,6 +27,12 @@ const ACCENT_COLORS = [
   { name: 'Coral', hex: '#E5484D' },
   { name: 'Violet', hex: '#A78BFA' },
 ]
+
+const getCheckColor = (hex: string) => {
+  const n = parseInt(hex.slice(1), 16)
+  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
+  return lum > 150 ? '#000' : '#fff'
+}
 
 export function SettingsView() {
   const { mode, setMode } = useColorScheme()
@@ -86,145 +101,166 @@ export function SettingsView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
       {/* Header */}
-      <div className="h-16 border-b border-border flex items-center px-6">
-        <h1 className="text-display text-lg text-text">Settings</h1>
-      </div>
+      <Box sx={{ height: 64, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', px: 3 }}>
+        <Typography variant="h6">Settings</Typography>
+      </Box>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 3, py: 3 }}>
         {/* Appearance section */}
-        <div className="mb-8">
-          <h2 className="text-display text-base text-text font-medium mb-4">
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
             Appearance
-          </h2>
+          </Typography>
 
-          <div className="space-y-4">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Accent color picker */}
-            <div>
-              <label className="text-sm text-muted block mb-3">Accent Color</label>
-              <div className="flex gap-3">
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Accent Color
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
                 {ACCENT_COLORS.map((color) => (
-                  <button
+                  <IconButton
                     key={color.hex}
                     onClick={() => setCurrentAccent(color.hex)}
-                    className="group relative"
                     title={color.name}
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 1,
+                      p: 0,
+                      position: 'relative',
+                      bgcolor: color.hex,
+                      border: '2px solid',
+                      borderColor: currentAccent === color.hex ? 'primary.main' : 'action.disabled',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.1)',
+                      },
+                    }}
                   >
-                    <div
-                      className="w-12 h-12 rounded-lg border-2 transition-all hover:scale-110"
-                      style={{
-                        backgroundColor: color.hex,
-                        borderColor:
-                          currentAccent === color.hex
-                            ? '#E6EDF7'
-                            : '#243149',
-                      }}
-                    />
                     {currentAccent === color.hex && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Check size={20} className="text-bg" />
-                      </div>
+                      <Check size={20} style={{ color: getCheckColor(color.hex) }} />
                     )}
-                  </button>
+                  </IconButton>
                 ))}
-              </div>
-              <p className="text-xs text-muted mt-2">
-                Currently: <span className="font-mono">{currentAccent}</span>
-              </p>
-            </div>
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Currently: <span style={{ fontFamily: 'monospace' }}>{currentAccent}</span>
+              </Typography>
+            </Box>
 
             {/* Theme selector */}
-            <div>
-              <label className="text-sm text-muted block mb-3">Theme</label>
-              <div className="flex gap-2">
-                {(['dark', 'light', 'system'] as const).map((themeMode) => (
-                  <button
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Theme
+              </Typography>
+              <ToggleButtonGroup
+                value={mode || 'system'}
+                exclusive
+                onChange={(_e, newMode) => {
+                  if (newMode !== null) {
+                    setMode(newMode as 'light' | 'dark' | 'system')
+                  }
+                }}
+                sx={{ mb: 1.5 }}
+              >
+                {(['light', 'dark', 'system'] as const).map((themeMode) => (
+                  <ToggleButton
                     key={themeMode}
-                    onClick={() => {
-                      setMode(themeMode)
-                    }}
-                    className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
-                      mode === themeMode
-                        ? 'bg-accent text-bg'
-                        : 'bg-surface-2 text-text border border-border hover:border-accent'
-                    }`}
+                    value={themeMode}
+                    aria-label={themeMode}
                   >
                     {themeMode.charAt(0).toUpperCase() + themeMode.slice(1)}
-                  </button>
+                  </ToggleButton>
                 ))}
-              </div>
-              <p className="text-xs text-muted mt-2">
-                Currently: <span className="font-mono">{mode ?? 'system'}</span>
-              </p>
-            </div>
-          </div>
-        </div>
+              </ToggleButtonGroup>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Currently: <span style={{ fontFamily: 'monospace' }}>{mode ?? 'system'}</span>
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
 
         {/* Notifications section */}
-        <div className="mb-8">
-          <h2 className="text-display text-base text-text font-medium mb-4">
+        <Box>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
             Notifications
-          </h2>
+          </Typography>
 
-          <div className="space-y-4">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {/* Push notification control */}
-            <div>
-              <label className="text-sm text-muted block mb-3">Browser Notifications</label>
-              <div className="flex items-center gap-3">
-                {pushState === 'unsupported' && (
-                  <>
-                    <button
-                      disabled
-                      className="flex-1 py-2 px-3 rounded text-sm font-medium bg-surface-2 text-muted opacity-50 cursor-not-allowed"
-                      aria-label="Notifications not supported"
-                    >
-                      Notifications not supported
-                    </button>
-                  </>
-                )}
-                {pushState === 'denied' && (
-                  <p className="text-sm text-muted">Notifications blocked in browser settings.</p>
-                )}
-                {pushState === 'unsubscribed' && (
-                  <button
-                    onClick={handleEnablePush}
-                    disabled={loadingPush}
-                    className="flex-1 py-2 px-3 rounded text-sm font-medium bg-accent text-bg hover:opacity-90 disabled:opacity-50 transition-opacity"
-                    aria-label="Enable browser notifications"
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Browser Notifications
+              </Typography>
+
+              {pushState === 'unsupported' && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Button
+                    disabled
+                    fullWidth
+                    sx={{ opacity: 0.5, cursor: 'not-allowed' }}
                   >
-                    {loadingPush ? 'Enabling...' : 'Enable notifications'}
-                  </button>
-                )}
-                {pushState === 'subscribed' && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={handleDisablePush}
-                      disabled={loadingPush}
-                      className="flex-1 py-2 px-3 rounded text-sm font-medium bg-surface-2 text-text border border-border hover:border-accent disabled:opacity-50 transition-colors"
-                      aria-label="Disable browser notifications"
-                    >
-                      {loadingPush ? 'Disabling...' : 'Disable notifications'}
-                    </button>
-                    <button
-                      onClick={handleSendTest}
-                      disabled={loadingPush}
-                      className="py-2 px-4 rounded text-sm font-medium bg-accent text-bg hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
-                      aria-label="Send test notification"
-                    >
-                      {loadingPush ? 'Sending...' : 'Send test'}
-                    </button>
-                  </div>
-                )}
-              </div>
-              <p className="text-xs text-muted mt-2">
-                State: <span className="font-mono">{pushState}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+                    Notifications not supported
+                  </Button>
+                </Box>
+              )}
+
+              {pushState === 'denied' && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Notifications blocked in browser settings.
+                </Typography>
+              )}
+
+              {pushState === 'unsubscribed' && (
+                <Button
+                  variant="contained"
+                  onClick={handleEnablePush}
+                  disabled={loadingPush}
+                  fullWidth
+                >
+                  {loadingPush ? 'Enabling...' : 'Enable notifications'}
+                </Button>
+              )}
+
+              {pushState === 'subscribed' && (
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleDisablePush}
+                    disabled={loadingPush}
+                    sx={{ flex: 1 }}
+                  >
+                    {loadingPush ? 'Disabling...' : 'Disable notifications'}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleSendTest}
+                    disabled={loadingPush}
+                  >
+                    {loadingPush ? 'Sending...' : 'Send test'}
+                  </Button>
+                </Box>
+              )}
+
+              <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  State:
+                </Typography>
+                <Chip
+                  label={pushState}
+                  size="small"
+                  variant="outlined"
+                />
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   )
 }

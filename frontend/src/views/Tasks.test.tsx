@@ -31,7 +31,7 @@ describe('Tasks view', () => {
       </QueryClientProvider>
     )
 
-    expect(screen.getByText('Tasks')).toBeDefined()
+    expect(screen.getByText('Tasks')).toBeInTheDocument()
   })
 
   it('pre-filters via drill-down query param (due=today)', async () => {
@@ -72,8 +72,8 @@ describe('Tasks view', () => {
       </QueryClientProvider>
     )
 
-    // Wait for tasks to load
-    expect(await screen.findByText("Today's Task")).toBeDefined()
-    expect(screen.queryByText("Tomorrow's Task")).toBeNull()
+    // Wait for DataGrid content to load (rows are async-rendered divs)
+    expect(await screen.findByText("Today's Task")).toBeInTheDocument()
+    expect(screen.queryByText("Tomorrow's Task")).not.toBeInTheDocument()
   })
 })

@@ -1,9 +1,17 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import Dialog from '@mui/material/Dialog'
+import {
+  Dialog,
+  Box,
+  Typography,
+  Stack,
+  Paper,
+  IconButton,
+  Button,
+  Skeleton,
+} from '@mui/material'
 import { X, AlertCircle } from 'lucide-react'
 import { getOutlook, getSignals } from '@/api'
-import { SkeletonRow } from '@/components/SkeletonRow'
 
 interface TodayBriefingProps {
   open: boolean
@@ -29,21 +37,6 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const proactiveSignals = outlook?.proactive || []
   const tasksToday = outlook?.tasks_due_today || []
 
-  // Handle Escape key to close modal
-  useEffect(() => {
-    if (!open) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, onClose])
-
   // Focus close button when modal opens
   useEffect(() => {
     if (open && closeButtonRef.current) {
@@ -55,119 +48,138 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { position: 'relative' } } }}>
-            {/* Close button */}
-            <button
-              ref={closeButtonRef}
-              onClick={onClose}
-              className="absolute top-4 right-4 text-muted hover:text-text transition-colors"
-              aria-label="Close briefing"
-            >
-              <X size={20} />
-            </button>
+      <Box sx={{ p: 3 }}>
+        {/* Close button */}
+        <IconButton
+          ref={closeButtonRef}
+          onClick={onClose}
+          sx={{ position: 'absolute', top: 16, right: 16 }}
+          aria-label="Close briefing"
+        >
+          <X size={20} />
+        </IconButton>
 
-            {/* Header */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-display font-semibold text-text">
-                TODAY'S BRIEFING
-              </h2>
-              <p className="text-xs text-muted font-mono mt-1">
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </p>
-            </div>
+        {/* Header */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
+            TODAY'S BRIEFING
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+            {new Date().toLocaleDateString('en-US', {
+              weekday: 'long',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </Typography>
+        </Box>
 
-            {outlookLoading ? (
-              <div className="space-y-4">
-                <SkeletonRow />
-                <SkeletonRow />
-                <SkeletonRow />
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-surface-2 border border-border rounded p-3">
-                    <div className="text-[11px] uppercase text-muted mb-1">Meetings</div>
-                    <div className="text-xl font-mono font-semibold text-accent">
-                      {outlook?.deadlines.length || 0}
-                    </div>
-                  </div>
-                  <div className="bg-surface-2 border border-border rounded p-3">
-                    <div className="text-[11px] uppercase text-muted mb-1">Due Today</div>
-                    <div className="text-xl font-mono font-semibold text-ok">
-                      {tasksToday.length}
-                    </div>
-                  </div>
-                  <div className="bg-surface-2 border border-border rounded p-3">
-                    <div className="text-[11px] uppercase text-muted mb-1">Active</div>
-                    <div className="text-xl font-mono font-semibold text-warn">
-                      {outlook?.deadlines.filter(d => d.countdown_seconds < 86400).length || 0}
-                    </div>
-                  </div>
-                </div>
+        {outlookLoading ? (
+          <Stack spacing={2}>
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="rounded" height={40} />
+          </Stack>
+        ) : (
+          <Stack spacing={3}>
+            {/* Stats */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  MEETINGS
+                </Typography>
+                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
+                  {outlook?.deadlines.length || 0}
+                </Typography>
+              </Paper>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  DUE TODAY
+                </Typography>
+                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'success.main' }}>
+                  {tasksToday.length}
+                </Typography>
+              </Paper>
+              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
+                  ACTIVE
+                </Typography>
+                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'warning.main' }}>
+                  {outlook?.deadlines.filter(d => d.countdown_seconds < 86400).length || 0}
+                </Typography>
+              </Paper>
+            </Box>
 
-                {/* Triaged Signals */}
-                {regularSignals.length > 0 && (
-                  <div className="bg-surface-2 border border-border rounded-lg p-4">
-                    <h3 className="text-[11px] uppercase tracking-wider text-muted mb-3">
-                      Signals
-                    </h3>
-                    <div className="space-y-2 text-xs">
-                      {regularSignals.slice(0, 5).map((sig) => (
-                        <div
-                          key={sig.id}
-                          className="flex items-center gap-2 py-1 px-2 rounded hover:bg-surface transition-colors"
-                        >
-                          <div
-                            style={{
-                              background:
-                                sig.priority <= 1
-                                  ? '#E5484D'
-                                  : sig.priority === 2
-                                    ? '#F2A65A'
-                                    : '#6C8FE5',
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                            }}
-                          />
-                          <span className="text-text flex-1 truncate">{sig.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Proactive */}
-                {proactiveSignals.length > 0 && (
-                  <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
-                    <h3 className="text-[11px] uppercase tracking-wider text-accent mb-3">
-                      Proactive
-                    </h3>
-                    <div className="space-y-2 text-xs">
-                      {proactiveSignals.slice(0, 3).map((item) => (
-                        <div key={item.id} className="flex items-start gap-2">
-                          <AlertCircle size={14} className="text-accent flex-shrink-0 mt-0.5" />
-                          <span className="text-text">{item.title}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* CTA */}
-                <button
-                  onClick={onClose}
-                  className="w-full py-2 rounded font-medium text-xs transition-all"
-                  style={{ background: 'var(--color-accent)', color: '#0B1220' }}
-                >
-                  Start my day
-                </button>
-              </div>
+            {/* Triaged Signals */}
+            {regularSignals.length > 0 && (
+              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                  SIGNALS
+                </Typography>
+                <Stack spacing={0.5}>
+                  {regularSignals.slice(0, 5).map((sig) => (
+                    <Box
+                      key={sig.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 0.5,
+                        borderRadius: 1,
+                        '&:hover': { bgcolor: 'action.selected' },
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          bgcolor:
+                            sig.priority <= 1
+                              ? '#E5484D'
+                              : sig.priority === 2
+                                ? '#F2A65A'
+                                : '#6C8FE5',
+                        }}
+                      />
+                      <Typography variant="caption" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {sig.title}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
             )}
+
+            {/* Proactive */}
+            {proactiveSignals.length > 0 && (
+              <Paper sx={{ p: 2, bgcolor: 'primary.light', borderColor: 'primary.light', borderWidth: 1, borderStyle: 'solid' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1, color: 'primary.main' }}>
+                  PROACTIVE
+                </Typography>
+                <Stack spacing={0.5}>
+                  {proactiveSignals.slice(0, 3).map((item) => (
+                    <Box key={item.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 2, color: 'var(--color-accent)' }} />
+                      <Typography variant="caption">{item.title}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+              </Paper>
+            )}
+
+            {/* CTA */}
+            <Button
+              onClick={onClose}
+              fullWidth
+              variant="contained"
+              sx={{ py: 1, fontSize: '0.875rem' }}
+            >
+              Start my day
+            </Button>
+          </Stack>
+        )}
+      </Box>
     </Dialog>
   )
 }

@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { getSkills } from '@/api'
-import { Copy, AlertCircle, Loader2 } from 'lucide-react'
+import { Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { Box, Typography, Paper, CircularProgress, useTheme, Button, IconButton } from '@mui/material'
 
 export function DocsView() {
+  const theme = useTheme()
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['skills'],
     queryFn: getSkills,
@@ -15,82 +17,130 @@ export function DocsView() {
   }
 
   return (
-    <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
       {/* Header */}
-      <div className="h-16 border-b border-border flex items-center px-6">
-        <h1 className="text-display text-lg text-text">Skills Library</h1>
-      </div>
+      <Box
+        sx={{
+          height: 64,
+          borderBottom: `1px solid ${theme.palette.divider}`,
+          display: 'flex',
+          alignItems: 'center',
+          px: 6,
+        }}
+      >
+        <Typography variant="h6" sx={{ fontFamily: 'display', fontWeight: 500 }}>
+          Skills Library
+        </Typography>
+      </Box>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 6, py: 6 }}>
         {/* Quickstart blurb */}
-        <div className="mb-6 p-4 bg-surface-2 border border-border rounded-lg">
-          <p className="text-sm text-muted">
-            Paste these automations into Microsoft Scout to install them.
-          </p>
-        </div>
+        <Box sx={{ mb: 6 }}>
+          <Paper variant="outlined" sx={{ p: 2 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              Paste these automations into Microsoft Scout to install them.
+            </Typography>
+          </Paper>
+        </Box>
 
         {/* Loading */}
         {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-accent" size={24} />
-          </div>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 12 }}>
+            <CircularProgress size={24} />
+          </Box>
         )}
 
         {/* Error */}
         {error && !isLoading && (
-          <div className="flex items-start gap-3 p-4 bg-surface-2 border border-crit rounded-lg">
-            <AlertCircle size={20} className="text-crit flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-text font-medium">Failed to load skills</p>
-              <button
+          <Box sx={{ display: 'flex', gap: 1.5, p: 2, alignItems: 'flex-start' }}>
+            <AlertCircle size={20} style={{ flexShrink: 0, marginTop: '0.125rem' }} />
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                Failed to load skills
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
                 onClick={() => refetch()}
-                className="text-xs text-accent mt-2 hover:underline"
+                sx={{ textDecoration: 'underline', textTransform: 'none', mt: 0.5 }}
               >
                 Try again
-              </button>
-            </div>
-          </div>
+              </Button>
+            </Box>
+          </Box>
         )}
 
         {/* Empty state */}
         {!isLoading && !error && (!data || data.length === 0) && (
-          <p className="text-center text-muted py-12">No skills yet. Create one to get started.</p>
+          <Typography
+            variant="body2"
+            sx={{ textAlign: 'center', color: 'text.secondary', py: 12 }}
+          >
+            No skills yet. Create one to get started.
+          </Typography>
         )}
 
         {/* Skills grid */}
         {data && data.length > 0 && (
-          <div className="grid grid-cols-1 gap-4">
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr', gap: 2 }}>
             {data.map((skill) => (
-              <div
+              <Paper
                 key={skill.name}
-                className="p-4 bg-surface border border-border rounded-lg hover:border-accent/50 transition-colors"
+                variant="outlined"
+                sx={{
+                  p: 2,
+                  '&:hover': {
+                    borderColor: theme.palette.primary.main,
+                    opacity: 0.8,
+                  },
+                  transition: 'all 0.2s ease',
+                }}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-display text-base text-text font-medium">
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ fontFamily: 'display', fontWeight: 500, overflow: 'hidden' }}
+                    >
                       {skill.name}
-                    </h3>
-                    <p className="text-sm text-muted mt-1">{skill.description}</p>
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                      {skill.description}
+                    </Typography>
                     {skill.schedule && (
-                      <div className="mt-2 inline-block px-2 py-1 bg-surface-2 border border-border rounded font-mono text-xs text-muted">
+                      <Box
+                        sx={{
+                          mt: 1,
+                          display: 'inline-block',
+                          px: 1,
+                          py: 0.5,
+                          bgcolor: theme.palette.action.hover,
+                          border: `1px solid ${theme.palette.divider}`,
+                          borderRadius: 0.5,
+                          fontFamily: 'monospace',
+                          fontSize: '0.75rem',
+                          color: 'text.secondary',
+                        }}
+                      >
                         {skill.schedule}
-                      </div>
+                      </Box>
                     )}
-                  </div>
-                  <button
+                  </Box>
+                  <IconButton
+                    size="small"
                     onClick={() => copySkill(skill.name, skill.body)}
-                    className="flex-shrink-0 p-2 rounded hover:bg-surface-2 transition-colors text-accent"
                     aria-label={`Copy ${skill.name} to clipboard`}
+                    sx={{ color: 'primary.main', flexShrink: 0 }}
                   >
                     <Copy size={18} />
-                  </button>
-                </div>
-              </div>
+                  </IconButton>
+                </Box>
+              </Paper>
             ))}
-          </div>
+          </Box>
         )}
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

@@ -6,54 +6,15 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
-@import "tailwindcss";
 
-@theme {
-  --color-bg: #0B1220;
-  --color-surface: #131C2B;
-  --color-surface-2: #1C2840;
-  --color-border: #243149;
-  --color-text: #E6EDF7;
-  --color-muted: #8A9AB5;
+/* Chart + horizon + accent-personalization tokens (MUI palette covers everything else) */
+:root {
   --color-accent: #F2A65A;
   --color-accent-2: #6C8FE5;
-  --color-crit: #E5484D;
-  --color-warn: #F2A65A;
-  --color-info: #6C8FE5;
-  --color-ok: #3DD68C;
-  --font-display: "Space Grotesk", sans-serif;
-  --font-sans: "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
 }
-
 :root.light {
-  --color-bg: #EEF2F9;
-  --color-surface: #FFFFFF;
-  --color-surface-2: #E4EAF3;
-  --color-border: #CBD5E6;
-  --color-text: #0B1220;
-  --color-muted: #475569;
   --color-accent: #E67E22;
   --color-accent-2: #3498DB;
-  --color-crit: #C0392B;
-  --color-warn: #E67E22;
-  --color-info: #3498DB;
-  --color-ok: #27AE60;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body {
-  margin: 0;
-  padding: 0;
-  font-family: "Inter", sans-serif;
-  font-size: 13px;
-  background: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.5;
 }
 
 #root {
@@ -63,42 +24,8 @@ body {
   overflow: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Space Grotesk", sans-serif;
-  margin: 0;
-  font-weight: 600;
-}
-
-code, pre, time, [data-mono] {
-  font-family: "JetBrains Mono", monospace;
-}
-
-input, button, textarea, select {
-  font-family: inherit;
-  font-size: inherit;
-  color: inherit;
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  padding: 0;
-}
-
-/* Tailwind form resets apply via @tailwind base */
-
-/* Keyboard focus rings */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-}
-
-/* Respect prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

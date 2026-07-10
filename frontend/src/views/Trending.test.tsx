@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
+import { ThemeProvider } from '@mui/material/styles'
+import { theme } from '../theme'
 import { TrendingView } from './Trending'
 
 describe('Trending view', () => {
@@ -55,8 +57,8 @@ describe('Trending view', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('AI Integration')).toBeDefined()
-      expect(screen.getByText('8.5')).toBeDefined()
+      expect(screen.getByText('AI Integration')).toBeInTheDocument()
+      expect(screen.getByText('8.5')).toBeInTheDocument()
     })
   })
 
@@ -84,16 +86,18 @@ describe('Trending view', () => {
     })
 
     render(
-      <MemoryRouter>
-        <QueryClientProvider client={queryClient}>
-          <TrendingView />
-        </QueryClientProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <MemoryRouter>
+            <TrendingView />
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Machine Learning')).toBeDefined()
-      expect(screen.getByText(/technology/i)).toBeDefined()
+      expect(screen.getByText('Machine Learning')).toBeInTheDocument()
+      expect(screen.getByText(/technology/i)).toBeInTheDocument()
     })
   })
 
@@ -132,20 +136,22 @@ describe('Trending view', () => {
     })
 
     render(
-      <MemoryRouter initialEntries={['/trending?dir=rising']}>
-        <QueryClientProvider client={queryClient}>
-          <TrendingView />
-        </QueryClientProvider>
-      </MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <MemoryRouter initialEntries={['/trending?dir=rising']}>
+            <TrendingView />
+          </MemoryRouter>
+        </ThemeProvider>
+      </QueryClientProvider>
     )
 
     // Wait for data to load
     await screen.findByText('Growing Trend')
 
     // Growing Trend should be visible
-    expect(screen.getByText('Growing Trend')).toBeDefined()
+    expect(screen.getByText('Growing Trend')).toBeInTheDocument()
 
     // Declining Trend should NOT be in the document
-    expect(screen.queryByText('Declining Trend')).toBeNull()
+    expect(screen.queryByText('Declining Trend')).not.toBeInTheDocument()
   })
 })

@@ -1,13 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { getTrends, type Trend } from '@/api'
 import { TrendingUp, TrendingDown } from 'lucide-react'
-import { SkeletonRow } from '@/components/SkeletonRow'
 import { useSearchParams } from 'react-router-dom'
-import { Chip } from '@mui/material'
+import { Box, Typography, Chip, Button, useTheme } from '@mui/material'
+import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 
 export function TrendingView() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const theme = useTheme()
   const { data: trends = [], isLoading, error, refetch: refetchTrends } = useQuery<Trend[]>({
     queryKey: ['trends'],
     queryFn: () => getTrends(),
@@ -16,83 +16,135 @@ export function TrendingView() {
   const risingOnly = searchParams.get('dir') === 'rising'
   const visibleTrends = risingOnly ? trends.filter((t) => (t.delta ?? 0) > 0) : trends
 
+  const columns: GridColDef<Trend>[] = [
+    {
+      field: 'term',
+      headerName: 'Term',
+      flex: 1,
+      minWidth: 200,
+      renderCell: (params) => (
+        <Box>
+          <Typography variant="body2">{params.row.term}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontFamily: '"JetBrains Mono", monospace' }}>
+            {params.row.kind} {params.row.count ? `• ${params.row.count} signals` : ''}
+          </Typography>
+        </Box>
+      ),
+    },
+    {
+      field: 'score',
+      headerName: 'Score',
+      width: 80,
+      align: 'right',
+      headerAlign: 'right',
+      renderCell: (params) => (
+        <span style={{ fontFamily: '"JetBrains Mono"' }}>
+          {(params.value as number).toFixed(1)}
+        </span>
+      ),
+    },
+    {
+      field: 'delta',
+      headerName: 'Delta',
+      width: 100,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => {
+        const delta = params.row.delta as number | undefined
+        if (delta === undefined) return null
+        const isPositive = delta > 0
+        return (
+          <Chip
+            icon={isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
+            label={`${isPositive ? '+' : ''}${delta.toFixed(1)}%`}
+            size="small"
+            color={isPositive ? 'success' : 'default'}
+          />
+        )
+      },
+    },
+    {
+      field: 'count',
+      headerName: 'Count',
+      width: 70,
+      align: 'center',
+      headerAlign: 'center',
+      renderCell: (params) => params.value,
+    },
+  ]
+
   if (error) {
     return (
-      <main className="flex-1 overflow-y-auto p-6 bg-bg">
-        <div className="max-w-[1080px] mx-auto">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-sm text-red-400 flex items-center gap-2 justify-between">
-            <span>Error loading trends</span>
-            <button onClick={() => refetchTrends()} className="underline hover:no-underline">Retry</button>
-          </div>
-        </div>
-      </main>
+      <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'bg.main' }}>
+        <Box sx={{ maxWidth: '1080px', mx: 'auto' }}>
+          <Box
+            sx={{
+              bgcolor: theme.palette.error.main,
+              opacity: 0.3,
+              border: `1px solid ${theme.palette.error.main}`,
+              borderRadius: 1,
+              p: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 2,
+            }}
+          >
+            <Typography variant="body2" sx={{ color: 'error.main' }}>
+              Error loading trends
+            </Typography>
+            <Button
+              size="small"
+              onClick={() => refetchTrends()}
+              sx={{ color: 'error.main', textDecoration: 'underline' }}
+            >
+              Retry
+            </Button>
+          </Box>
+        </Box>
+      </Box>
     )
   }
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 bg-bg">
-      <div className="max-w-[1080px] mx-auto flex flex-col gap-4">
-        <div className="mb-6">
-          <h2 className="text-3xl font-display font-semibold text-text">Trending</h2>
-          <div className="text-xs text-muted font-mono">Top trends from your signals</div>
-        </div>
+    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'bg.main' }}>
+      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'semibold' }}>
+            Trending
+          </Typography>
+          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
+            Top trends from your signals
+          </Typography>
+        </Box>
 
         {risingOnly && (
-          <Chip
-            label="Rising"
-            onDelete={() => setSearchParams({})}
-            size="small"
+          <Box>
+            <Chip
+              label="Rising"
+              onDelete={() => setSearchParams({})}
+              size="small"
+            />
+          </Box>
+        )}
+
+        {!isLoading && visibleTrends.length === 0 ? (
+          <Typography variant="caption" color="text.secondary">No trending data yet.</Typography>
+        ) : (
+          <DataGrid
+            rows={visibleTrends}
+            columns={columns}
+            loading={isLoading}
+            density="compact"
+            disableColumnMenu
+            pageSizeOptions={[25, 50]}
+            initialState={{
+              pagination: { paginationModel: { pageSize: 25 } },
+            }}
+            sx={{ border: 0 }}
           />
         )}
-
-        {isLoading ? (
-          <div className="space-y-0">
-            <SkeletonRow />
-            <SkeletonRow />
-            <SkeletonRow />
-          </div>
-        ) : visibleTrends.length === 0 ? (
-          <div className="bg-surface border border-border rounded-lg p-6 text-center text-muted text-sm">
-            No trending data yet.
-          </div>
-        ) : (
-          <div className="bg-surface border border-border rounded-lg divide-y divide-border">
-            {visibleTrends.map((t, idx) => (
-              <motion.div
-                key={t.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="flex items-center justify-between gap-4 p-4 hover:bg-surface-2 transition-colors"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text truncate">{t.term}</div>
-                  <div className="text-xs text-muted font-mono mt-1">
-                    {t.kind} {t.count ? `• ${t.count} signals` : ''}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="text-sm font-mono text-text">{t.score.toFixed(1)}</div>
-                  {t.delta !== undefined && (
-                    <div
-                      className="flex items-center gap-1"
-                      style={{ color: t.delta > 0 ? '#10B981' : '#6B7280' }}
-                    >
-                      {t.delta > 0 ? (
-                        <TrendingUp size={14} />
-                      ) : (
-                        <TrendingDown size={14} />
-                      )}
-                      <span className="text-xs font-mono">{Math.abs(t.delta).toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
-    </main>
+      </Box>
+    </Box>
   )
 }

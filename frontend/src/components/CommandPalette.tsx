@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
+import { Box } from '@mui/material'
 
 interface CommandPaletteProps {
   open: boolean
@@ -36,35 +37,62 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
   if (!open) return null
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-start justify-center pt-20"
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 50,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(4px)',
+        display: 'flex',
+        alignItems: 'flex-start',
+        justifyContent: 'center',
+        pt: 20,
+      }}
       onClick={() => onOpenChange(false)}
     >
       <Command
-        className="w-[400px] bg-surface border border-border rounded-lg shadow-lg"
+        style={{
+          width: '400px',
+          background: 'var(--mui-palette-background-paper)',
+          border: '1px solid var(--mui-palette-divider)',
+          borderRadius: 'var(--mui-shape-borderRadius)',
+          boxShadow: '0 9px 9px -5px rgba(0,0,0,0.2),0 15px 22px 2px rgba(0,0,0,0.14),0 6px 28px 5px rgba(0,0,0,0.12)',
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="border-b border-border px-4 py-3">
+        <Box sx={{ borderBottom: '1px solid', borderColor: 'divider', px: 2, py: 1.5 }}>
           <input
             placeholder="Search..."
             value={value}
             onChange={(e) => setValue(e.currentTarget.value)}
-            className="w-full bg-transparent text-text placeholder-muted focus:outline-none"
+            style={{
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontSize: 'inherit',
+              color: 'inherit',
+            }}
             autoFocus
           />
-        </div>
+        </Box>
 
-        <Command.List className="max-h-[300px] overflow-y-auto">
-          <Command.Group heading="Navigation" className="px-4 py-2">
+        <Command.List style={{ maxHeight: 300, overflow: 'auto' }}>
+          <Command.Group heading="Navigation" style={{ padding: '8px 16px' }}>
             {VIEWS.map((view) => (
               <Command.Item
                 key={view.id}
                 value={view.id}
-                className={`px-2 py-2 rounded cursor-pointer transition-colors ${
-                  value.toLowerCase() === view.id || value === ''
-                    ? 'text-accent'
-                    : 'text-text hover:bg-surface-2'
-                }`}
+                style={{
+                  padding: '8px 8px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  color: value.toLowerCase() === view.id || value === '' ? 'var(--mui-palette-primary-main)' : 'var(--mui-palette-text-primary)',
+                  transition: 'background-color 200ms',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--mui-palette-action-hover)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 onSelect={() => {
                   onViewChange(view.id)
                   onOpenChange(false)
@@ -76,10 +104,18 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
             ))}
           </Command.Group>
 
-          <Command.Group heading="Quick Actions" className="px-4 py-2">
+          <Command.Group heading="Quick Actions" style={{ padding: '8px 16px' }}>
             <Command.Item
               value="add-deadline"
-              className="px-2 py-2 rounded cursor-pointer transition-colors text-text hover:bg-surface-2"
+              style={{
+                padding: '8px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: 'var(--mui-palette-text-primary)',
+                transition: 'background-color 200ms',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--mui-palette-action-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onSelect={() => {
                 onViewChange('deadlines')
                 onOpenChange(false)
@@ -90,7 +126,15 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
             </Command.Item>
             <Command.Item
               value="refresh"
-              className="px-2 py-2 rounded cursor-pointer transition-colors text-text hover:bg-surface-2"
+              style={{
+                padding: '8px 8px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                color: 'var(--mui-palette-text-primary)',
+                transition: 'background-color 200ms',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--mui-palette-action-hover)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               onSelect={() => {
                 onRefresh()
                 onOpenChange(false)
@@ -102,6 +146,6 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
           </Command.Group>
         </Command.List>
       </Command>
-    </div>
+    </Box>
   )
 }

@@ -1,13 +1,13 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
+import Box from '@mui/material/Box'
 import { Sidebar } from '@/components/Sidebar'
 import { SignatureBar } from '@/components/SignatureBar'
 import { TodayBriefing } from '@/components/TodayBriefing'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
 import { loadAccent } from '@/theme'
-import './App.css'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
@@ -54,7 +54,7 @@ export function App() {
   }
 
   return (
-    <div className="w-full h-screen flex bg-bg text-text overflow-hidden">
+    <Box sx={{ width: '100%', height: '100vh', display: 'flex', overflow: 'hidden', bgcolor: 'background.default', color: 'text.primary' }}>
       {/* Command palette overlay */}
       <CommandPalette
         open={commandOpen}
@@ -70,14 +70,14 @@ export function App() {
       <Sidebar collapsed={collapsedSidebar} onToggle={setCollapsedSidebar} />
 
       {/* Center column - flex-1 with flex flex-col min-w-0 */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Top signature bar - 48px tall */}
         <SignatureBar onCommandOpen={() => setCommandOpen(true)} onOpenBriefing={() => setBriefingOpen(true)} />
 
         {/* Main content + right drawer */}
-        <div className="flex flex-1 overflow-hidden">
+        <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Main view - flex-1 */}
-          <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted text-sm">Loading…</div>}>
+          <Suspense fallback={<Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.secondary', fontSize: 14 }}>Loading…</Box>}>
             <Routes>
               <Route path="/" element={<DashboardView />} />
               <Route path="/inbox" element={<InboxView />} />
@@ -94,12 +94,12 @@ export function App() {
           </Suspense>
 
           {/* Right drawer - hidden below 1100px, fixed w-[300px] on desktop */}
-          <div className="hidden lg:flex">
+          <Box sx={{ display: { xs: 'none', lg: 'flex' } }}>
             <RightDrawer />
-          </div>
-        </div>
-      </div>
-    </div>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
   )
 }
 
