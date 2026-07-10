@@ -72,7 +72,7 @@ describe('Tasks view', () => {
       </QueryClientProvider>
     )
 
-    // Wait for tasks to load
+    // Wait for DataGrid content to load (rows are async-rendered divs)
     expect(await screen.findByText("Today's Task")).toBeDefined()
     expect(screen.queryByText("Tomorrow's Task")).toBeNull()
   })

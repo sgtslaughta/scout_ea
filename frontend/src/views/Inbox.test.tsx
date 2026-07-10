@@ -72,8 +72,8 @@ describe('Inbox view', () => {
       </QueryClientProvider>
     )
 
-    // Wait for content to load
-    expect(await screen.findByText('Important Alert')).toBeInTheDocument()
+    // Wait for DataGrid content to load (rows are async-rendered divs)
+    expect(await screen.findByText('Important Alert')).toBeDefined()
     expect(screen.queryByText('Routine Signal')).toBeNull()
   })
 })
