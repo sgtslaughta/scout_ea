@@ -21,13 +21,14 @@ describe('Calendar view', () => {
     ))
   })
 
-  it('renders Calendar heading', async () => {
+  it('renders Calendar heading', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <CalendarView />
       </QueryClientProvider>
     )
 
-    expect(screen.getByText('Calendar')).toBeDefined()
+    const heading = screen.getByText('Calendar')
+    expect(heading).toBeDefined()
   })
 })
