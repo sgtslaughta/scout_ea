@@ -7,7 +7,7 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
 import { useColorScheme } from '@mui/material/styles'
-import { Sun, Moon, Sparkles } from 'lucide-react'
+import { Sun, Moon, Sparkles, Search } from 'lucide-react'
 import { getDeadlines } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { useFriendlyTime, useClockFormat } from '@/lib/timePrefs'
@@ -130,9 +130,12 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
       <IconButton size="small" onClick={() => setMode(resolved === 'dark' ? 'light' : 'dark')} aria-label={resolved === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
         {resolved === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
       </IconButton>
-      <Button size="small" variant="outlined" onClick={onCommandOpen} aria-label="Open command palette" sx={{ minWidth: 0, px: 1, fontSize: 11 }}>
-        ⌘K
-      </Button>
+      <Tooltip title="Search (⌘K)" arrow>
+        <Button size="small" variant="outlined" onClick={onCommandOpen} aria-label="Search (command palette)" sx={{ minWidth: 0, px: 1, gap: 0.5, fontSize: 11 }}>
+          <Search size={14} />
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>⌘K</Box>
+        </Button>
+      </Tooltip>
     </Box>
   )
 }

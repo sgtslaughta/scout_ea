@@ -69,3 +69,6 @@ INSERT OR IGNORE INTO config(key, value) VALUES
   ('outlook_send_time',        '07:00'),
   ('trend_window_days',        '7'),
   ('embed_model',              'all-MiniLM-L6-v2');
+
+-- Feature migration 003: full-text search index (rebuilt on demand by lib.search)
+CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(kind, ref_id UNINDEXED, title, body);

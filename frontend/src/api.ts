@@ -133,6 +133,16 @@ export const getSignals = (status?: string) => {
 export const getActivity = (limit: number = 20) =>
   fetchJson<Activity[]>(`/api/activity?limit=${limit}`)
 
+export interface SearchResult {
+  kind: string
+  ref_id: number
+  title: string
+  snippet: string
+}
+
+export const search = (q: string) =>
+  fetchJson<SearchResult[]>(`/api/search?q=${encodeURIComponent(q)}`)
+
 async function postJson<T>(url: string, body: Record<string, unknown>): Promise<T> {
   const res = await fetch(url, {
     method: 'POST',
