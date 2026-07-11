@@ -238,7 +238,7 @@ export function TasksView() {
         <DialogTitle>{editingId ? 'Edit task' : 'Add task'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField label="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)} autoFocus required fullWidth />
-          <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={3} fullWidth helperText="Markdown supported" />
           <TextField label="Due" type="date" value={fDue} onChange={(e) => setFDue(e.target.value)} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
           <TextField label="Priority" select value={fPriority} onChange={(e) => setFPriority(Number(e.target.value))} required fullWidth slotProps={{ select: { native: true } }}>
             <option value={1}>1 - Critical</option>

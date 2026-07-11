@@ -4,6 +4,7 @@ import { Box, Typography, Tooltip, IconButton, Chip } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
 import { CheckCircle, Trash2, Flag } from 'lucide-react'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { Markdown } from '@/components/Markdown'
 import { urgencyOf, type Urgency } from '@/lib/horizon'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import type { Task } from '@/api'
@@ -59,7 +60,7 @@ export function TaskCard({ task, onEdit, onComplete, onDismiss, onConvert }: Tas
   const hoverCard = (
     <Box sx={{ p: 0.5, maxWidth: 280 }}>
       <Typography variant="body2" sx={{ fontWeight: 600 }}>{task.title}</Typography>
-      {task.detail && <Typography variant="caption" sx={{ display: 'block', mt: 0.5, whiteSpace: 'pre-wrap' }}>{task.detail}</Typography>}
+      {task.detail && <Box sx={{ mt: 0.5, maxHeight: 200, overflowY: 'auto' }}><Markdown>{task.detail}</Markdown></Box>}
       <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
         <Chip size="small" variant="outlined" color={PRIORITY_CHIP[task.priority]?.color ?? 'info'} label={PRIORITY_CHIP[task.priority]?.label ?? `P${task.priority}`} />
         {countdownText && <Chip size="small" color={URGENCY_CHIP[urgency]} label={countdownText} sx={countdownAnim(urgency)} />}
