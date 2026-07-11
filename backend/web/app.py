@@ -16,6 +16,7 @@ from lib import deadlines as _deadlines
 from lib import outlook as _outlook
 from lib import skills as _skills
 from lib import skill_health as _skill_health
+from lib import search as _search
 
 
 class SPAStaticFiles(StaticFiles):
@@ -222,6 +223,10 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         except ValueError:
             raise HTTPException(status_code=400, detail=f"config key not writable: {key}")
         return {"key": key, "value": body.value}
+
+    @app.get("/api/search")
+    def search_endpoint(q: str = "", conn=Depends(get_db)):
+        return _search.search(conn, q)
 
     @app.get("/api/activity")
     def get_activity(limit: int = 20, conn=Depends(get_db)):

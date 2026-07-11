@@ -39,7 +39,7 @@ describe('SignatureBar', () => {
   it('shows brand and command palette trigger', () => {
     renderBar()
     expect(screen.getByText('SCOUT')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /open command palette/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument()
   })
 
   it('plots a deadline due today as a dot', async () => {
