@@ -1,12 +1,17 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getSkills, type Skill } from '@/api'
 import { Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { Box, Typography, Paper, CircularProgress, useTheme, Button, Tooltip } from '@mui/material'
+import {
+  Box, Typography, Paper, CircularProgress, useTheme, Button, Tooltip,
+  Chip, Dialog, DialogTitle, DialogContent, DialogActions,
+} from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 
 export function DocsView() {
   const theme = useTheme()
+  const [selected, setSelected] = useState<Skill | null>(null)
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['skills'], queryFn: getSkills })
 
   const copySkill = (name: string, body: string) => {
@@ -26,7 +31,7 @@ export function DocsView() {
     { field: 'actions', type: 'actions', width: 70,
       getActions: (p) => [
         <GridActionsCellItem key="copy" icon={<Copy size={16} />} label={`Copy ${p.row.name} to clipboard`}
-          onClick={() => copySkill(p.row.name, p.row.body)} showInMenu={false} />,
+          onClick={(e) => { e.stopPropagation(); copySkill(p.row.name, p.row.body) }} showInMenu={false} />,
       ] },
   ]
 
@@ -59,8 +64,43 @@ export function DocsView() {
         {data && data.length > 0 && (
           <DataGrid rows={data} columns={columns} getRowId={(r) => r.name} density="compact"
             rowHeight={48} columnHeaderHeight={44} disableColumnMenu pageSizeOptions={[25, 50]}
-            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} sx={{ border: 0 }} />
+            autosizeOnMount autosizeOptions={{ includeHeaders: true, includeOutliers: true }}
+            onRowClick={(p) => setSelected(p.row)}
+            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
+            sx={{ border: 0, '& .MuiDataGrid-row': { cursor: 'pointer' } }} />
         )}
+
+        {/* Skill detail modal */}
+        <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            {selected?.name}
+            {selected?.schedule && (
+              <Chip size="small" variant="outlined" label={selected.schedule}
+                sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }} />
+            )}
+          </DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {selected?.description || 'No description'}
+            </Typography>
+            {selected?.body && (
+              <Box component="pre" sx={{
+                m: 0, p: 1.5, bgcolor: 'action.hover', border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 1, fontFamily: 'monospace', fontSize: '0.8rem',
+                whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: 360, overflow: 'auto',
+              }}>
+                {selected.body}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setSelected(null)}>Close</Button>
+            <Button variant="contained" startIcon={<Copy size={16} />}
+              onClick={() => selected && copySkill(selected.name, selected.body)}>
+              Copy
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   )
