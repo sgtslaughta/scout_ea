@@ -93,7 +93,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
 
 # --- data primitives -------------------------------------------------------
 
-_STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning"}
+_STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning", "news_items"}
 
 _SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summary",
                 "who", "what", "when_rel", "why", "url", "person_id", "topic_id",
@@ -343,6 +343,70 @@ def content_ids_by_tag(conn: sqlite3.Connection, tag_id: int, ref_type: str | No
             "SELECT ref_type, ref_id FROM content_tags WHERE tag_id=?", (tag_id,)
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+# --- data feed: learning + news -------------------------------------------
+
+_LEARNING_COLS = {"kind", "source", "source_skill", "title", "synopsis", "url",
+                  "external_ref", "provider", "event_at", "topic_id", "relevance", "status"}
+_NEWS_COLS = {"title", "url", "synopsis", "external_ref", "topic_id", "source",
+              "source_skill", "event_at", "relevance", "status"}
+
+
+def _list_feed_table(conn, table, status, topic_id):
+    """Shared reader for learning/news_items: newest first, dated rows above undated."""
+    where, params = [], []
+    if status is not None:
+        where.append("status=?"); params.append(status)
+    if topic_id is not None:
+        where.append("topic_id=?"); params.append(topic_id)
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    return conn.execute(
+        f"SELECT * FROM {table}{clause} ORDER BY event_at IS NULL, event_at DESC, id DESC",
+        params,
+    ).fetchall()
+
+
+def list_learning(conn: sqlite3.Connection, status: str | None = None, topic_id: int | None = None) -> list[sqlite3.Row]:
+    """Learning items, newest by event_at (dated first), then id desc."""
+    return _list_feed_table(conn, "learning", status, topic_id)
+
+
+def list_news(conn: sqlite3.Connection, status: str | None = None, topic_id: int | None = None) -> list[sqlite3.Row]:
+    """News items, newest by event_at (dated first), then id desc."""
+    return _list_feed_table(conn, "news_items", status, topic_id)
+
+
+def _insert_dedup(conn, table, cols_whitelist, fields):
+    if "external_ref" not in fields:
+        raise ValueError(f"{table} insert requires 'external_ref'")
+    bad = set(fields) - cols_whitelist
+    if bad:
+        raise ValueError(f"unknown {table} columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO {table} ({cols}) VALUES ({placeholders}) ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def add_learning(conn: sqlite3.Connection, **fields) -> int:
+    """Insert a learning item, deduping on external_ref. Returns rowcount."""
+    return _insert_dedup(conn, "learning", _LEARNING_COLS, fields)
+
+
+def add_news_item(conn: sqlite3.Connection, **fields) -> int:
+    """Insert a news item, deduping on external_ref. Returns rowcount."""
+    return _insert_dedup(conn, "news_items", _NEWS_COLS, fields)
+
+
+def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
+    """Return a tag's id by exact name, or None. Used by feed origin/tag filters."""
+    row = conn.execute("SELECT id FROM tags WHERE name=?", (name.strip(),)).fetchone()
+    return row["id"] if row else None
 
 
 # --- config helpers --------------------------------------------------------

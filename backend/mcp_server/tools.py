@@ -4,7 +4,7 @@ from ea import db
 
 # Tables an agent may read via the generic list tool.
 _READABLE = {
-    "signals", "tasks", "alerts", "events", "learning",
+    "signals", "tasks", "alerts", "events", "learning", "news_items",
     "critical_deadlines", "trends", "trend_findings",
     "people", "topics", "config",
 }
