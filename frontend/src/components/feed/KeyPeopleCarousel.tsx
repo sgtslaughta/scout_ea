@@ -3,7 +3,7 @@ import type { FeedRecent } from '@/api'
 
 interface Props { items: FeedRecent[]; onSelect: (item: FeedRecent) => void }
 
-interface PersonCard { name: string; item: FeedRecent }
+interface PersonCard { id: number; name: string; item: FeedRecent }
 
 /** Latest feed item per linked person, as a horizontally-scrollable card row (no autoplay). */
 export function KeyPeopleCarousel({ items, onSelect }: Props) {
@@ -11,7 +11,7 @@ export function KeyPeopleCarousel({ items, onSelect }: Props) {
   for (const it of items) {
     for (const l of it.links ?? []) {
       if (l.target_type === 'person' && !byPerson.has(l.target_id)) {
-        byPerson.set(l.target_id, { name: l.label, item: it })
+        byPerson.set(l.target_id, { id: l.target_id, name: l.label, item: it })
       }
     }
   }
@@ -23,9 +23,9 @@ export function KeyPeopleCarousel({ items, onSelect }: Props) {
     <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, '&::-webkit-scrollbar': { height: 6 } }}>
       {cards.map((c) => (
         <Box
-          key={c.name} role="button" tabIndex={0}
+          key={c.id} role="button" tabIndex={0}
           onClick={() => onSelect(c.item)}
-          onKeyDown={(e) => { if (e.key === 'Enter') onSelect(c.item) }}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(c.item) } }}
           sx={{
             flexShrink: 0, width: 220, p: 1, borderRadius: 1, cursor: 'pointer',
             border: '1px solid', borderColor: 'divider', bgcolor: 'background.paper',
