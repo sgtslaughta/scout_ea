@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { TasksView } from './Tasks'
+import { TasksView, combineDue, toDateInput, toTimeInput } from './Tasks'
 import * as api from '@/api'
 import type { Task } from '@/api'
 
@@ -153,5 +153,23 @@ describe('Tasks board', () => {
     // Just verify the component renders without crashing
     await screen.findByText('Deep link task')
     expect(screen.getByText('Deep link task')).toBeDefined()
+  })
+})
+
+describe('task due date+time helpers', () => {
+  it('combineDue: no date → undefined', () => {
+    expect(combineDue('', '09:30')).toBeUndefined()
+  })
+
+  it('combineDue: date only defaults to local midnight, round-trips to a blank time', () => {
+    const iso = combineDue('2026-07-15', '')!
+    expect(toDateInput(iso)).toBe('2026-07-15')
+    expect(toTimeInput(iso)).toBe('') // local midnight reads back as no-time
+  })
+
+  it('combineDue: date+time round-trips through local wall-clock', () => {
+    const iso = combineDue('2026-07-15', '09:30')!
+    expect(toDateInput(iso)).toBe('2026-07-15')
+    expect(toTimeInput(iso)).toBe('09:30')
   })
 })

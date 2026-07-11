@@ -19,6 +19,14 @@ import {
 import { BoardColumn, STATUS_OPTIONS } from '@/components/board/BoardColumn'
 import { toast } from 'sonner'
 
+// Due date+time are edited as local wall-clock (consistent with how the rest of
+// the app displays due_at). Time is optional; a blank time means date-only.
+const pad = (n: number) => String(n).padStart(2, '0')
+export const toDateInput = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` }
+export const toTimeInput = (iso: string) => { const d = new Date(iso); const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`; return hm === '00:00' ? '' : hm }
+export const combineDue = (date: string, time: string): string | undefined =>
+  date ? new Date(`${date}T${time || '00:00'}`).toISOString() : undefined
+
 export function TasksView() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -102,12 +110,13 @@ export function TasksView() {
   const [fTitle, setFTitle] = useState('')
   const [fDetail, setFDetail] = useState('')
   const [fDue, setFDue] = useState('')
+  const [fTime, setFTime] = useState('')
   const [fPriority, setFPriority] = useState(3)
   const [fStatus, setFStatus] = useState('open')
   const updateMutation = useMutation({
     mutationFn: () => updateTask(editingId!, {
       title: fTitle.trim(), detail: fDetail.trim() || undefined,
-      due_at: fDue ? new Date(fDue).toISOString() : undefined,
+      due_at: combineDue(fDue, fTime),
       priority: fPriority, status: fStatus,
     }),
     onSuccess: () => { invalidate(); toast.success('Task updated'); handleCloseEdit() },
@@ -116,7 +125,7 @@ export function TasksView() {
   const createMutation = useMutation({
     mutationFn: () => createTask({
       title: fTitle.trim(), detail: fDetail.trim() || undefined,
-      due_at: fDue ? new Date(fDue).toISOString() : undefined,
+      due_at: combineDue(fDue, fTime),
       priority: fPriority, status: fStatus, board_column_id: firstColId ?? undefined,
     }),
     onSuccess: () => { invalidate(); toast.success('Task added'); handleCloseEdit() },
@@ -124,11 +133,11 @@ export function TasksView() {
   })
   const handleEdit = (t: Task) => {
     setEditingId(t.id); setFTitle(t.title); setFDetail(t.detail ?? '')
-    setFDue(t.due_at ? new Date(t.due_at).toISOString().slice(0, 10) : '')
+    setFDue(t.due_at ? toDateInput(t.due_at) : ''); setFTime(t.due_at ? toTimeInput(t.due_at) : '')
     setFPriority(t.priority); setFStatus(t.status); setEditOpen(true)
   }
   const handleAdd = () => {
-    setEditingId(null); setFTitle(''); setFDetail(''); setFDue(''); setFPriority(3); setFStatus('open'); setEditOpen(true)
+    setEditingId(null); setFTitle(''); setFDetail(''); setFDue(''); setFTime(''); setFPriority(3); setFStatus('open'); setEditOpen(true)
   }
   const handleCloseEdit = () => { setEditOpen(false); setEditingId(null) }
 
@@ -250,7 +259,10 @@ export function TasksView() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField label="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)} autoFocus required fullWidth />
           <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={3} fullWidth helperText="Markdown supported" />
-          <TextField label="Due" type="date" value={fDue} onChange={(e) => setFDue(e.target.value)} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField label="Due" type="date" value={fDue} onChange={(e) => setFDue(e.target.value)} sx={{ flex: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Time" type="time" value={fTime} onChange={(e) => setFTime(e.target.value)} disabled={!fDue} sx={{ flex: 1 }} slotProps={{ inputLabel: { shrink: true } }} helperText="Optional" />
+          </Box>
           <TextField label="Priority" select value={fPriority} onChange={(e) => setFPriority(Number(e.target.value))} required fullWidth slotProps={{ select: { native: true } }}>
             <option value={1}>1 - Critical</option>
             <option value={2}>2 - High</option>
