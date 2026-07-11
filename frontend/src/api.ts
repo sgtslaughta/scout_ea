@@ -196,6 +196,9 @@ export const setSignalStatus = (table: string, id: number, status: string) =>
 
 export const getTasks = () => fetchJson<Task[]>('/api/tasks')
 
+export const createTask = (body: Partial<Task>) =>
+  postJson<{ id: number }>('/api/tasks', body)
+
 export const updateTask = (id: number, body: Partial<Task>) =>
   patchJson<{ updated: number }>(`/api/tasks/${id}`, body)
 

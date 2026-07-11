@@ -89,6 +89,15 @@ class TaskPatch(BaseModel):
     board_column_id: int | None = None
 
 
+class TaskCreate(BaseModel):
+    title: str
+    detail: str | None = None
+    due_at: str | None = None
+    priority: int = 3
+    status: str = "open"
+    board_column_id: int | None = None
+
+
 class BoardColumnPatch(BaseModel):
     name: str | None = None
     position: int | None = None
@@ -139,6 +148,14 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     @app.get("/api/tasks")
     def list_tasks(conn=Depends(get_db)):
         return _rows(conn, "SELECT * FROM tasks ORDER BY created_at DESC, id DESC")
+
+    @app.post("/api/tasks")
+    def create_task(body: TaskCreate, conn=Depends(get_db)):
+        try:
+            tid = db.add_task(conn, **body.model_dump(exclude_none=True))
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="create failed")
+        return {"id": tid}
 
     @app.patch("/api/tasks/{task_id}")
     def update_task_endpoint(task_id: int, body: TaskPatch, conn=Depends(get_db)):

@@ -33,3 +33,14 @@ def test_patch_empty_body_noop(tmp_path):
     tid = db.add_task(db.get_conn(p), title="t", priority=3, status="open")
     r = _client(tmp_path).patch(f"/api/tasks/{tid}", json={})
     assert r.status_code == 200 and r.json() == {"updated": 0}
+
+
+def test_create_task(tmp_path):
+    c = _client(tmp_path)
+    r = c.post("/api/tasks", json={"title": "New task", "priority": 1})
+    assert r.status_code == 200 and isinstance(r.json()["id"], int)
+    assert any(t["title"] == "New task" and t["priority"] == 1 for t in c.get("/api/tasks").json())
+
+
+def test_create_task_requires_title(tmp_path):
+    assert _client(tmp_path).post("/api/tasks", json={"priority": 2}).status_code == 422
