@@ -3,10 +3,12 @@ import { Box, Button, Typography, Chip, Tooltip, Skeleton } from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { Check, X } from 'lucide-react'
 import { getEvents, setSignalStatus, type EventItem } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 import { toast } from 'sonner'
 
 export function CalendarView() {
   const queryClient = useQueryClient()
+  const friendly = useFriendlyTime()
 
   const { data: events = [], isLoading, error, refetch } = useQuery({
     queryKey: ['events'],
@@ -44,7 +46,7 @@ export function CalendarView() {
     const attendees = parseJsonSafe<string>(e.attendees)
     const lines: string[] = []
     if (e.body) lines.push(e.body)
-    if (!e.chosen_time && times.length) lines.push('Proposed: ' + times.slice(0, 3).join(', ') + (times.length > 3 ? ` +${times.length - 3} more` : ''))
+    if (!e.chosen_time && times.length) lines.push('Proposed: ' + times.slice(0, 3).map((t) => friendly(t) || t).join(', ') + (times.length > 3 ? ` +${times.length - 3} more` : ''))
     if (attendees.length) lines.push(`${attendees.length} ${attendees.length === 1 ? 'attendee' : 'attendees'}`)
     return lines.join('\n') || 'No details'
   }
@@ -59,9 +61,9 @@ export function CalendarView() {
       ),
     },
     {
-      field: 'chosen_time', headerName: 'Time', width: 200,
+      field: 'chosen_time', headerName: 'Time', flex: 1, minWidth: 240,
       renderCell: (p) => p.row.chosen_time
-        ? <Chip size="small" color="primary" variant="filled" label={p.row.chosen_time} />
+        ? <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 500 }}>{friendly(p.row.chosen_time) || p.row.chosen_time}</Typography>
         : <Typography variant="caption" color="text.secondary">Unscheduled</Typography>,
     },
     {
