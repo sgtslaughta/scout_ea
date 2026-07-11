@@ -55,7 +55,7 @@ const makeColumns = (friendly: (iso: string) => string): GridColDef<Deadline>[] 
 ]
 
 export default function DeadlinesWidget() {
-  const { data = [], isLoading } = useQuery({ queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000 })
+  const { data = [], isLoading } = useQuery({ queryKey: ['deadlines'], queryFn: () => getDeadlines(), refetchInterval: 15000 })
   const navigate = useNavigate()
   const friendly = useFriendlyTime()
   const columns = useMemo(() => makeColumns(friendly), [friendly])

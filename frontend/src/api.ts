@@ -122,7 +122,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export const getOutlook = () => fetchJson<OutlookResponse>('/api/outlook')
 
-export const getDeadlines = () => fetchJson<Deadline[]>('/api/deadlines')
+export const getDeadlines = (includeHidden?: boolean) =>
+  fetchJson<Deadline[]>(`/api/deadlines${includeHidden ? '?include_hidden=true' : ''}`)
 
 export const getTrends = async (windowStart?: string): Promise<Trend[]> => {
   const qs = windowStart ? `?window_start=${encodeURIComponent(windowStart)}` : ''
@@ -184,6 +185,9 @@ async function del<T>(url: string): Promise<T> {
 
 export const addDeadline = (title: string, due_at: string, detail?: string) =>
   postJson<{ id: number }>('/api/deadlines', { title, due_at, detail })
+
+export const updateDeadline = (id: number, body: Partial<Deadline>) =>
+  patchJson<{ updated: number }>(`/api/deadlines/${id}`, body)
 
 export const setDeadlineVisible = (id: number, visible: boolean) =>
   postJson<{ updated: number }>(`/api/deadlines/${id}/visible`, { visible })

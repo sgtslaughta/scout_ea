@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { DeadlinesView } from './Deadlines'
+import * as api from '@/api'
 
 describe('Deadlines view', () => {
   let queryClient: QueryClient
@@ -211,6 +212,31 @@ describe('Deadlines view', () => {
     // Wait for loading to complete
     await screen.findByText('No deadlines yet.')
     expect(screen.getByText('No deadlines yet.')).toBeDefined()
+  })
+
+  it('edit action opens the dialog and saves via updateDeadline (due sent as ISO)', async () => {
+    const upd = vi.spyOn(api, 'updateDeadline').mockResolvedValue({ updated: 1 })
+    const due = new Date(Date.now() + 86400000).toISOString()
+    vi.stubGlobal('fetch', vi.fn((url: string) => url.includes('/api/config')
+      ? Promise.resolve({ ok: true, json: () => Promise.resolve({ deadlines_visible_global: '1' }) })
+      : Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 5, title: 'Draft', detail: 'x', due_at: due, countdown_seconds: 86400, visible: true, source: 'manual' }]) })))
+    render(<MemoryRouter><QueryClientProvider client={queryClient}><DeadlinesView /></QueryClientProvider></MemoryRouter>)
+    await screen.findByText('Draft')
+    fireEvent.click(screen.getByLabelText('Edit'))
+    expect(await screen.findByRole('heading', { name: /Edit deadline/i })).toBeDefined()
+    fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+    await waitFor(() => expect(upd).toHaveBeenCalled())
+    expect(String(upd.mock.calls[0][1].due_at)).toContain('T')
+  })
+
+  it('Show hidden refetches deadlines with include_hidden', async () => {
+    const fetchMock = vi.fn((url: string) => url.includes('/api/config')
+      ? Promise.resolve({ ok: true, json: () => Promise.resolve({ deadlines_visible_global: '1' }) })
+      : Promise.resolve({ ok: true, json: () => Promise.resolve([]) }))
+    vi.stubGlobal('fetch', fetchMock)
+    render(<MemoryRouter><QueryClientProvider client={queryClient}><DeadlinesView /></QueryClientProvider></MemoryRouter>)
+    fireEvent.click(screen.getByRole('switch', { name: /Show hidden/i }))
+    await waitFor(() => expect(fetchMock.mock.calls.some((c) => String(c[0]).includes('include_hidden=true'))).toBe(true))
   })
 
   it('dialog has cancel handler that resets form state', () => {

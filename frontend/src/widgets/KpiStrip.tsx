@@ -52,7 +52,7 @@ function StatTile({ tile }: { tile: Tile }) {
 
 export default function KpiStrip() {
   const { data: outlook } = useQuery({ queryKey: ['outlook'], queryFn: getOutlook, refetchInterval: 15000 })
-  const { data: deadlines = [] } = useQuery({ queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000 })
+  const { data: deadlines = [] } = useQuery({ queryKey: ['deadlines'], queryFn: () => getDeadlines(), refetchInterval: 15000 })
   const { data: trends = [] } = useQuery({ queryKey: ['trends'], queryFn: () => getTrends(), refetchInterval: 15000 })
   const { data: signals = [] } = useQuery({ queryKey: ['signals', 'new'], queryFn: () => getSignals('new'), refetchInterval: 15000 })
   const { data: activity = [] } = useQuery({ queryKey: ['activity'], queryFn: () => getActivity(10), refetchInterval: 15000 })

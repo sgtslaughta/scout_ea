@@ -58,3 +58,34 @@ def test_post_deadline_naive_timezone_normalized_to_utc(tmp_path):
     assert stored_due_at.endswith("+00:00"), f"Expected UTC offset, got {stored_due_at}"
     # Verify countdown is positive (far-future date)
     assert body[0]["countdown_seconds"] > 0
+
+
+def test_patch_deadline_updates_fields(tmp_path):
+    c = _client(tmp_path)
+    did = c.post("/api/deadlines", json={"title": "old", "due_at": "2099-01-01T17:00:00+00:00"}).json()["id"]
+    r = c.patch(f"/api/deadlines/{did}", json={"title": "new", "detail": "ctx"})
+    assert r.status_code == 200 and r.json() == {"updated": 1}
+    row = [d for d in c.get("/api/deadlines").json() if d["id"] == did][0]
+    assert row["title"] == "new" and row["detail"] == "ctx"
+
+
+def test_patch_deadline_normalizes_naive_due(tmp_path):
+    c = _client(tmp_path)
+    did = c.post("/api/deadlines", json={"title": "x", "due_at": "2099-01-01T17:00:00+00:00"}).json()["id"]
+    # naive wall time gets a tz attached (stored tz-aware)
+    c.patch(f"/api/deadlines/{did}", json={"due_at": "2099-06-01T13:00:00"})
+    row = [d for d in c.get("/api/deadlines").json() if d["id"] == did][0]
+    assert "13:00" in row["due_at"] and ("+00:00" in row["due_at"] or "Z" in row["due_at"])
+
+
+def test_patch_missing_deadline_404(tmp_path):
+    assert _client(tmp_path).patch("/api/deadlines/9999", json={"title": "x"}).status_code == 404
+
+
+def test_include_hidden_returns_hidden(tmp_path):
+    c = _client(tmp_path)
+    did = c.post("/api/deadlines", json={"title": "hide me", "due_at": "2099-01-01T17:00:00+00:00"}).json()["id"]
+    c.post(f"/api/deadlines/{did}/visible", json={"visible": False})
+    assert all(d["id"] != did for d in c.get("/api/deadlines").json())  # hidden by default
+    hidden = c.get("/api/deadlines?include_hidden=true").json()
+    assert any(d["id"] == did and d["visible"] == 0 for d in hidden)

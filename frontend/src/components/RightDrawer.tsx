@@ -24,7 +24,7 @@ export function RightDrawer() {
   const friendly = useFriendlyTime()
   const { data: deadlines = [], isLoading: deadlinesLoading, error: deadlinesError } = useQuery({
     queryKey: ['deadlines'],
-    queryFn: getDeadlines,
+    queryFn: () => getDeadlines(),
   })
 
   const { data: trends = [], isLoading: trendsLoading, error: trendsError } = useQuery({
