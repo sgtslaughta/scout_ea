@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Tooltip, Popover } from '@mui/material'
 import { MarqueeText } from './MarqueeText'
+import { TimelineTypeChip } from './TimelineTypeChip'
 
 export type AxisItemType = 'deadline' | 'task' | 'event'
 export interface AxisDot { key: string; id: number; title: string; when: string; type: AxisItemType }
 
 const ROUTE: Record<AxisItemType, string> = { deadline: '/deadlines', task: '/tasks', event: '/calendar' }
 const TAG: Record<AxisItemType, string> = { deadline: 'D', task: 'T', event: 'E' }
-const TAG_COLOR: Record<AxisItemType, string> = { deadline: 'error.main', task: 'primary.main', event: 'success.main' }
 
 interface AxisClusterProps {
   percent: number
@@ -71,7 +71,7 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i.type, i.id) } }}
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
               >
-                <Box component="span" sx={{ color: TAG_COLOR[i.type], fontWeight: 700, fontSize: 11 }}>{TAG[i.type]}</Box>
+                <TimelineTypeChip type={i.type} dense />
                 <Box sx={{ flex: 1, minWidth: 0, fontSize: '0.75rem' }}><MarqueeText text={i.title} /></Box>
                 <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontFamily: '"JetBrains Mono", monospace', fontSize: 10 }}>{compactWhen(i.when)}</Typography>
               </Box>
