@@ -12,14 +12,13 @@ import { RightDrawer } from '@/components/RightDrawer'
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
 const DeadlinesView = lazy(() => import('@/views/Deadlines').then(m => ({ default: m.DeadlinesView })))
-const TrendingView = lazy(() => import('@/views/Trending').then(m => ({ default: m.TrendingView })))
+const DataFeedView = lazy(() => import('@/views/DataFeed').then(m => ({ default: m.DataFeedView })))
 const SkillsView = lazy(() => import('@/views/Skills').then(m => ({ default: m.SkillsView })))
 const SettingsView = lazy(() => import('@/views/Settings').then(m => ({ default: m.SettingsView })))
 const InboxView = lazy(() => import('@/views/Inbox').then(m => ({ default: m.InboxView })))
 const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.TasksView })))
 const CalendarView = lazy(() => import('@/views/Calendar').then(m => ({ default: m.CalendarView })))
 const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
-const TopicsView = lazy(() => import('@/views/Topics').then(m => ({ default: m.TopicsView })))
 const ActivityView = lazy(() => import('@/views/Activity').then(m => ({ default: m.ActivityView })))
 
 export function App() {
@@ -93,10 +92,11 @@ export function App() {
                     <Route path="/inbox" element={<InboxView />} />
                     <Route path="/tasks" element={<TasksView />} />
                     <Route path="/calendar" element={<CalendarView />} />
-                    <Route path="/trending" element={<TrendingView />} />
+                    <Route path="/feed" element={<DataFeedView />} />
+                    <Route path="/trending" element={<Navigate to="/feed?view=trending" replace />} />
                     <Route path="/deadlines" element={<DeadlinesView />} />
                     <Route path="/people" element={<PeopleView />} />
-                    <Route path="/topics" element={<TopicsView />} />
+                    <Route path="/topics" element={<Navigate to="/feed?view=topics" replace />} />
                     <Route path="/skills" element={<SkillsView />} />
                     <Route path="/docs" element={<Navigate to="/skills" replace />} />
                     <Route path="/activity" element={<ActivityView />} />

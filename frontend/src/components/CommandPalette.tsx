@@ -30,7 +30,7 @@ const KIND_LABEL: Record<string, string> = {
 }
 const KIND_VIEW: Record<string, string> = {
   task: 'tasks', signal: 'inbox', deadline: 'deadlines', event: 'calendar',
-  person: 'people', topic: 'topics', trend: 'trending',
+  person: 'people', topic: 'feed?view=topics', trend: 'feed?view=trending',
 }
 
 const itemStyle: React.CSSProperties = {

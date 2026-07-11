@@ -14,8 +14,8 @@ export function FeedDetail({ selection, onClose }: Props) {
   const open = selection !== null
   const qc = useQueryClient()
   const friendly = useFriendlyTime()
-  const category = selection?.category
-  const item = (selection?.item as Record<string, unknown>) ?? {}
+  const category = selection?.category ?? ''
+  const item = selection?.item ?? ({} as Record<string, unknown>)
   const canStatus = category === 'news' || category === 'learning'
 
   const setStatus = (status: string) => {
@@ -29,7 +29,18 @@ export function FeedDetail({ selection, onClose }: Props) {
     }).catch(() => toast.error('Failed to update'))
   }
 
-  const when = (item.when as string) ?? (item.event_at as string) ?? ''
+  const getWhen = (): string => {
+    if ('when' in item) return (item.when as string) ?? ''
+    if ('event_at' in item) return (item.event_at as string) ?? ''
+    return ''
+  }
+  const when = getWhen()
+
+  const getSynopsis = (): string => {
+    if ('synopsis' in item) return (item.synopsis as string) ?? ''
+    return ''
+  }
+  const synopsis = getSynopsis()
 
   return (
     <Box
@@ -57,8 +68,8 @@ export function FeedDetail({ selection, onClose }: Props) {
             <IconButton size="small" onClick={onClose} aria-label="Close detail"><X size={16} /></IconButton>
           </Box>
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2 }}>
-            {(item.synopsis as string) && <Typography variant="body2" sx={{ mb: 2 }}>{item.synopsis as string}</Typography>}
-            <TagEditor refType={refTypeOf(category)} refId={selection.id} />
+            {synopsis && <Typography variant="body2" sx={{ mb: 2 }}>{synopsis}</Typography>}
+            {selection && <TagEditor refType={refTypeOf(category)} refId={selection.id} />}
           </Box>
           {canStatus && (
             <Box sx={{ display: 'flex', gap: 1, p: 2, borderTop: '1px solid', borderColor: 'divider' }}>

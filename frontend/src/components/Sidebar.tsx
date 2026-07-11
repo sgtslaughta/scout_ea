@@ -5,8 +5,8 @@ import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import {
-  Calendar, CheckSquare, Cog, Inbox, Menu, TrendingUp,
-  AlertCircle, FileText, Grid3x3, Users, Hash, Activity,
+  Calendar, CheckSquare, Cog, Inbox, Menu, Newspaper,
+  AlertCircle, FileText, Grid3x3, Users, Activity,
 } from 'lucide-react'
 import { HelpDialog } from './HelpDialog'
 
@@ -15,10 +15,9 @@ const SIDEBAR_ITEMS = [
   { id: 'inbox', route: '/inbox', icon: Inbox, label: 'Inbox' },
   { id: 'tasks', route: '/tasks', icon: CheckSquare, label: 'Tasks' },
   { id: 'calendar', route: '/calendar', icon: Calendar, label: 'Calendar' },
-  { id: 'trending', route: '/trending', icon: TrendingUp, label: 'Trending' },
+  { id: 'feed', route: '/feed', icon: Newspaper, label: 'Data Feed' },
   { id: 'deadlines', route: '/deadlines', icon: AlertCircle, label: 'Deadlines' },
   { id: 'people', route: '/people', icon: Users, label: 'People' },
-  { id: 'topics', route: '/topics', icon: Hash, label: 'Topics' },
   { id: 'skills', route: '/skills', icon: FileText, label: 'Skills' },
   { id: 'activity', route: '/activity', icon: Activity, label: 'Activity' },
   { id: 'settings', route: '/settings', icon: Cog, label: 'Settings' },
