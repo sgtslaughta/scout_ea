@@ -22,3 +22,11 @@ def test_seed_is_idempotent(tmp_path):
     conn = db.init_db(p, seed_path=db.DEFAULT_SEED)
     n = conn.execute("SELECT COUNT(*) FROM config WHERE key='tz'").fetchone()[0]
     assert n == 1
+
+def test_seed_includes_feed_demo(tmp_path):
+    conn = db.init_db(tmp_path / "ea.sqlite", seed_path=db.DEFAULT_SEED)
+    assert db.list_news(conn) != []
+    assert db.list_learning(conn) != []
+    # the external tag resolves and is attached to news #1
+    tags = db.list_tags_for(conn, "news", 1)
+    assert any(t["name"] == "external" for t in tags)
