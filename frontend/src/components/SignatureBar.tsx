@@ -116,6 +116,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   return (
     <Box sx={{ height: 48, display: 'flex', alignItems: 'center', px: 2, gap: 1.5, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
       <Box sx={{ '@keyframes nowPulse': { '0%,100%': { opacity: 0.8 }, '50%': { opacity: 1 } } }} />
+      <Box component="img" src="/scout_ea_logo_64.png" alt="" sx={{ width: 24, height: 24, mr: 0.75, flexShrink: 0 }} />
       <Typography variant="h6" sx={{ fontSize: 18, mr: 1 }}>SCOUT</Typography>
 
       {/* overdue flank (left of the timeline = the past) */}
