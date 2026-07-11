@@ -75,7 +75,7 @@ export function TrendingView() {
 
   if (error) {
     return (
-      <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'bg.main' }}>
+      <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'background.default' }}>
         <Box sx={{ maxWidth: '1080px', mx: 'auto' }}>
           <Box
             sx={{
@@ -107,7 +107,7 @@ export function TrendingView() {
   }
 
   return (
-    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'bg.main' }}>
+    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'background.default' }}>
       <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <Box sx={{ mb: 6 }}>
           <Typography variant="h5" sx={{ fontWeight: 'semibold' }}>

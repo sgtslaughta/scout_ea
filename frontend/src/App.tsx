@@ -1,7 +1,8 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import Box from '@mui/material/Box'
+import RouteErrorBoundary from '@/components/RouteErrorBoundary'
 import { Sidebar } from '@/components/Sidebar'
 import { SignatureBar } from '@/components/SignatureBar'
 import { TodayBriefing } from '@/components/TodayBriefing'
@@ -26,6 +27,7 @@ export function App() {
   const [commandOpen, setCommandOpen] = useState(false)
   const [briefingOpen, setBriefingOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const queryClient = useQueryClient()
 
   useEffect(() => {
@@ -78,19 +80,21 @@ export function App() {
         <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
           {/* Main view - flex-1 */}
           <Suspense fallback={<Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.secondary', fontSize: 14 }}>Loading…</Box>}>
-            <Routes>
-              <Route path="/" element={<DashboardView />} />
-              <Route path="/inbox" element={<InboxView />} />
-              <Route path="/tasks" element={<TasksView />} />
-              <Route path="/calendar" element={<CalendarView />} />
-              <Route path="/trending" element={<TrendingView />} />
-              <Route path="/deadlines" element={<DeadlinesView />} />
-              <Route path="/people" element={<PeopleView />} />
-              <Route path="/topics" element={<TopicsView />} />
-              <Route path="/docs" element={<DocsView />} />
-              <Route path="/settings" element={<SettingsView />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <RouteErrorBoundary key={location.pathname}>
+              <Routes>
+                <Route path="/" element={<DashboardView />} />
+                <Route path="/inbox" element={<InboxView />} />
+                <Route path="/tasks" element={<TasksView />} />
+                <Route path="/calendar" element={<CalendarView />} />
+                <Route path="/trending" element={<TrendingView />} />
+                <Route path="/deadlines" element={<DeadlinesView />} />
+                <Route path="/people" element={<PeopleView />} />
+                <Route path="/topics" element={<TopicsView />} />
+                <Route path="/docs" element={<DocsView />} />
+                <Route path="/settings" element={<SettingsView />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </RouteErrorBoundary>
           </Suspense>
 
           {/* Right drawer - hidden below 1100px, fixed w-[300px] on desktop */}
