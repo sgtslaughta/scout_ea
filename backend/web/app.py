@@ -86,6 +86,12 @@ class TaskPatch(BaseModel):
     due_at: str | None = None
     priority: int | None = None
     status: str | None = None
+    board_column_id: int | None = None
+
+
+class BoardColumnPatch(BaseModel):
+    name: str | None = None
+    position: int | None = None
 
 
 class SubscribeBody(BaseModel):
@@ -351,6 +357,37 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     def push_test(conn=Depends(get_db)):
         from lib import push
         return {"sent": push.send_push(conn, "Scout EA", "Test notification")}
+
+    @app.get("/api/board/columns")
+    def list_board_columns(conn=Depends(get_db)):
+        return [dict(r) for r in db.list_board_columns(conn)]
+
+    @app.post("/api/board/columns")
+    def create_board_column(body: dict, conn=Depends(get_db)):
+        if "name" not in body:
+            raise HTTPException(status_code=400, detail="name required")
+        col_id = db.add_board_column(conn, body["name"])
+        return {"id": col_id}
+
+    @app.patch("/api/board/columns/{col_id}")
+    def update_board_column_endpoint(col_id: int, body: BoardColumnPatch, conn=Depends(get_db)):
+        fields = body.model_dump(exclude_none=True)
+        if not fields:
+            return {"updated": 0}
+        try:
+            n = db.update_board_column(conn, col_id, **fields)
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="update failed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="column not found")
+        return {"updated": n}
+
+    @app.delete("/api/board/columns/{col_id}")
+    def delete_board_column_endpoint(col_id: int, conn=Depends(get_db)):
+        n = db.delete_board_column(conn, col_id)
+        if n == 0:
+            raise HTTPException(status_code=404, detail="column not found")
+        return {"deleted": n}
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", SPAStaticFiles(directory=str(static_dir), html=True), name="static")

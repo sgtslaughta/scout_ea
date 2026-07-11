@@ -45,6 +45,13 @@ export interface Task {
   due_at?: string
   priority: number
   status: string
+  board_column_id?: number | null
+}
+
+export interface BoardColumn {
+  id: number
+  name: string
+  position: number
 }
 
 export interface Skill {
@@ -188,6 +195,17 @@ export const getTasks = () => fetchJson<Task[]>('/api/tasks')
 
 export const updateTask = (id: number, body: Partial<Task>) =>
   patchJson<{ updated: number }>(`/api/tasks/${id}`, body)
+
+export const getBoardColumns = () => fetchJson<BoardColumn[]>('/api/board/columns')
+
+export const addBoardColumn = (name: string) =>
+  postJson<{ id: number }>('/api/board/columns', { name })
+
+export const updateBoardColumn = (id: number, body: Partial<Pick<BoardColumn, 'name' | 'position'>>) =>
+  patchJson<{ updated: number }>(`/api/board/columns/${id}`, body)
+
+export const deleteBoardColumn = (id: number) =>
+  del<{ deleted: number }>(`/api/board/columns/${id}`)
 
 export const getEvents = () => fetchJson<EventItem[]>('/api/events')
 
