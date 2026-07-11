@@ -65,3 +65,9 @@ export function useClockFormat(): (iso: string | number | Date | null | undefine
   const { timeZone, hour24 } = ctx ?? load()
   return useCallback((iso) => formatClock(iso, { timeZone, hour24 }), [timeZone, hour24])
 }
+
+/** The current effective timezone pref ('auto' or an IANA id). Resilient: no throw outside a provider. */
+export function useTimeZone(): string {
+  const ctx = useContext(Ctx)
+  return (ctx ?? load()).timeZone
+}

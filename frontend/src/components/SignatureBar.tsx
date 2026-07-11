@@ -11,7 +11,8 @@ import { useColorScheme } from '@mui/material/styles'
 import { Sun, Moon, Sparkles, Search, CalendarClock } from 'lucide-react'
 import { getDeadlines, getTasks } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
-import { useFriendlyTime, useClockFormat } from '@/lib/timePrefs'
+import { useFriendlyTime, useClockFormat, useTimeZone } from '@/lib/timePrefs'
+import { MarqueeText } from '@/components/MarqueeText'
 import { bucketDeadlines, clockPercent, type Urgency, type AxisDeadline } from '@/lib/horizon'
 
 interface SignatureBarProps {
@@ -55,6 +56,13 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const navigate = useNavigate()
   const friendly = useFriendlyTime()
   const clock = useClockFormat()
+  const timeZone = useTimeZone()
+  const compactTz = timeZone && timeZone !== 'auto' ? timeZone : undefined
+  const compactWhen = (iso: string) => {
+    const d = new Date(iso)
+    return isNaN(d.getTime()) ? iso
+      : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: compactTz })
+  }
 
   const { data: deadlines = [] } = useQuery({
     queryKey: ['deadlines'], queryFn: () => getDeadlines(), refetchInterval: 15000,
@@ -169,8 +177,8 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
                   sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
                 >
                   <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, fontSize: 11 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
-                  <Typography variant="caption" sx={{ flex: 1, minWidth: 0 }} noWrap>{i.title}</Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{friendly(i.when) || i.when}</Typography>
+                  <Box sx={{ flex: 1, minWidth: 0, fontSize: '0.75rem' }}><MarqueeText text={i.title} /></Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontFamily: '"JetBrains Mono", monospace', fontSize: 10 }}>{compactWhen(i.when)}</Typography>
                 </Box>
               ))}
             </Box>
