@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
@@ -35,7 +36,7 @@ export default function ActivityWidget() {
       <Stack spacing={0.25} sx={{ mt: 1 }}>
         {data.slice(0, 5).map((a) => (
           <Tooltip key={a.id} title={`${a.skill} — ${a.items_created} items · ${a.status}${a.note ? ` · ${a.note}` : ''}`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.25 }}>
+            <Box component={Link} to="/activity" sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1, py: 0.25, textDecoration: 'none', color: 'inherit', borderRadius: 0.5, '&:hover': { bgcolor: 'action.hover' } }}>
               {a.status === 'error'
                 ? <X size={13} aria-label="error" style={{ color: 'var(--mui-palette-error-main)' }} />
                 : <Check size={13} aria-label="ok" style={{ color: 'var(--mui-palette-success-main)' }} />}
