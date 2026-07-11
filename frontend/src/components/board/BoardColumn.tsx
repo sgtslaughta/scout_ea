@@ -20,6 +20,7 @@ interface BoardColumnProps {
   onEditTask: (t: Task) => void
   onCompleteTask: (id: number) => void
   onDismissTask: (id: number) => void
+  onConvertTask: (t: Task) => void
   onRename: (id: number, name: string) => void
   onSetStatus: (id: number, status: string) => void
   onDelete: (col: Column) => void
@@ -28,7 +29,7 @@ interface BoardColumnProps {
 
 export function BoardColumn({
   column, tasks, isFirst, isLast,
-  onEditTask, onCompleteTask, onDismissTask, onRename, onSetStatus, onDelete, onMove,
+  onEditTask, onCompleteTask, onDismissTask, onConvertTask, onRename, onSetStatus, onDelete, onMove,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const [editing, setEditing] = useState(false)
@@ -96,7 +97,7 @@ export function BoardColumn({
         }}
       >
         {shown.map((t) => (
-          <TaskCard key={t.id} task={t} onEdit={onEditTask} onComplete={onCompleteTask} onDismiss={onDismissTask} />
+          <TaskCard key={t.id} task={t} onEdit={onEditTask} onComplete={onCompleteTask} onDismiss={onDismissTask} onConvert={onConvertTask} />
         ))}
         {hiddenCount > 0 && (
           <Box

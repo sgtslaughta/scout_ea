@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { Plus } from 'lucide-react'
 import {
-  getTasks, getBoardColumns, updateTask, createTask,
+  getTasks, getBoardColumns, updateTask, createTask, addDeadline,
   addBoardColumn, updateBoardColumn, deleteBoardColumn,
   type Task, type BoardColumn as Column,
 } from '@/api'
@@ -118,6 +118,19 @@ export function TasksView() {
   }
   const handleCloseEdit = () => { setEditOpen(false); setEditingId(null) }
 
+  // --- convert task -> deadline (keeps the task) ---
+  const [convertTask, setConvertTask] = useState<Task | null>(null)
+  const [convertDue, setConvertDue] = useState('')
+  const openConvert = (t: Task) => {
+    setConvertTask(t)
+    setConvertDue(t.due_at ? new Date(t.due_at).toISOString().slice(0, 10) : '')
+  }
+  const convertMutation = useMutation({
+    mutationFn: (v: { title: string; due: string; detail?: string }) => addDeadline(v.title, v.due, v.detail),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['deadlines'] }); toast.success('Deadline created'); setConvertTask(null) },
+    onError: () => toast.error('Failed to create deadline'),
+  })
+
   // --- column controls ---
   const [addingCol, setAddingCol] = useState(false)
   const [newColName, setNewColName] = useState('')
@@ -202,7 +215,7 @@ export function TasksView() {
               <BoardColumn
                 key={col.id} column={col} tasks={tasksFor(col.id)}
                 isFirst={i === 0} isLast={i === sortedCols.length - 1}
-                onEditTask={handleEdit} onCompleteTask={completeMutation.mutate} onDismissTask={dismissMutation.mutate}
+                onEditTask={handleEdit} onCompleteTask={completeMutation.mutate} onDismissTask={dismissMutation.mutate} onConvertTask={openConvert}
                 onRename={(id, name) => renameColMutation.mutate({ id, name })}
                 onSetStatus={(id, status) => setColStatusMutation.mutate({ id, status })}
                 onDelete={setDeleteTarget} onMove={onMoveCol}
@@ -232,8 +245,41 @@ export function TasksView() {
           </TextField>
         </DialogContent>
         <DialogActions>
+          {editingId && (
+            <Button
+              sx={{ mr: 'auto' }}
+              onClick={() => {
+                if (!fDue) { toast.error('Set a due date first'); return }
+                convertMutation.mutate({ title: fTitle.trim(), due: new Date(fDue).toISOString(), detail: fDetail.trim() || undefined })
+              }}
+            >
+              Convert to deadline
+            </Button>
+          )}
           <Button onClick={handleCloseEdit}>Cancel</Button>
           <Button variant="contained" disabled={!fTitle.trim()} onClick={() => (editingId ? updateMutation : createMutation).mutate()}>{editingId ? 'Save' : 'Add'}</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* convert task -> deadline */}
+      <Dialog open={!!convertTask} onClose={() => setConvertTask(null)} maxWidth="xs" fullWidth>
+        <DialogTitle>Convert to deadline</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <Typography variant="body2" color="text.secondary">{convertTask?.title}</Typography>
+          <TextField
+            label="Due" type="date" value={convertDue} onChange={(e) => setConvertDue(e.target.value)}
+            required fullWidth slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <Typography variant="caption" color="text.secondary">The task stays on the board; a deadline is created from it.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConvertTask(null)}>Cancel</Button>
+          <Button
+            variant="contained" disabled={!convertDue}
+            onClick={() => convertTask && convertMutation.mutate({ title: convertTask.title, due: new Date(convertDue).toISOString(), detail: convertTask.detail || undefined })}
+          >
+            Create deadline
+          </Button>
         </DialogActions>
       </Dialog>
 
