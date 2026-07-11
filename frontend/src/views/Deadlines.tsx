@@ -19,11 +19,13 @@ import {
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { getDeadlines, addDeadline, setDeadlineVisible, setConfig, type Deadline } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
+import { useFriendlyTime } from '@/lib/timePrefs'
 import { toast } from 'sonner'
 
 
 export function DeadlinesView() {
   const queryClient = useQueryClient()
+  const friendly = useFriendlyTime()
   const [searchParams, setSearchParams] = useSearchParams()
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
@@ -111,8 +113,9 @@ export function DeadlinesView() {
     {
       field: 'due_at',
       headerName: 'Due',
-      width: 170,
-      renderCell: (params) => new Date(params.value).toLocaleString(),
+      flex: 1,
+      minWidth: 240,
+      renderCell: (params) => friendly(params.value),
     },
     {
       field: 'countdown_seconds',

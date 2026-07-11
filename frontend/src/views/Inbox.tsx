@@ -18,6 +18,7 @@ import { CheckCircle, Trash2 } from 'lucide-react'
 import { getSignals, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 import { relativeTime } from '@/widgets/SignalsWidget'
+import { useFriendlyTime } from '@/lib/timePrefs'
 
 const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
 
@@ -25,6 +26,7 @@ const statusFilters = ['new', 'triaged', 'actioned', 'dismissed']
 
 export function InboxView() {
   const queryClient = useQueryClient()
+  const friendly = useFriendlyTime()
   const [searchParams, setSearchParams] = useSearchParams()
   const [activeStatus, setActiveStatus] = useState('new')
 
@@ -86,7 +88,7 @@ export function InboxView() {
             <Box sx={{ p: 0.5 }}>
               <Typography variant="body2" sx={{ fontWeight: 600 }}>{params.row.title}</Typography>
               <Typography variant="caption" sx={{ display: 'block' }}>{params.row.source}{params.row.source_skill ? ` · ${params.row.source_skill}` : ''}</Typography>
-              <Typography variant="caption" color="text.secondary">{new Date(params.row.created_at).toLocaleString()} · priority {params.row.priority}</Typography>
+              <Typography variant="caption" color="text.secondary">{friendly(params.row.created_at)} · priority {params.row.priority}</Typography>
             </Box>
           }
         >
