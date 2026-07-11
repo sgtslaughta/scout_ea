@@ -3,18 +3,6 @@
  * All responses are JSON as specified in backend/web/app.py.
  */
 
-export interface DeadlineLink {
-  id: number
-  ref_type: 'person' | 'task' | 'event'
-  ref_id: number
-  label: string
-}
-
-export interface DeadlineTag {
-  id: number
-  tag: string
-}
-
 export interface Deadline {
   id: number
   title: string
@@ -24,8 +12,8 @@ export interface Deadline {
   source: string
   status: string
   visible: number
-  links?: DeadlineLink[]
-  tags?: DeadlineTag[]
+  links?: ContentLink[]
+  tags?: ContentTag[]
 }
 
 export interface Tag { id: number; name: string; color: string }
@@ -210,18 +198,6 @@ export const updateDeadline = (id: number, body: Partial<Deadline>) =>
 
 export const setDeadlineVisible = (id: number, visible: boolean) =>
   postJson<{ updated: number }>(`/api/deadlines/${id}/visible`, { visible })
-
-export const addDeadlineLink = (deadlineId: number, ref_type: DeadlineLink['ref_type'], ref_id: number) =>
-  postJson<{ ok: boolean }>(`/api/deadlines/${deadlineId}/links`, { ref_type, ref_id })
-
-export const deleteDeadlineLink = (deadlineId: number, linkId: number) =>
-  del<{ deleted: number }>(`/api/deadlines/${deadlineId}/links/${linkId}`)
-
-export const addDeadlineTag = (deadlineId: number, tag: string) =>
-  postJson<{ ok: boolean }>(`/api/deadlines/${deadlineId}/tags`, { tag })
-
-export const deleteDeadlineTag = (deadlineId: number, tagId: number) =>
-  del<{ deleted: number }>(`/api/deadlines/${deadlineId}/tags/${tagId}`)
 
 export const setConfig = (key: string, value: string) =>
   postJson<{ key: string; value: string }>(`/api/config/${key}`, { value })

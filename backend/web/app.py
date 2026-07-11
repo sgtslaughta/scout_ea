@@ -53,15 +53,6 @@ class DeadlinePatch(BaseModel):
     priority: int | None = None
 
 
-class LinkBody(BaseModel):
-    ref_type: str
-    ref_id: int
-
-
-class TagBody(BaseModel):
-    tag: str
-
-
 class TagCreate(BaseModel):
     name: str
     color: str = "neutral"
@@ -246,8 +237,8 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         for r in db.list_deadlines(conn, respect_global=not include_hidden, include_hidden=include_hidden):
             d = dict(r)
             d["countdown_seconds"] = _deadlines.countdown(d["due_at"], now)
-            d["links"] = db.list_deadline_links(conn, d["id"])
-            d["tags"] = [dict(t) for t in db.list_deadline_tags(conn, d["id"])]
+            d["links"] = db.list_links_for(conn, "deadline", d["id"])
+            d["tags"] = db.list_tags_for(conn, "deadline", d["id"])
             out.append(d)
         return out
 
@@ -344,34 +335,6 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
                     "links": db.list_links_for(conn, ref_type, ref_id)}
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
-
-    @app.post("/api/deadlines/{deadline_id}/links")
-    def add_deadline_link(deadline_id: int, body: LinkBody, conn=Depends(get_db)):
-        try:
-            db.add_deadline_link(conn, deadline_id, body.ref_type, body.ref_id)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        return {"ok": True}
-
-    @app.delete("/api/deadlines/{deadline_id}/links/{link_id}")
-    def del_deadline_link(deadline_id: int, link_id: int, conn=Depends(get_db)):
-        if db.del_deadline_link(conn, link_id) == 0:
-            raise HTTPException(status_code=404, detail="link not found")
-        return {"deleted": 1}
-
-    @app.post("/api/deadlines/{deadline_id}/tags")
-    def add_deadline_tag(deadline_id: int, body: TagBody, conn=Depends(get_db)):
-        try:
-            db.add_deadline_tag(conn, deadline_id, body.tag)
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        return {"ok": True}
-
-    @app.delete("/api/deadlines/{deadline_id}/tags/{tag_id}")
-    def del_deadline_tag(deadline_id: int, tag_id: int, conn=Depends(get_db)):
-        if db.del_deadline_tag(conn, tag_id) == 0:
-            raise HTTPException(status_code=404, detail="tag not found")
-        return {"deleted": 1}
 
     @app.post("/api/config/{key}")
     def post_config(key: str, body: ConfigBody, conn=Depends(get_db)):

@@ -66,6 +66,30 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("UPDATE tasks SET board_column_id=? WHERE status=?", (in_progress_id, "in_progress"))
         conn.commit()
 
+    # Migration 006: fold deadline_tags/deadline_links into the universal tables.
+    tbls = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table'").fetchall()}
+    if "deadline_tags" in tbls or "deadline_links" in tbls:
+        already = conn.execute(
+            "SELECT COUNT(*) FROM content_tags WHERE ref_type='deadline'").fetchone()[0]
+        already += conn.execute(
+            "SELECT COUNT(*) FROM content_links WHERE ref_type='deadline'").fetchone()[0]
+        if already == 0:
+            if "deadline_tags" in tbls:
+                for row in conn.execute("SELECT deadline_id, tag FROM deadline_tags").fetchall():
+                    tag_content(conn, "deadline", row[0], row[1])
+            if "deadline_links" in tbls:
+                for row in conn.execute(
+                        "SELECT deadline_id, ref_type, ref_id FROM deadline_links").fetchall():
+                    # old ref_type (person/task/event) becomes target_type; raw insert
+                    # (bypasses target whitelist) so task/event still migrate, label falls back.
+                    conn.execute(
+                        "INSERT OR IGNORE INTO content_links (ref_type, ref_id, target_type, target_id) "
+                        "VALUES ('deadline', ?, ?, ?)", (row[0], row[1], row[2]))
+        conn.execute("DROP TABLE IF EXISTS deadline_tags")
+        conn.execute("DROP TABLE IF EXISTS deadline_links")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
@@ -199,78 +223,6 @@ def update_deadline(conn: sqlite3.Connection, deadline_id: int, **fields) -> int
 # --- deadline cross-references (links + tags) ------------------------------
 
 # ref_type -> label-lookup SQL. Whitelist doubles as ref_type validation.
-_REF_LABEL_SQL = {
-    "person": "SELECT name AS label FROM people WHERE id=?",
-    "task": "SELECT title AS label FROM tasks WHERE id=?",
-    "event": "SELECT title AS label FROM events WHERE id=?",
-}
-
-
-def add_deadline_link(conn: sqlite3.Connection, deadline_id: int, ref_type: str, ref_id: int) -> int:
-    """Link a deadline to a person/task/event. Idempotent. Returns rowcount."""
-    if ref_type not in _REF_LABEL_SQL:
-        raise ValueError(f"unknown ref_type: {ref_type!r}")
-    cur = conn.execute(
-        "INSERT INTO deadline_links (deadline_id, ref_type, ref_id) VALUES (?,?,?) "
-        "ON CONFLICT(deadline_id, ref_type, ref_id) DO NOTHING",
-        (deadline_id, ref_type, ref_id),
-    )
-    conn.commit()
-    return cur.rowcount
-
-
-def del_deadline_link(conn: sqlite3.Connection, link_id: int) -> int:
-    """Delete a link by its id. Returns rows affected."""
-    cur = conn.execute("DELETE FROM deadline_links WHERE id=?", (link_id,))
-    conn.commit()
-    return cur.rowcount
-
-
-def list_deadline_links(conn: sqlite3.Connection, deadline_id: int) -> list[dict]:
-    """Links for a deadline with resolved labels: [{id, ref_type, ref_id, label}]."""
-    rows = conn.execute(
-        "SELECT id, ref_type, ref_id FROM deadline_links WHERE deadline_id=? ORDER BY id",
-        (deadline_id,),
-    ).fetchall()
-    out = []
-    for r in rows:
-        d = dict(r)
-        sql = _REF_LABEL_SQL.get(r["ref_type"])
-        lbl = conn.execute(sql, (r["ref_id"],)).fetchone() if sql else None
-        d["label"] = lbl["label"] if lbl else f'{r["ref_type"]} #{r["ref_id"]}'
-        out.append(d)
-    return out
-
-
-def add_deadline_tag(conn: sqlite3.Connection, deadline_id: int, tag: str) -> int:
-    """Attach a free-text tag to a deadline. Idempotent. Returns rowcount."""
-    tag = tag.strip()
-    if not tag:
-        raise ValueError("tag cannot be empty")
-    cur = conn.execute(
-        "INSERT INTO deadline_tags (deadline_id, tag) VALUES (?,?) "
-        "ON CONFLICT(deadline_id, tag) DO NOTHING",
-        (deadline_id, tag),
-    )
-    conn.commit()
-    return cur.rowcount
-
-
-def del_deadline_tag(conn: sqlite3.Connection, tag_id: int) -> int:
-    """Delete a tag by its id. Returns rows affected."""
-    cur = conn.execute("DELETE FROM deadline_tags WHERE id=?", (tag_id,))
-    conn.commit()
-    return cur.rowcount
-
-
-def list_deadline_tags(conn: sqlite3.Connection, deadline_id: int) -> list[sqlite3.Row]:
-    """Tags for a deadline as [{id, tag}] rows."""
-    return conn.execute(
-        "SELECT id, tag FROM deadline_tags WHERE deadline_id=? ORDER BY tag",
-        (deadline_id,),
-    ).fetchall()
-
-
 # --- universal tags & links ------------------------------------------------
 
 _TAGGABLE_TYPES = {"deadline", "task", "signal", "event", "trend", "trend_finding",
