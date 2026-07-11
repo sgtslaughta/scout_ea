@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Popover, Tooltip } from '@mui/material'
 import { MarqueeText } from './MarqueeText'
+import { TimelineTypeChip } from './TimelineTypeChip'
 
 export interface FlankItem { key: string; id: number; title: string; when: string; type: 'deadline' | 'task' }
 
@@ -67,7 +68,7 @@ export function TimelineFlank({ items, title, icon, accent, bucketOrder, bucketO
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(i.type, i.id) } }}
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
                 >
-                  <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, fontSize: 11 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
+                  <TimelineTypeChip type={i.type} dense />
                   <Box sx={{ flex: 1, minWidth: 0, fontSize: '0.75rem' }}><MarqueeText text={i.title} /></Box>
                   <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontFamily: '"JetBrains Mono", monospace', fontSize: 10 }}>{compactWhen(i.when)}</Typography>
                 </Box>
