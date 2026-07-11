@@ -25,3 +25,16 @@ def test_add_list_update_action(tmp_path):
     assert got["status"] == "completed"
     assert got["result"]["access_url"] == "http://d/1"
     assert got["executed_at"] is not None
+
+
+def test_claim_is_exclusive_and_dedup(tmp_path):
+    conn = db.init_db(tmp_path / "t.db")
+    aid = db.add_action(conn, action_type="email_new", mode="review", status="approved")
+    assert db.claim_action(conn, aid) is True      # first wins
+    assert db.claim_action(conn, aid) is False     # already executing
+    auto = db.add_action(conn, action_type="cowork_doc", mode="auto")  # drafted+auto
+    assert db.claim_action(conn, auto) is True
+    db.add_action(conn, action_type="teams_dm", entity_type="person",
+                  entity_id=3, status="drafted")
+    assert db.has_open_action(conn, "person", 3, "teams_dm") is True
+    assert db.has_open_action(conn, "person", 3, "email_new") is False

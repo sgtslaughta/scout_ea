@@ -770,3 +770,21 @@ def update_action(conn, action_id, *, status=None, result=None, error=None) -> i
     cur = conn.execute(f"UPDATE actions SET {', '.join(sets)} WHERE id=?", params)
     conn.commit()
     return cur.rowcount
+
+
+def claim_action(conn, action_id) -> bool:
+    cur = conn.execute(
+        "UPDATE actions SET status='executing', updated_at=datetime('now') "
+        "WHERE id=? AND (status='approved' OR (status='drafted' AND mode='auto'))",
+        (action_id,))
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def has_open_action(conn, entity_type, entity_id, action_type) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM actions WHERE entity_type=? AND entity_id=? AND action_type=? "
+        "AND (status IN ('drafted','approved','executing') "
+        "     OR (status='completed' AND executed_at > datetime('now','-1 day'))) "
+        "LIMIT 1", (entity_type, entity_id, action_type)).fetchone()
+    return row is not None
