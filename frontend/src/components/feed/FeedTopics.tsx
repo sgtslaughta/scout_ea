@@ -20,7 +20,7 @@ import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid
 import { getTopics, addTopic, updateTopic, deleteTopic, type Topic } from '@/api'
 import { toast } from 'sonner'
 
-export function TopicsView() {
+export function FeedTopics() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [name, setName] = useState('')
@@ -183,8 +183,8 @@ export function TopicsView() {
     },
   ]
   return (
-    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
-      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Box sx={{ height: '100%', minHeight: 0, overflowY: 'auto', p: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Header */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Typography variant="h5">Topics</Typography>

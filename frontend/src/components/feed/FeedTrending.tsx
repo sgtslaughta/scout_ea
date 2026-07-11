@@ -5,7 +5,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Box, Typography, Chip, Button, useTheme } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 
-export function TrendingView() {
+export function FeedTrending() {
   const [searchParams, setSearchParams] = useSearchParams()
   const theme = useTheme()
   const { data: trends = [], isLoading, error, refetch: refetchTrends } = useQuery<Trend[]>({
@@ -38,7 +38,7 @@ export function TrendingView() {
       align: 'right',
       headerAlign: 'right',
       renderCell: (params) => (
-        <span style={{ fontFamily: '"JetBrains Mono"' }}>
+        <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>
           {(params.value as number).toFixed(1)}
         </span>
       ),
@@ -75,40 +75,38 @@ export function TrendingView() {
 
   if (error) {
     return (
-      <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'background.default' }}>
-        <Box sx={{ maxWidth: '1080px', mx: 'auto' }}>
-          <Box
-            sx={{
-              bgcolor: theme.palette.error.main,
-              opacity: 0.3,
-              border: `1px solid ${theme.palette.error.main}`,
-              borderRadius: 1,
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 2,
-            }}
+      <Box sx={{ height: '100%', minHeight: 0, overflowY: 'auto', p: 2 }}>
+        <Box
+          sx={{
+            bgcolor: theme.palette.error.main,
+            opacity: 0.3,
+            border: `1px solid ${theme.palette.error.main}`,
+            borderRadius: 1,
+            p: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+          }}
+        >
+          <Typography variant="body2" sx={{ color: 'error.main' }}>
+            Error loading trends
+          </Typography>
+          <Button
+            size="small"
+            onClick={() => refetchTrends()}
+            sx={{ color: 'error.main', textDecoration: 'underline' }}
           >
-            <Typography variant="body2" sx={{ color: 'error.main' }}>
-              Error loading trends
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => refetchTrends()}
-              sx={{ color: 'error.main', textDecoration: 'underline' }}
-            >
-              Retry
-            </Button>
-          </Box>
+            Retry
+          </Button>
         </Box>
       </Box>
     )
   }
 
   return (
-    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 6, bgcolor: 'background.default' }}>
-      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+    <Box sx={{ height: '100%', minHeight: 0, overflowY: 'auto', p: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <Box sx={{ mb: 6 }}>
           <Typography variant="h5" sx={{ fontWeight: 'semibold' }}>
             Trending
