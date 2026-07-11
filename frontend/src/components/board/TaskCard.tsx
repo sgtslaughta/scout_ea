@@ -1,12 +1,27 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
-import { Box, Typography, Tooltip, IconButton } from '@mui/material'
+import { Box, Typography, Tooltip, IconButton, Chip } from '@mui/material'
+import type { SxProps, Theme } from '@mui/material'
 import { CheckCircle, Trash2 } from 'lucide-react'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { urgencyOf, type Urgency } from '@/lib/horizon'
+import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import type { Task } from '@/api'
 
 const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
-const PRIORITY_LABEL: Record<number, string> = { 1: 'Critical', 2: 'High', 3: 'Normal' }
+const PRIORITY_CHIP: Record<number, { label: string; color: 'error' | 'warning' | 'info' }> = {
+  1: { label: 'Critical', color: 'error' }, 2: { label: 'High', color: 'warning' }, 3: { label: 'Normal', color: 'info' },
+}
+const URGENCY_CHIP: Record<Urgency, 'error' | 'warning' | 'info'> = {
+  critical: 'error', urgent: 'error', soon: 'warning', normal: 'info',
+}
+// countdown chip animation by proximity (reduced-motion gated)
+const countdownAnim = (u: Urgency): SxProps<Theme> =>
+  u === 'critical'
+    ? { '@keyframes cdFlash': { '0%': { opacity: 1 }, '100%': { opacity: 0.35 } }, '@media (prefers-reduced-motion: no-preference)': { animation: 'cdFlash 0.8s steps(2) infinite' } }
+    : u === 'urgent'
+      ? { '@keyframes cdPulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.6 } }, '@media (prefers-reduced-motion: no-preference)': { animation: 'cdPulse 2s ease-in-out infinite' } }
+      : {}
 
 function dueLabel(due?: string): { text: string; color: string } | null {
   if (!due) return null
@@ -36,15 +51,20 @@ export function TaskCard({ task, onEdit, onComplete, onDismiss }: TaskCardProps)
   const due = dueLabel(task.due_at)
   const isDone = task.status === 'done'
 
+  const dueSecs = task.due_at ? Math.floor((new Date(task.due_at).getTime() - Date.now()) / 1000) : null
+  const urgency: Urgency = dueSecs != null ? urgencyOf(dueSecs) : 'normal'
+  const countdownText = dueSecs == null ? null : dueSecs <= 0 ? 'overdue' : `due in ${formatCountdown(dueSecs)}`
+
   const hoverCard = (
     <Box sx={{ p: 0.5, maxWidth: 280 }}>
       <Typography variant="body2" sx={{ fontWeight: 600 }}>{task.title}</Typography>
       {task.detail && <Typography variant="caption" sx={{ display: 'block', mt: 0.5, whiteSpace: 'pre-wrap' }}>{task.detail}</Typography>}
-      <Box sx={{ display: 'flex', gap: 1.5, mt: 0.75, flexWrap: 'wrap' }}>
-        <Typography variant="caption" color="text.secondary">Priority: {PRIORITY_LABEL[task.priority] ?? task.priority}</Typography>
-        <Typography variant="caption" color="text.secondary">Status: {task.status.replace('_', ' ')}</Typography>
+      <Box sx={{ display: 'flex', gap: 0.75, mt: 0.75, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Chip size="small" variant="outlined" color={PRIORITY_CHIP[task.priority]?.color ?? 'info'} label={PRIORITY_CHIP[task.priority]?.label ?? `P${task.priority}`} />
+        {countdownText && <Chip size="small" color={URGENCY_CHIP[urgency]} label={countdownText} sx={countdownAnim(urgency)} />}
       </Box>
-      {task.due_at && <Typography variant="caption" sx={{ display: 'block', mt: 0.25 }}>Due {friendly(task.due_at)}</Typography>}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>Status: {task.status.replace('_', ' ')}</Typography>
+      {task.due_at && <Typography variant="caption" sx={{ display: 'block' }}>Due {friendly(task.due_at)}</Typography>}
       {task.created_at && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>Created {friendly(task.created_at)}</Typography>}
     </Box>
   )
