@@ -40,7 +40,7 @@ export function DataFeedView() {
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', position: 'relative' }}>
         <FeedRail view={view} onView={(v) => { setView(v); setSelection(null) }} />
         <Box sx={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
-          {view === 'overview' && <FeedOverview onSelect={select('news')} />}
+          {view === 'overview' && <FeedOverview onSelect={(it) => setSelection({ category: it.category, id: it.id, item: it })} />}
           {view === 'news' && <FeedList kind="news" onSelect={select('news')} />}
           {view === 'learning' && <FeedList kind="learning" onSelect={select('learning')} />}
           {view === 'trending' && <FeedTrending />}

@@ -38,7 +38,7 @@ export function FeedTrending() {
       align: 'right',
       headerAlign: 'right',
       renderCell: (params) => (
-        <span style={{ fontFamily: '"JetBrains Mono"' }}>
+        <span style={{ fontFamily: '"JetBrains Mono", monospace' }}>
           {(params.value as number).toFixed(1)}
         </span>
       ),

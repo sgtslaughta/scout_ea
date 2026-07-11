@@ -39,4 +39,17 @@ describe('DataFeed shell', () => {
     // rail marks Trending active (aria-current)
     expect(screen.getByRole('button', { name: /trending/i })).toHaveAttribute('aria-current', 'true')
   })
+  it('overview trending item opens detail with no status action (correct category)', async () => {
+    vi.spyOn(api, 'getContentRefs').mockResolvedValue([])
+    vi.spyOn(api, 'getTags').mockResolvedValue([])
+    vi.spyOn(api, 'getPeople').mockResolvedValue([])
+    vi.spyOn(api, 'getTopics').mockResolvedValue([])
+    vi.spyOn(api, 'getFeed').mockResolvedValue({
+      counts: { trending: 1, news: 0, learning: 0, topics: 0 },
+      recent: [{ category: 'trending', id: 8, title: 'Trend X', when: '2026-07-10T00:00:00', status: '', tags: [], links: [] }],
+    })
+    wrap()
+    fireEvent.click(await screen.findByText('Trend X'))
+    expect(screen.queryByRole('button', { name: /mark read/i })).toBeNull()
+  })
 })

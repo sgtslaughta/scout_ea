@@ -30,7 +30,7 @@ export function NewsWire({ items, onSelect }: Props) {
               <Typography
                 key={`${it.category}${it.id}-${i}`} component="span" variant="caption" role="button" tabIndex={0}
                 onClick={() => onSelect(it)}
-                onKeyDown={(e) => { if (e.key === 'Enter') onSelect(it) }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(it) } }}
                 sx={{ cursor: 'pointer', fontFamily: '"JetBrains Mono", monospace', '&:hover': { color: 'var(--color-accent)' } }}
               >
                 ▪ {it.title}
