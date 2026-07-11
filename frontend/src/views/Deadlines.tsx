@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Plus, Edit2 } from 'lucide-react'
 import {
   Box,
@@ -17,10 +17,13 @@ import {
   Tooltip,
 } from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
-import { getDeadlines, addDeadline, updateDeadline, setDeadlineVisible, setConfig, type Deadline } from '@/api'
+import { getDeadlines, addDeadline, updateDeadline, setDeadlineVisible, setConfig, type Deadline, type DeadlineLink } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
+import { DeadlineRefsEditor } from '@/components/DeadlineRefsEditor'
 import { useFriendlyTime } from '@/lib/timePrefs'
 import { toast } from 'sonner'
+
+const REF_ROUTE: Record<DeadlineLink['ref_type'], string> = { person: '/people', task: '/tasks', event: '/calendar' }
 
 // datetime-local <-> ISO helpers (browser-local wall time).
 const isoToLocalInput = (iso?: string) => {
@@ -34,6 +37,7 @@ const localInputToISO = (v: string) => new Date(v).toISOString()
 export function DeadlinesView() {
   const queryClient = useQueryClient()
   const friendly = useFriendlyTime()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [title, setTitle] = useState('')
   const [dueAt, setDueAt] = useState('')
@@ -168,6 +172,32 @@ export function DeadlinesView() {
           color={params.row.countdown_seconds <= 0 ? 'error' : 'default'}
         />
       ),
+    },
+    {
+      field: 'links',
+      headerName: 'Refs',
+      flex: 1,
+      minWidth: 160,
+      sortable: false,
+      renderCell: (params) => {
+        const links = params.row.links ?? []
+        const tags = params.row.tags ?? []
+        if (!links.length && !tags.length) return null
+        return (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, alignItems: 'center', py: 0.5 }}>
+            {links.map((l) => (
+              <Chip
+                key={`l${l.id}`} size="small" label={l.label}
+                onClick={() => navigate(REF_ROUTE[l.ref_type])}
+                sx={{ height: 20, fontSize: 10, cursor: 'pointer' }}
+              />
+            ))}
+            {tags.map((t) => (
+              <Chip key={`t${t.id}`} size="small" variant="outlined" label={t.tag} sx={{ height: 20, fontSize: 10 }} />
+            ))}
+          </Box>
+        )
+      },
     },
     {
       field: 'actions',
@@ -313,6 +343,10 @@ export function DeadlinesView() {
               rows={2}
               fullWidth
             />
+            {editingId && (() => {
+              const editing = deadlines.find((d) => d.id === editingId)
+              return editing ? <DeadlineRefsEditor deadline={editing} /> : null
+            })()}
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancel</Button>

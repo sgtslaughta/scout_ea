@@ -81,3 +81,23 @@ CREATE TABLE IF NOT EXISTS board_columns (
   status     TEXT NOT NULL DEFAULT 'open',  -- status applied to a task dropped here
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+-- Feature migration 005: deadline cross-references (links to people/tasks/events) + free tags
+CREATE TABLE IF NOT EXISTS deadline_links (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  deadline_id INTEGER NOT NULL REFERENCES critical_deadlines(id) ON DELETE CASCADE,
+  ref_type    TEXT NOT NULL,   -- person | task | event
+  ref_id      INTEGER NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(deadline_id, ref_type, ref_id)
+);
+CREATE INDEX IF NOT EXISTS idx_deadline_links ON deadline_links(deadline_id);
+
+CREATE TABLE IF NOT EXISTS deadline_tags (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  deadline_id INTEGER NOT NULL REFERENCES critical_deadlines(id) ON DELETE CASCADE,
+  tag         TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(deadline_id, tag)
+);
+CREATE INDEX IF NOT EXISTS idx_deadline_tags ON deadline_tags(deadline_id);
