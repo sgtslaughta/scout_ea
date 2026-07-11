@@ -109,3 +109,17 @@ python -m pytest tests/ -v
 ```
 
 Expected output: **82 tests passed** (or the count configured in CI/CD).
+
+---
+
+## Tagging & links convention
+
+Every content row a skill creates (signal, trend, trend_finding, learning, news, event,
+deadline, task) should be associated so the Data Feed can cross-reference it:
+
+- Call `link_content(ref_type, ref_id, target_type, target_id)` to connect the row to the
+  relevant **person(s)** and **topic(s)** it concerns (`target_type` in `person|topic`).
+- Call `tag_content(ref_type, ref_id, tag, color?)` with 1–3 short lowercase labels.
+  For trends/news, include an origin label: `internal` (Teams/email chatter) or
+  `external` (news/web). `color` is a palette key (`neutral|red|amber|green|teal|blue|violet|pink`).
+- Call `list_tags()` first and reuse an existing tag name before inventing a new one.

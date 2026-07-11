@@ -54,3 +54,15 @@ def upsert_trend(conn, term, kind, window_start, window_end, score=0, count=0,
 
 def add_trend_finding(conn, **fields) -> int:
     return db.add_trend_finding(conn, **fields)
+
+
+def tag_content(conn, ref_type, ref_id, tag, color="neutral") -> int:
+    return db.tag_content(conn, ref_type, ref_id, tag, color)
+
+
+def link_content(conn, ref_type, ref_id, target_type, target_id) -> int:
+    return db.link_content(conn, ref_type, ref_id, target_type, target_id)
+
+
+def list_tags(conn):
+    return [dict(r) for r in db.list_all_tags(conn)]

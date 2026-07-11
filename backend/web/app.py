@@ -53,13 +53,19 @@ class DeadlinePatch(BaseModel):
     priority: int | None = None
 
 
-class LinkBody(BaseModel):
-    ref_type: str
-    ref_id: int
+class TagCreate(BaseModel):
+    name: str
+    color: str = "neutral"
 
 
-class TagBody(BaseModel):
-    tag: str
+class ContentTagBody(BaseModel):
+    name: str
+    color: str = "neutral"
+
+
+class ContentLinkBody(BaseModel):
+    target_type: str
+    target_id: int
 
 
 class ConfigBody(BaseModel):
@@ -231,8 +237,8 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         for r in db.list_deadlines(conn, respect_global=not include_hidden, include_hidden=include_hidden):
             d = dict(r)
             d["countdown_seconds"] = _deadlines.countdown(d["due_at"], now)
-            d["links"] = db.list_deadline_links(conn, d["id"])
-            d["tags"] = [dict(t) for t in db.list_deadline_tags(conn, d["id"])]
+            d["links"] = db.list_links_for(conn, "deadline", d["id"])
+            d["tags"] = db.list_tags_for(conn, "deadline", d["id"])
             out.append(d)
         return out
 
@@ -282,33 +288,53 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
             raise HTTPException(status_code=404, detail="deadline not found")
         return {"updated": n}
 
-    @app.post("/api/deadlines/{deadline_id}/links")
-    def add_deadline_link(deadline_id: int, body: LinkBody, conn=Depends(get_db)):
+    @app.get("/api/tags")
+    def get_tags(conn=Depends(get_db)):
+        return [dict(r) for r in db.list_all_tags(conn)]
+
+    @app.post("/api/tags")
+    def create_tag(body: TagCreate, conn=Depends(get_db)):
+        return {"id": db.get_or_create_tag(conn, body.name, body.color)}
+
+    @app.post("/api/content/{ref_type}/{ref_id}/tags")
+    def add_content_tag(ref_type: str, ref_id: int, body: ContentTagBody, conn=Depends(get_db)):
         try:
-            db.add_deadline_link(conn, deadline_id, body.ref_type, body.ref_id)
+            db.tag_content(conn, ref_type, ref_id, body.name, body.color)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         return {"ok": True}
 
-    @app.delete("/api/deadlines/{deadline_id}/links/{link_id}")
-    def del_deadline_link(deadline_id: int, link_id: int, conn=Depends(get_db)):
-        if db.del_deadline_link(conn, link_id) == 0:
+    @app.delete("/api/content/{ref_type}/{ref_id}/tags/{tag_id}")
+    def del_content_tag(ref_type: str, ref_id: int, tag_id: int, conn=Depends(get_db)):
+        try:
+            n = db.untag_content(conn, ref_type, ref_id, tag_id)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        if n == 0:
+            raise HTTPException(status_code=404, detail="tag not attached")
+        return {"deleted": n}
+
+    @app.post("/api/content/{ref_type}/{ref_id}/links")
+    def add_content_link(ref_type: str, ref_id: int, body: ContentLinkBody, conn=Depends(get_db)):
+        try:
+            db.link_content(conn, ref_type, ref_id, body.target_type, body.target_id)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return {"ok": True}
+
+    @app.delete("/api/content/{ref_type}/{ref_id}/links/{link_id}")
+    def del_content_link(ref_type: str, ref_id: int, link_id: int, conn=Depends(get_db)):
+        if db.unlink_content(conn, link_id) == 0:
             raise HTTPException(status_code=404, detail="link not found")
         return {"deleted": 1}
 
-    @app.post("/api/deadlines/{deadline_id}/tags")
-    def add_deadline_tag(deadline_id: int, body: TagBody, conn=Depends(get_db)):
+    @app.get("/api/content/{ref_type}/{ref_id}/refs")
+    def get_content_refs(ref_type: str, ref_id: int, conn=Depends(get_db)):
         try:
-            db.add_deadline_tag(conn, deadline_id, body.tag)
+            return {"tags": db.list_tags_for(conn, ref_type, ref_id),
+                    "links": db.list_links_for(conn, ref_type, ref_id)}
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
-        return {"ok": True}
-
-    @app.delete("/api/deadlines/{deadline_id}/tags/{tag_id}")
-    def del_deadline_tag(deadline_id: int, tag_id: int, conn=Depends(get_db)):
-        if db.del_deadline_tag(conn, tag_id) == 0:
-            raise HTTPException(status_code=404, detail="tag not found")
-        return {"deleted": 1}
 
     @app.post("/api/config/{key}")
     def post_config(key: str, body: ConfigBody, conn=Depends(get_db)):

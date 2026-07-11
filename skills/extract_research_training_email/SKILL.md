@@ -44,3 +44,9 @@ VALUES ('extract_research_training_email', datetime('now'), ?, datetime('now'), 
 ```
 
 Then exit.
+
+## Associate what you create
+After inserting each row, associate it:
+- `link_content("learning", <id>, "topic", <topic_id>)` for its topic(s); `"person"` for people it concerns.
+- `tag_content("learning", <id>, "<label>")` with 1–3 reused labels (`list_tags()` first).
+  Trending/news rows also get an `internal` or `external` origin tag.

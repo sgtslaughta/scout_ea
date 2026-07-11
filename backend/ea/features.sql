@@ -82,22 +82,29 @@ CREATE TABLE IF NOT EXISTS board_columns (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- Feature migration 005: deadline cross-references (links to people/tasks/events) + free tags
-CREATE TABLE IF NOT EXISTS deadline_links (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  deadline_id INTEGER NOT NULL REFERENCES critical_deadlines(id) ON DELETE CASCADE,
-  ref_type    TEXT NOT NULL,   -- person | task | event
-  ref_id      INTEGER NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(deadline_id, ref_type, ref_id)
+-- Feature migration 006: universal tags + entity links
+CREATE TABLE IF NOT EXISTS tags (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL UNIQUE,
+  color      TEXT NOT NULL DEFAULT 'neutral',   -- palette key, not hex
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
-CREATE INDEX IF NOT EXISTS idx_deadline_links ON deadline_links(deadline_id);
 
-CREATE TABLE IF NOT EXISTS deadline_tags (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  deadline_id INTEGER NOT NULL REFERENCES critical_deadlines(id) ON DELETE CASCADE,
-  tag         TEXT NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(deadline_id, tag)
+CREATE TABLE IF NOT EXISTS content_tags (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  tag_id     INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+  ref_type   TEXT NOT NULL,
+  ref_id     INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(tag_id, ref_type, ref_id)
 );
-CREATE INDEX IF NOT EXISTS idx_deadline_tags ON deadline_tags(deadline_id);
+CREATE INDEX IF NOT EXISTS idx_content_tags_ref ON content_tags(ref_type, ref_id);
+
+CREATE TABLE IF NOT EXISTS content_links (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  ref_type    TEXT NOT NULL, ref_id    INTEGER NOT NULL,
+  target_type TEXT NOT NULL, target_id INTEGER NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(ref_type, ref_id, target_type, target_id)
+);
+CREATE INDEX IF NOT EXISTS idx_content_links_ref ON content_links(ref_type, ref_id);

@@ -39,3 +39,13 @@ def test_trend_tools(tmp_path):
     assert rid >= 1
     assert tools.add_trend_finding(conn, title="P", url="http://x",
                                    external_ref="http://x", source="web") == 1
+
+
+def test_tag_and_link_tools(tmp_path):
+    conn = _conn(tmp_path)
+    conn.execute("INSERT INTO people (name) VALUES ('Ada')")
+    conn.commit()
+    assert tools.tag_content(conn, "task", 1, "urgent", "amber") == 1
+    assert tools.link_content(conn, "task", 1, "person", 1) == 1
+    names = {t["name"] for t in tools.list_tags(conn)}
+    assert "urgent" in names

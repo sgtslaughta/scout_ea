@@ -89,3 +89,11 @@ def test_include_hidden_returns_hidden(tmp_path):
     assert all(d["id"] != did for d in c.get("/api/deadlines").json())  # hidden by default
     hidden = c.get("/api/deadlines?include_hidden=true").json()
     assert any(d["id"] == did and d["visible"] == 0 for d in hidden)
+
+
+def test_deadline_enriched_with_universal_tags(tmp_path):
+    c = _client(tmp_path)
+    did = c.post("/api/deadlines", json={"title": "X", "due_at": "2099-01-01T00:00:00+00:00"}).json()["id"]
+    c.post(f"/api/content/deadline/{did}/tags", json={"name": "q3", "color": "teal"})
+    row = [d for d in c.get("/api/deadlines").json() if d["id"] == did][0]
+    assert row["tags"][0]["name"] == "q3" and "tag_id" in row["tags"][0]
