@@ -7,8 +7,8 @@ import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
 import { useColorScheme } from '@mui/material/styles'
-import { Sun, Moon, Sparkles, Search } from 'lucide-react'
-import { getDeadlines } from '@/api'
+import { Sun, Moon, Sparkles, Search, CalendarClock } from 'lucide-react'
+import { getDeadlines, getEvents } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { useFriendlyTime, useClockFormat } from '@/lib/timePrefs'
 import { bucketDeadlines, clockPercent, type Urgency, type AxisDeadline } from '@/lib/horizon'
@@ -44,6 +44,12 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const { data: deadlines = [] } = useQuery({
     queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000,
   })
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'], queryFn: getEvents, refetchInterval: 15000,
+  })
+  const upcoming = events
+    .filter((e) => e.chosen_time && new Date(e.chosen_time).getTime() >= Date.now())
+    .sort((a, b) => (a.chosen_time ?? '').localeCompare(b.chosen_time ?? ''))
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -65,7 +71,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
       }} />
       <Typography variant="h6" sx={{ fontSize: 18, mr: 1 }}>SCOUT</Typography>
 
-      <Box sx={{ position: 'relative', flex: 1, height: 32 }}>
+      <Box sx={{ position: 'relative', flex: 9, height: 32 }}>
         {/* horizon line */}
         <Box sx={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 3, borderRadius: 1, background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-2))' }} />
 
@@ -123,6 +129,28 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
           </Tooltip>
         )}
       </Box>
+
+      {/* upcoming events indicator (fills the ~10% freed from the horizon) */}
+      <Tooltip arrow title={
+        <Box sx={{ p: 0.5, maxWidth: 260 }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>Upcoming events{upcoming.length ? ` (${upcoming.length})` : ''}</Typography>
+          {upcoming.length === 0 && <Typography variant="caption" color="text.secondary">Nothing scheduled.</Typography>}
+          {upcoming.slice(0, 6).map((e) => (
+            <Typography key={e.id} variant="caption" sx={{ display: 'block' }}>{e.title} — {friendly(e.chosen_time) || e.chosen_time}</Typography>
+          ))}
+          {upcoming.length > 6 && <Typography variant="caption" color="text.secondary">+{upcoming.length - 6} more</Typography>}
+        </Box>
+      }>
+        <Box
+          role="button" tabIndex={0} aria-label={`${upcoming.length} upcoming events`}
+          onClick={() => navigate('/calendar')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/calendar') } }}
+          sx={{ flex: 1, minWidth: 40, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, borderRadius: 1, cursor: 'pointer', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
+        >
+          <CalendarClock size={16} />
+          <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{upcoming.length}</Typography>
+        </Box>
+      </Tooltip>
 
       <IconButton size="small" onClick={onOpenBriefing} aria-label="Open today briefing">
         <Sparkles size={16} />

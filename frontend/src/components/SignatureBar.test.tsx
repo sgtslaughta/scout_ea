@@ -27,6 +27,7 @@ describe('SignatureBar', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getDeadlines').mockResolvedValue([])
+    vi.spyOn(api, 'getEvents').mockResolvedValue([])
   })
 
   it('toggles color mode via useColorScheme', () => {
@@ -49,6 +50,15 @@ describe('SignatureBar', () => {
     ])
     renderBar()
     expect(await screen.findByRole('button', { name: /Ship it/i })).toBeInTheDocument()
+  })
+
+  it('shows an upcoming-events indicator with a count', async () => {
+    const future = new Date(Date.now() + 3600 * 1000).toISOString()
+    vi.spyOn(api, 'getEvents').mockResolvedValue([
+      { id: 1, title: 'Standup', chosen_time: future, status: 'confirmed' },
+    ])
+    renderBar()
+    expect(await screen.findByRole('button', { name: /1 upcoming events/i })).toBeInTheDocument()
   })
 
   it('summarizes future deadlines in a later cluster', async () => {
