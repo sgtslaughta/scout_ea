@@ -60,6 +60,14 @@ export interface Signal {
   priority: number
   created_at: string
   external_ref?: string
+  // detail (present from SELECT *; used by Quickdraw expanded rows)
+  summary?: string
+  who?: string
+  what?: string
+  when_rel?: string
+  why?: string
+  url?: string
+  person_id?: number
 }
 
 export interface Task {
@@ -164,6 +172,20 @@ export const getSignals = (status?: string) => {
   const qs = status ? `?status=${encodeURIComponent(status)}` : ''
   return fetchJson<Signal[]>(`/api/signals${qs}`)
 }
+
+export interface Alert {
+  id: number
+  severity: string
+  title: string
+  body?: string
+  url?: string
+  source_table?: string
+  source_id?: number
+  status: string
+  created_at: string
+}
+
+export const getAlerts = () => fetchJson<Alert[]>('/api/alerts')
 
 export const getActivity = (limit: number = 20) =>
   fetchJson<Activity[]>(`/api/activity?limit=${limit}`)
