@@ -4,7 +4,7 @@
  * useFriendlyTime() (call sites). Changing a pref re-renders consumers live.
  */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
-import { DEFAULT_TIME_PREFS, formatFriendly, type TimePrefs } from './datetime'
+import { DEFAULT_TIME_PREFS, formatFriendly, formatClock, type TimePrefs } from './datetime'
 
 const TZ_KEY = 'ea-timezone'
 const H24_KEY = 'ea-time-24h'
@@ -57,4 +57,11 @@ export function useFriendlyTime(): (iso: string | number | Date | null | undefin
   const ctx = useContext(Ctx)
   const { timeZone, hour24 } = ctx ?? load()
   return useCallback((iso) => formatFriendly(iso, { timeZone, hour24 }), [timeZone, hour24])
+}
+
+/** Like useFriendlyTime but clock-only ("1:45pm" / "13:45"). Same fallback behavior. */
+export function useClockFormat(): (iso: string | number | Date | null | undefined) => string {
+  const ctx = useContext(Ctx)
+  const { timeZone, hour24 } = ctx ?? load()
+  return useCallback((iso) => formatClock(iso, { timeZone, hour24 }), [timeZone, hour24])
 }

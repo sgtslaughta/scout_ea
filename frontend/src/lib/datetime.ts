@@ -67,6 +67,21 @@ export function formatFriendly(iso: string | number | Date | null | undefined, p
   return `${get('weekday')} ${get('month')} ${ordinal(day)} @ ${time} ${get('timeZoneName')}`.trim()
 }
 
+/** Clock time only: "1:45pm" (12h) or "13:45" (24h), timezone-aware. '' on invalid. */
+export function formatClock(iso: string | number | Date | null | undefined, prefs: TimePrefs): string {
+  if (iso == null || iso === '') return ''
+  const d = iso instanceof Date ? iso : new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const parts = new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: !prefs.hour24,
+    timeZone: resolveZone(prefs.timeZone),
+  }).formatToParts(d)
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? ''
+  return prefs.hour24
+    ? `${get('hour').padStart(2, '0')}:${get('minute')}`
+    : `${get('hour')}:${get('minute')}${get('dayPeriod').toLowerCase()}`
+}
+
 // ponytail: runnable self-check — `npx tsx src/lib/datetime.ts` or via the vitest suite.
 export function _demo(): void {
   const iso = '2026-07-12T17:45:00Z' // 1:45pm EDT (America/New_York in July)

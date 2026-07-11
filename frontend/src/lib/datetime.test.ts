@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatFriendly, ordinal, effectiveZone, _demo } from './datetime'
+import { formatFriendly, formatClock, ordinal, effectiveZone, _demo } from './datetime'
 
 describe('formatFriendly', () => {
   const iso = '2026-07-12T17:45:00Z' // 1:45pm EDT in America/New_York
@@ -37,6 +37,19 @@ describe('effectiveZone', () => {
   it('resolves auto to a concrete IANA zone', () => {
     expect(effectiveZone('auto')).toBeTruthy()
     expect(effectiveZone('UTC')).toBe('UTC')
+  })
+})
+
+describe('formatClock', () => {
+  const iso = '2026-07-12T17:45:00Z' // 1:45pm EDT
+  it('12h lowercase meridiem', () => {
+    expect(formatClock(iso, { timeZone: 'America/New_York', hour24: false })).toBe('1:45pm')
+  })
+  it('24h zero-padded', () => {
+    expect(formatClock(iso, { timeZone: 'America/New_York', hour24: true })).toBe('13:45')
+  })
+  it('empty on invalid', () => {
+    expect(formatClock(null, { timeZone: 'auto', hour24: false })).toBe('')
   })
 })
 
