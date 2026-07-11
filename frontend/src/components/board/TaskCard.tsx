@@ -31,8 +31,10 @@ function dueLabel(due?: string): { text: string; color: string } | null {
   const today = new Date()
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
   const same = (a: Date, b: Date) => a.toDateString() === b.toDateString()
-  const text = same(d, today) ? 'Today' : same(d, tomorrow) ? 'Tomorrow'
+  const base = same(d, today) ? 'Today' : same(d, tomorrow) ? 'Tomorrow'
     : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0
+  const text = hasTime ? `${base} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}` : base
   const color = same(d, today) ? 'warning.main' : d < today ? 'error.main' : 'text.secondary'
   return { text, color }
 }
