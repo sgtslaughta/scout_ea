@@ -27,10 +27,12 @@ describe('DataFeed shell', () => {
   })
   it('starts on overview and switches view via the rail', async () => {
     wrap()
-    expect(await screen.findByText('Overview')).toBeInTheDocument()
+    // rail marks Overview active on first render
+    await screen.findByRole('button', { name: /overview/i })
+    expect(screen.getByRole('button', { name: /overview/i })).toHaveAttribute('aria-current', 'true')
+    // click the News rail entry → News becomes the active view
     fireEvent.click(screen.getByRole('button', { name: /^news$/i }))
-    // context bar title updates to News
-    expect(screen.getAllByText('News').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: /^news$/i })).toHaveAttribute('aria-current', 'true')
   })
   it('honours ?view=trending on mount', async () => {
     wrap('/feed?view=trending')
