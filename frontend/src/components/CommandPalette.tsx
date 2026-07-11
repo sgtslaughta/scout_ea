@@ -150,6 +150,10 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
                 onSelect={() => { onViewChange('deadlines'); close() }}>
                 Add deadline
               </Command.Item>
+              <Command.Item value="go-to-actions" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                onSelect={() => { onViewChange('actions'); close() }}>
+                Go to Actions
+              </Command.Item>
               <Command.Item value="refresh" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                 onSelect={() => { onRefresh(); close() }}>
                 Refresh data
