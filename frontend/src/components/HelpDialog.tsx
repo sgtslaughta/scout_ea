@@ -22,7 +22,10 @@ const SHORTCUTS: Array<[string, string]> = [
 export function HelpDialog({ open, onClose }: HelpDialogProps) {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Help</DialogTitle>
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box component="img" src="/scout_ea_logo_64.png" alt="" sx={{ width: 28, height: 28, flexShrink: 0 }} />
+        Scout EA — Help
+      </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Scout EA is your executive-assistant dashboard — signals, tasks, deadlines and
