@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -24,10 +25,20 @@ export function TasksView() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['tasks'] })
   const invalidateCols = () => queryClient.invalidateQueries({ queryKey: ['board-columns'] })
 
+  const focusId = searchParams.get('focus') ? parseInt(searchParams.get('focus')!, 10) : null
+
   const { data: allTasks = [], isLoading, error, refetch } = useQuery({
     queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000,
   })
   const { data: columns = [] } = useQuery({ queryKey: ['board-columns'], queryFn: getBoardColumns })
+
+  // Open modal when focus param present
+  React.useEffect(() => {
+    if (focusId !== null && allTasks.length > 0) {
+      const t = allTasks.find(x => x.id === focusId)
+      if (t) { handleEdit(t); setSearchParams({}) }
+    }
+  }, [focusId])
 
   const dueToday = searchParams.get('due') === 'today'
   const visibleTasks = dueToday

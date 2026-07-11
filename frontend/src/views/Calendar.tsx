@@ -1,5 +1,8 @@
+import { useState } from 'react'
+import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Box, Button, Typography, Chip, Tooltip, Skeleton } from '@mui/material'
+import { useSearchParams } from 'react-router-dom'
+import { Box, Button, Typography, Chip, Tooltip, Skeleton, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { Check, X } from 'lucide-react'
 import { getEvents, setSignalStatus, type EventItem } from '@/api'
@@ -9,12 +12,24 @@ import { toast } from 'sonner'
 export function CalendarView() {
   const queryClient = useQueryClient()
   const friendly = useFriendlyTime()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusId = searchParams.get('focus') ? parseInt(searchParams.get('focus')!, 10) : null
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailEvent, setDetailEvent] = useState<EventItem | null>(null)
 
   const { data: events = [], isLoading, error, refetch } = useQuery({
     queryKey: ['events'],
     queryFn: getEvents,
     refetchInterval: 15000,
   })
+
+  // Open detail when focus param present
+  React.useEffect(() => {
+    if (focusId !== null && events.length > 0) {
+      const e = events.find(x => x.id === focusId)
+      if (e) { setDetailEvent(e); setDetailOpen(true); setSearchParams({}) }
+    }
+  }, [focusId])
 
   const approveMutation = useMutation({
     mutationFn: (id: number) =>
@@ -102,6 +117,28 @@ export function CalendarView() {
             disableColumnMenu pageSizeOptions={[25, 50]}
             initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} sx={{ border: 0 }} />
         )}
+
+        {/* Event detail modal */}
+        <Dialog open={detailOpen} onClose={() => { setDetailOpen(false); setDetailEvent(null) }} maxWidth="xs" fullWidth>
+          <DialogTitle>{detailEvent?.title}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            {detailEvent?.body && <Typography variant="body2">{detailEvent.body}</Typography>}
+            {detailEvent?.chosen_time && <Typography variant="caption" color="text.secondary">Scheduled: {friendly(detailEvent.chosen_time)}</Typography>}
+            {detailEvent && !detailEvent.chosen_time && parseJsonSafe<string>(detailEvent.proposed_times).length > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                Proposed: {parseJsonSafe<string>(detailEvent.proposed_times).map((t) => friendly(t) || t).join(', ')}
+              </Typography>
+            )}
+            {detailEvent && parseJsonSafe<string>(detailEvent.attendees).length > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                {parseJsonSafe<string>(detailEvent.attendees).length} attendee{parseJsonSafe<string>(detailEvent.attendees).length === 1 ? '' : 's'}
+              </Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => { setDetailOpen(false); setDetailEvent(null) }}>Close</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   )

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Plus, Edit2 } from 'lucide-react'
@@ -46,6 +47,8 @@ export function DeadlinesView() {
   const [addOpen, setAddOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [showHidden, setShowHidden] = useState(false)
+
+  const focusId = searchParams.get('focus') ? parseInt(searchParams.get('focus')!, 10) : null
 
   const { data: deadlines = [], isLoading, error, refetch } = useQuery({
     queryKey: ['deadlines', showHidden],
@@ -113,6 +116,14 @@ export function DeadlinesView() {
   const handleEdit = (d: Deadline) => {
     setEditingId(d.id); setTitle(d.title); setDetail(d.detail ?? ''); setDueAt(isoToLocalInput(d.due_at)); setAddOpen(true)
   }
+
+  // Open modal when focus param present
+  React.useEffect(() => {
+    if (focusId !== null && deadlines.length > 0) {
+      const d = deadlines.find(x => x.id === focusId)
+      if (d) { handleEdit(d); setSearchParams({}) }
+    }
+  }, [focusId])
 
   const handleCloseDialog = () => {
     setTitle('')

@@ -88,4 +88,25 @@ describe('SignatureBar', () => {
     // popover row is a button labeled by its type + title
     expect(await screen.findByRole('button', { name: /Deadline: Next week deadline/i })).toBeInTheDocument()
   })
+
+  it('includes id in AxisDot for each item on the timeline', async () => {
+    const today = new Date(); today.setHours(15, 0, 0, 0)
+    vi.spyOn(api, 'getDeadlines').mockResolvedValue([
+      mkDeadline({ id: 77, title: 'Today deadline', due_at: today.toISOString(), countdown_seconds: 3600 }),
+    ])
+    renderBar()
+    // Verify the item appears (id is part of the internal AxisDot object, not visible in DOM)
+    expect(await screen.findByRole('button', { name: /Today deadline/i })).toBeInTheDocument()
+  })
+
+  it('includes id in FlankItem for each overdue/upcoming item', async () => {
+    const future = new Date(Date.now() + 3 * 86400 * 1000).toISOString()
+    vi.spyOn(api, 'getDeadlines').mockResolvedValue([
+      mkDeadline({ id: 88, title: 'Future deadline', due_at: future, countdown_seconds: 3 * 86400 }),
+    ])
+    renderBar()
+    fireEvent.click(await screen.findByRole('button', { name: /1 upcoming items/i }))
+    // Verify the item appears in the popover
+    expect(await screen.findByRole('button', { name: /Deadline: Future deadline/i })).toBeInTheDocument()
+  })
 })

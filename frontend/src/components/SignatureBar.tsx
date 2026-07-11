@@ -90,6 +90,9 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
     ...events.filter((e) => e.chosen_time).map((e) => { const w = e.chosen_time as string; const s = secsUntil(w); return { key: `e${e.id}`, title: e.title, when: w, type: 'event' as const, urgency: urgencyOf(s), past: s <= 0 } }),
   ]
 
+  // ponytail: extract id from key (d123 → 123, t456 → 456)
+  const extractId = (key: string) => { const n = parseInt(key.slice(1), 10); return Number.isNaN(n) ? 0 : n }
+
   // Timeline axis = items falling in today's workday span; everything else goes to a flank.
   const onAxis = (i: Item) => {
     const d = new Date(i.when)
@@ -99,12 +102,12 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const axisDots = allItems.filter(onAxis).map((i) => ({ ...i, percent: clockPercent(new Date(i.when), workday.start, workday.end) }))
   const clusters = clusterByProximity(axisDots).map((c) => {
     const worst = c.items.reduce<Urgency>((m, i) => (SEVERITY[i.urgency] > SEVERITY[m] ? i.urgency : m), 'normal')
-    const items: AxisDot[] = c.items.map((i) => ({ key: i.key, title: i.title, when: i.when, type: i.type }))
+    const items: AxisDot[] = c.items.map((i) => ({ key: i.key, id: extractId(i.key), title: i.title, when: i.when, type: i.type }))
     return { percent: c.percent, color: URGENCY_COLOR[worst], items }
   })
 
   // Flanks stay deadlines + tasks only (events live on the axis / calendar).
-  const flankItem = (i: Item) => ({ key: i.key, title: i.title, when: i.when, type: i.type as 'deadline' | 'task' })
+  const flankItem = (i: Item) => ({ key: i.key, id: extractId(i.key), title: i.title, when: i.when, type: i.type as 'deadline' | 'task' })
   const overdueItems = allItems.filter((i) => i.type !== 'event' && i.past && !onAxis(i)).map(flankItem).sort((a, b) => a.when.localeCompare(b.when))
   const upcomingItems = allItems.filter((i) => i.type !== 'event' && !i.past && !onAxis(i)).map(flankItem).sort((a, b) => a.when.localeCompare(b.when))
 
