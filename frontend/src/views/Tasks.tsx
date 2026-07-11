@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Box, Typography, Chip, Button, TextField,
+  Box, Typography, Chip, Button, TextField, Tooltip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from '@mui/material'
 import {
   DndContext, PointerSensor, KeyboardSensor, useSensor, useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core'
-import { Plus } from 'lucide-react'
+import { Plus, ArrowUp, ArrowDown } from 'lucide-react'
 import {
   getTasks, getBoardColumns, updateTask, createTask, addDeadline,
   addBoardColumn, updateBoardColumn, deleteBoardColumn,
@@ -35,6 +35,7 @@ export function TasksView() {
     : allTasks
 
   const [sortBy, setSortBy] = useState<'priority' | 'due' | 'created'>('priority')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const sortedCols = [...columns].sort((a, b) => a.position - b.position)
   const firstColId = sortedCols[0]?.id ?? null
   const doneCol = sortedCols.find((c) => c.status === 'done')
@@ -43,9 +44,11 @@ export function TasksView() {
   // Dismissed tasks only appear if a dismissed column holds them; otherwise hidden.
   const boardTasks = visibleTasks.filter((t) => t.status !== 'dismissed' || t.board_column_id === dismissedCol?.id)
   const sortCards = (a: Task, b: Task) => {
-    if (sortBy === 'due') return (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')
-    if (sortBy === 'created') return (b.created_at ?? '').localeCompare(a.created_at ?? '') // newest first
-    return a.priority - b.priority || (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')
+    // base comparator is ascending (soonest / oldest / most-critical first); dir flips it
+    const base = sortBy === 'due' ? (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')
+      : sortBy === 'created' ? (a.created_at ?? '').localeCompare(b.created_at ?? '')
+        : (a.priority - b.priority || (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999'))
+    return sortDir === 'asc' ? base : -base
   }
   const tasksFor = (colId: number) => boardTasks
     .filter((t) => (t.board_column_id ?? firstColId) === colId)
@@ -177,6 +180,11 @@ export function TasksView() {
           <option value="due">Due date</option>
           <option value="created">Created</option>
         </TextField>
+        <Tooltip arrow title={sortDir === 'asc' ? 'Ascending' : 'Descending'}>
+          <IconButton size="small" aria-label={`Sort ${sortDir === 'asc' ? 'ascending' : 'descending'}`} onClick={() => setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))}>
+            {sortDir === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+          </IconButton>
+        </Tooltip>
         {addingCol ? (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField
@@ -230,7 +238,7 @@ export function TasksView() {
         <DialogTitle>{editingId ? 'Edit task' : 'Add task'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField label="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)} autoFocus required fullWidth />
-          <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={2} fullWidth />
+          <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={3} fullWidth helperText="Markdown supported" />
           <TextField label="Due" type="date" value={fDue} onChange={(e) => setFDue(e.target.value)} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
           <TextField label="Priority" select value={fPriority} onChange={(e) => setFPriority(Number(e.target.value))} required fullWidth slotProps={{ select: { native: true } }}>
             <option value={1}>1 - Critical</option>
