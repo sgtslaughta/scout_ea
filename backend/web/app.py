@@ -354,8 +354,7 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return _rows(conn, "SELECT * FROM skill_runs ORDER BY ran_at DESC, id DESC LIMIT ?", (int(limit),))
 
     def _filtered_enriched(conn, ref_type, rows, tag, person, origin):
-        ids = _feed.filter_ids(conn, ref_type, tag=tag, origin=origin,
-                               person=int(person) if person else None)
+        ids = _feed.filter_ids(conn, ref_type, tag=tag, origin=origin, person=person)
         out = []
         for r in rows:
             d = dict(r)
@@ -371,15 +370,15 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return _feed.overview(conn)
 
     @app.get("/api/news")
-    def get_news(status: str | None = None, topic: str | None = None, tag: str | None = None,
-                 person: str | None = None, origin: str | None = None, conn=Depends(get_db)):
-        rows = db.list_news(conn, status=status, topic_id=int(topic) if topic else None)
+    def get_news(status: str | None = None, topic: int | None = None, tag: str | None = None,
+                 person: int | None = None, origin: str | None = None, conn=Depends(get_db)):
+        rows = db.list_news(conn, status=status, topic_id=topic)
         return _filtered_enriched(conn, "news", rows, tag, person, origin)
 
     @app.get("/api/learning")
-    def get_learning(status: str | None = None, topic: str | None = None, tag: str | None = None,
-                     person: str | None = None, origin: str | None = None, conn=Depends(get_db)):
-        rows = db.list_learning(conn, status=status, topic_id=int(topic) if topic else None)
+    def get_learning(status: str | None = None, topic: int | None = None, tag: str | None = None,
+                     person: int | None = None, origin: str | None = None, conn=Depends(get_db)):
+        rows = db.list_learning(conn, status=status, topic_id=topic)
         return _filtered_enriched(conn, "learning", rows, tag, person, origin)
 
     @app.get("/api/trends")

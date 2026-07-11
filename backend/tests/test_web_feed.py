@@ -42,3 +42,8 @@ def test_news_status_via_generic_endpoint(tmp_path):
     c, nid = _client(tmp_path)
     assert c.post(f"/api/news_items/{nid}/status", json={"status": "read"}).json() == {"updated": 1}
     assert [r["id"] for r in c.get("/api/news?status=read").json()] == [nid]
+
+
+def test_news_bad_topic_param_is_422(tmp_path):
+    c, _ = _client(tmp_path)
+    assert c.get("/api/news?topic=abc").status_code == 422
