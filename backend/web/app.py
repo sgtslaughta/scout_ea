@@ -17,6 +17,7 @@ from lib import outlook as _outlook
 from lib import skills as _skills
 from lib import skill_health as _skill_health
 from lib import search as _search
+from lib import feed as _feed
 
 
 class SPAStaticFiles(StaticFiles):
@@ -352,12 +353,46 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     def get_activity(limit: int = 20, conn=Depends(get_db)):
         return _rows(conn, "SELECT * FROM skill_runs ORDER BY ran_at DESC, id DESC LIMIT ?", (int(limit),))
 
+    def _filtered_enriched(conn, ref_type, rows, tag, person, origin):
+        ids = _feed.filter_ids(conn, ref_type, tag=tag, origin=origin,
+                               person=int(person) if person else None)
+        out = []
+        for r in rows:
+            d = dict(r)
+            if ids is not None and d["id"] not in ids:
+                continue
+            d["tags"] = db.list_tags_for(conn, ref_type, d["id"])
+            d["links"] = db.list_links_for(conn, ref_type, d["id"])
+            out.append(d)
+        return out
+
+    @app.get("/api/feed")
+    def get_feed(conn=Depends(get_db)):
+        return _feed.overview(conn)
+
+    @app.get("/api/news")
+    def get_news(status: str | None = None, topic: str | None = None, tag: str | None = None,
+                 person: str | None = None, origin: str | None = None, conn=Depends(get_db)):
+        rows = db.list_news(conn, status=status, topic_id=int(topic) if topic else None)
+        return _filtered_enriched(conn, "news", rows, tag, person, origin)
+
+    @app.get("/api/learning")
+    def get_learning(status: str | None = None, topic: str | None = None, tag: str | None = None,
+                     person: str | None = None, origin: str | None = None, conn=Depends(get_db)):
+        rows = db.list_learning(conn, status=status, topic_id=int(topic) if topic else None)
+        return _filtered_enriched(conn, "learning", rows, tag, person, origin)
+
     @app.get("/api/trends")
-    def get_trends(window_start: str | None = None, conn=Depends(get_db)):
+    def get_trends(window_start: str | None = None, tag: str | None = None,
+                   origin: str | None = None, conn=Depends(get_db)):
         w = window_start or db.latest_trend_window(conn)
         if w is None:
             return []
-        return [dict(r) for r in db.list_trends(conn, w)]
+        rows = [dict(r) for r in db.list_trends(conn, w)]
+        ids = _feed.filter_ids(conn, "trend", tag=tag, origin=origin)
+        if ids is not None:
+            rows = [r for r in rows if r["id"] in ids]
+        return rows
 
     @app.get("/api/outlook")
     def get_outlook(conn=Depends(get_db)):
