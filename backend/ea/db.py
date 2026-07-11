@@ -196,6 +196,81 @@ def update_deadline(conn: sqlite3.Connection, deadline_id: int, **fields) -> int
     return cur.rowcount
 
 
+# --- deadline cross-references (links + tags) ------------------------------
+
+# ref_type -> label-lookup SQL. Whitelist doubles as ref_type validation.
+_REF_LABEL_SQL = {
+    "person": "SELECT name AS label FROM people WHERE id=?",
+    "task": "SELECT title AS label FROM tasks WHERE id=?",
+    "event": "SELECT title AS label FROM events WHERE id=?",
+}
+
+
+def add_deadline_link(conn: sqlite3.Connection, deadline_id: int, ref_type: str, ref_id: int) -> int:
+    """Link a deadline to a person/task/event. Idempotent. Returns rowcount."""
+    if ref_type not in _REF_LABEL_SQL:
+        raise ValueError(f"unknown ref_type: {ref_type!r}")
+    cur = conn.execute(
+        "INSERT INTO deadline_links (deadline_id, ref_type, ref_id) VALUES (?,?,?) "
+        "ON CONFLICT(deadline_id, ref_type, ref_id) DO NOTHING",
+        (deadline_id, ref_type, ref_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def del_deadline_link(conn: sqlite3.Connection, link_id: int) -> int:
+    """Delete a link by its id. Returns rows affected."""
+    cur = conn.execute("DELETE FROM deadline_links WHERE id=?", (link_id,))
+    conn.commit()
+    return cur.rowcount
+
+
+def list_deadline_links(conn: sqlite3.Connection, deadline_id: int) -> list[dict]:
+    """Links for a deadline with resolved labels: [{id, ref_type, ref_id, label}]."""
+    rows = conn.execute(
+        "SELECT id, ref_type, ref_id FROM deadline_links WHERE deadline_id=? ORDER BY id",
+        (deadline_id,),
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        sql = _REF_LABEL_SQL.get(r["ref_type"])
+        lbl = conn.execute(sql, (r["ref_id"],)).fetchone() if sql else None
+        d["label"] = lbl["label"] if lbl else f'{r["ref_type"]} #{r["ref_id"]}'
+        out.append(d)
+    return out
+
+
+def add_deadline_tag(conn: sqlite3.Connection, deadline_id: int, tag: str) -> int:
+    """Attach a free-text tag to a deadline. Idempotent. Returns rowcount."""
+    tag = tag.strip()
+    if not tag:
+        raise ValueError("tag cannot be empty")
+    cur = conn.execute(
+        "INSERT INTO deadline_tags (deadline_id, tag) VALUES (?,?) "
+        "ON CONFLICT(deadline_id, tag) DO NOTHING",
+        (deadline_id, tag),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def del_deadline_tag(conn: sqlite3.Connection, tag_id: int) -> int:
+    """Delete a tag by its id. Returns rows affected."""
+    cur = conn.execute("DELETE FROM deadline_tags WHERE id=?", (tag_id,))
+    conn.commit()
+    return cur.rowcount
+
+
+def list_deadline_tags(conn: sqlite3.Connection, deadline_id: int) -> list[sqlite3.Row]:
+    """Tags for a deadline as [{id, tag}] rows."""
+    return conn.execute(
+        "SELECT id, tag FROM deadline_tags WHERE deadline_id=? ORDER BY tag",
+        (deadline_id,),
+    ).fetchall()
+
+
 # --- config helpers --------------------------------------------------------
 
 # NOTE: WRITABLE_CONFIG is a deliberate security allowlist; only specific config keys
