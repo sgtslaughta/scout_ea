@@ -72,3 +72,11 @@ INSERT OR IGNORE INTO config(key, value) VALUES
 
 -- Feature migration 003: full-text search index (rebuilt on demand by lib.search)
 CREATE VIRTUAL TABLE IF NOT EXISTS search_index USING fts5(kind, ref_id UNINDEXED, title, body);
+
+-- Feature migration 004: board columns for kanban board
+CREATE TABLE IF NOT EXISTS board_columns (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  position   INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

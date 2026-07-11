@@ -23,10 +23,40 @@ def init_db(db_path, schema_path=DEFAULT_SCHEMA, seed_path=None) -> sqlite3.Conn
     conn = get_conn(db_path)
     conn.executescript(Path(schema_path).read_text())
     conn.executescript(Path(DEFAULT_FEATURES).read_text())
+    _migrate(conn)
     if seed_path is not None:
         conn.executescript(Path(seed_path).read_text())
     conn.commit()
     return conn
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Apply idempotent migrations: ADD board_column_id column if missing, seed board_columns."""
+    # Check if tasks table has board_column_id column
+    pragma = conn.execute("PRAGMA table_info(tasks)").fetchall()
+    has_board_column_id = any(r[1] == "board_column_id" for r in pragma)
+
+    if not has_board_column_id:
+        conn.execute("ALTER TABLE tasks ADD COLUMN board_column_id INTEGER REFERENCES board_columns(id)")
+        conn.commit()
+
+    # Check if board_columns is empty and seed default columns once
+    count = conn.execute("SELECT COUNT(*) as c FROM board_columns").fetchone()["c"]
+    if count == 0:
+        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("To Do", 0))
+        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("In Progress", 1))
+        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("Done", 2))
+        conn.commit()
+
+        # Map existing tasks by status
+        to_do_id = conn.execute("SELECT id FROM board_columns WHERE name='To Do'").fetchone()["id"]
+        in_progress_id = conn.execute("SELECT id FROM board_columns WHERE name='In Progress'").fetchone()["id"]
+        done_id = conn.execute("SELECT id FROM board_columns WHERE name='Done'").fetchone()["id"]
+
+        conn.execute("UPDATE tasks SET board_column_id=? WHERE status=?", (to_do_id, "open"))
+        conn.execute("UPDATE tasks SET board_column_id=? WHERE status IN (?, ?)", (done_id, "done", "dismissed"))
+        conn.execute("UPDATE tasks SET board_column_id=? WHERE status=?", (in_progress_id, "in_progress"))
+        conn.commit()
 
 
 # --- data primitives -------------------------------------------------------
@@ -222,7 +252,7 @@ def add_trend_finding(conn: sqlite3.Connection, **fields) -> int:
 
 
 _TASK_COLS = {"title", "detail", "due_at", "priority", "status",
-              "person_id", "source_signal_id"}
+              "person_id", "source_signal_id", "board_column_id"}
 
 
 def add_task(conn: sqlite3.Connection, **fields) -> int:
@@ -385,5 +415,56 @@ def list_subscriptions(conn: sqlite3.Connection) -> list[sqlite3.Row]:
 def delete_subscription(conn: sqlite3.Connection, endpoint: str) -> int:
     """Delete a push subscription by endpoint. Returns rows affected."""
     cur = conn.execute("DELETE FROM push_subscriptions WHERE endpoint=?", (endpoint,))
+    conn.commit()
+    return cur.rowcount
+
+
+# --- board column helpers --------------------------------------------------
+
+def list_board_columns(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """Return board columns ordered by position, id."""
+    return conn.execute("SELECT * FROM board_columns ORDER BY position, id").fetchall()
+
+
+def add_board_column(conn: sqlite3.Connection, name: str) -> int:
+    """Insert a board column with position = max(position)+1. Returns the new id."""
+    max_pos = conn.execute("SELECT COALESCE(MAX(position), -1) as m FROM board_columns").fetchone()["m"]
+    cur = conn.execute(
+        "INSERT INTO board_columns (name, position) VALUES (?, ?)",
+        (name, max_pos + 1)
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_board_column(conn: sqlite3.Connection, col_id: int, **fields) -> int:
+    """Update a board column. Returns rows affected. Columns validated against {name, position}."""
+    allowed = {"name", "position"}
+    bad = set(fields) - allowed
+    if bad:
+        raise ValueError(f"unknown board_column columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(f"UPDATE board_columns SET {sets} WHERE id=?", [*fields.values(), col_id])
+    conn.commit()
+    return cur.rowcount
+
+
+def delete_board_column(conn: sqlite3.Connection, col_id: int) -> int:
+    """Delete a board column. Reassigns its tasks to the lowest-position remaining column.
+    Returns rows affected (the column itself)."""
+    # Find lowest-position remaining column (excluding the one being deleted)
+    replacement = conn.execute(
+        "SELECT id FROM board_columns WHERE id != ? ORDER BY position LIMIT 1", (col_id,)
+    ).fetchone()
+    replacement_id = replacement["id"] if replacement else None
+
+    # Reassign tasks if there's a replacement column
+    if replacement_id:
+        conn.execute("UPDATE tasks SET board_column_id=? WHERE board_column_id=?", (replacement_id, col_id))
+
+    # Delete the column
+    cur = conn.execute("DELETE FROM board_columns WHERE id=?", (col_id,))
     conn.commit()
     return cur.rowcount
