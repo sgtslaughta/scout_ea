@@ -46,6 +46,7 @@ export interface Task {
   priority: number
   status: string
   board_column_id?: number | null
+  created_at?: string
 }
 
 export interface BoardColumn {
