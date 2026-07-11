@@ -66,9 +66,9 @@ either:       drafted → dismissed          (human rejects)
 | `email_reply`     | review | `run_comms`   | Graph sendMail (reply) | email |
 | `email_forward`   | review | `run_comms`   | Graph sendMail (forward) | email |
 | `email_new`       | review | `run_comms`   | Graph sendMail | signal, news, person, task, deadline |
-| `teams_dm`        | review | `run_comms`   | Graph chat create+message | person |
-| `teams_group`     | review | `run_comms`   | Graph group chat + message | person(s) |
-| `teams_post`      | review | `run_comms`   | Graph channel message | signal, news |
+| `teams_dm`        | review | `run_teams`   | Graph chat create+message | person |
+| `teams_group`     | review | `run_teams`   | Graph group chat + message | person(s) |
+| `teams_post`      | review | `run_teams`   | Graph channel message | signal, news |
 | `status_set`      | auto   | `run_comms`   | Graph presence/status | — |
 | `calendar_invite` | review | `run_calendar`| Graph event + attendees (reuses create_events) | person, calendar |
 | `cowork_doc`      | auto   | `run_cowork`  | generate doc → `access_url` | any |
@@ -118,7 +118,8 @@ Running in parallel means slow cowork never blocks fast sends.
 
 | skill          | schedule     | owns action_types | why separate |
 |----------------|--------------|-------------------|--------------|
-| `run_comms`    | heartbeat 5m | email_*, teams_*, status_set | light I/O sends; keep snappy |
+| `run_comms`    | heartbeat 5m | email_*, status_set | light email sends + presence |
+| `run_teams`    | heartbeat 5m | teams_*           | Teams chat/group/channel; own loop |
 | `run_calendar` | heartbeat 5m | calendar_invite   | reuses create_events logic |
 | `run_cowork`   | heartbeat 10m| cowork_doc, cowork_gather | heavy/slow; isolated so it can't stall sends |
 
@@ -191,7 +192,7 @@ entity picker) · Quickdraw needs-response. All the same component.
 
 1. Backend: `actions` table + MCP tools (incl. atomic claim) + web API + guidance.
 2. `scout_actions` brain skill (scan / draft / report + dedup).
-3. Executor skills: `run_comms`, `run_calendar`, `run_cowork` (claim / run / write back).
+3. Executor skills: `run_comms`, `run_teams`, `run_calendar`, `run_cowork` (claim / run / write back).
 4. FE shared layer: registry + `ActionMenu` + compose + `api.ts`.
 5. `views/Actions.tsx` queue + badges + Quickdraw section + sidebar.
 6. Touchpoint wiring + CommandPalette entry.
