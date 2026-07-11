@@ -8,7 +8,6 @@ import { SignatureBar } from '@/components/SignatureBar'
 import { TodayBriefing } from '@/components/TodayBriefing'
 import { CommandPalette } from '@/components/CommandPalette'
 import { RightDrawer } from '@/components/RightDrawer'
-import { loadAccent } from '@/theme'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
@@ -33,7 +32,6 @@ export function App() {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    loadAccent()
     const today = new Date().toISOString().split('T')[0]
     if (localStorage.getItem('ea-briefing-shown') !== today) {
       setBriefingOpen(true)

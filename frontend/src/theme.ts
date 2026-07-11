@@ -1,64 +1,7 @@
-import { createTheme } from '@mui/material/styles'
+// Compatibility shim: the default MUI theme, for tests and any legacy import.
+// The live app builds themes via themes/ (ThemeSelectionProvider). Accent
+// personalization is retired — the theme picker replaces it.
+import { buildMuiTheme } from './themes/factory'
+import { getTheme, DEFAULT_THEME_KEY } from './themes/registry'
 
-export const ACCENT_KEY = 'ea-accent'
-
-const display = '"Space Grotesk", sans-serif'
-
-export const theme = createTheme({
-  cssVariables: { colorSchemeSelector: 'class' },
-  colorSchemes: {
-    dark: {
-      palette: {
-        primary: { main: '#F2A65A' },
-        secondary: { main: '#6C8FE5' },
-        error: { main: '#E5484D' },
-        warning: { main: '#F2A65A' },
-        info: { main: '#6C8FE5' },
-        success: { main: '#3DD68C' },
-        background: { default: '#0B1220', paper: '#131C2B' },
-        text: { primary: '#E6EDF7', secondary: '#8A9AB5' },
-        divider: '#243149',
-      },
-    },
-    light: {
-      palette: {
-        primary: { main: '#E67E22' },
-        secondary: { main: '#3498DB' },
-        error: { main: '#C0392B' },
-        warning: { main: '#E67E22' },
-        info: { main: '#3498DB' },
-        success: { main: '#27AE60' },
-        background: { default: '#EEF2F9', paper: '#FFFFFF' },
-        text: { primary: '#0B1220', secondary: '#475569' },
-        divider: '#CBD5E6',
-      },
-    },
-  },
-  typography: {
-    fontFamily: '"Inter", sans-serif',
-    fontSize: 13,
-    h1: { fontFamily: display },
-    h2: { fontFamily: display },
-    h3: { fontFamily: display },
-    h4: { fontFamily: display },
-    h5: { fontFamily: display },
-    h6: { fontFamily: display },
-  },
-  shape: { borderRadius: 8 },
-})
-
-// Accent personalization: one call updates Tailwind var + MUI var.
-export function applyAccent(color: string) {
-  localStorage.setItem(ACCENT_KEY, color)
-  setAccentVars(color)
-}
-
-export function loadAccent() {
-  const stored = localStorage.getItem(ACCENT_KEY)
-  if (stored) setAccentVars(stored)
-}
-
-function setAccentVars(color: string) {
-  document.documentElement.style.setProperty('--color-accent', color)
-  document.documentElement.style.setProperty('--mui-palette-primary-main', color)
-}
+export const theme = buildMuiTheme(getTheme(DEFAULT_THEME_KEY))
