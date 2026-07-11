@@ -108,6 +108,17 @@ describe('Tasks board', () => {
     expect(screen.queryByText('Gone')).not.toBeInTheDocument()
   })
 
+  it('adds a new task via the Add task dialog', async () => {
+    const create = vi.spyOn(api, 'createTask').mockResolvedValue({ id: 42 })
+    const user = userEvent.setup()
+    renderBoard()
+    await user.click(await screen.findByRole('button', { name: /add task/i }))
+    expect(await screen.findByRole('heading', { name: /add task/i })).toBeInTheDocument()
+    await user.type(screen.getByLabelText(/Title/i), 'Brand new')
+    await user.click(screen.getByRole('button', { name: /^Add$/i }))
+    await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Brand new', status: 'open', board_column_id: 1 })))
+  })
+
   it('shows the per-column status control', async () => {
     renderBoard()
     // each column exposes a "sets <status>" select so drops map to a status

@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { Plus } from 'lucide-react'
 import {
-  getTasks, getBoardColumns, updateTask,
+  getTasks, getBoardColumns, updateTask, createTask,
   addBoardColumn, updateBoardColumn, deleteBoardColumn,
   type Task, type BoardColumn as Column,
 } from '@/api'
@@ -99,10 +99,22 @@ export function TasksView() {
     onSuccess: () => { invalidate(); toast.success('Task updated'); handleCloseEdit() },
     onError: () => toast.error('Failed to update task'),
   })
+  const createMutation = useMutation({
+    mutationFn: () => createTask({
+      title: fTitle.trim(), detail: fDetail.trim() || undefined,
+      due_at: fDue ? new Date(fDue).toISOString() : undefined,
+      priority: fPriority, status: fStatus, board_column_id: firstColId ?? undefined,
+    }),
+    onSuccess: () => { invalidate(); toast.success('Task added'); handleCloseEdit() },
+    onError: () => toast.error('Failed to add task'),
+  })
   const handleEdit = (t: Task) => {
     setEditingId(t.id); setFTitle(t.title); setFDetail(t.detail ?? '')
     setFDue(t.due_at ? new Date(t.due_at).toISOString().slice(0, 10) : '')
     setFPriority(t.priority); setFStatus(t.status); setEditOpen(true)
+  }
+  const handleAdd = () => {
+    setEditingId(null); setFTitle(''); setFDetail(''); setFDue(''); setFPriority(3); setFStatus('open'); setEditOpen(true)
   }
   const handleCloseEdit = () => { setEditOpen(false); setEditingId(null) }
 
@@ -172,6 +184,7 @@ export function TasksView() {
         ) : (
           <Button size="small" variant="outlined" startIcon={<Plus size={16} />} onClick={() => setAddingCol(true)}>Add column</Button>
         )}
+        <Button size="small" variant="contained" startIcon={<Plus size={16} />} onClick={handleAdd}>Add task</Button>
       </Box>
 
       {error && (
@@ -201,7 +214,7 @@ export function TasksView() {
 
       {/* edit task modal */}
       <Dialog open={editOpen} onClose={handleCloseEdit} maxWidth="xs" fullWidth>
-        <DialogTitle>Edit task</DialogTitle>
+        <DialogTitle>{editingId ? 'Edit task' : 'Add task'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           <TextField label="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)} autoFocus required fullWidth />
           <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={2} fullWidth />
@@ -220,7 +233,7 @@ export function TasksView() {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseEdit}>Cancel</Button>
-          <Button variant="contained" disabled={!fTitle.trim()} onClick={() => updateMutation.mutate()}>Save</Button>
+          <Button variant="contained" disabled={!fTitle.trim()} onClick={() => (editingId ? updateMutation : createMutation).mutate()}>{editingId ? 'Save' : 'Add'}</Button>
         </DialogActions>
       </Dialog>
 
