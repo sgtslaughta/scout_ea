@@ -3,7 +3,13 @@ from lib import feed
 
 
 def _conn(tmp_path):
-    return db.init_db(tmp_path / "ea.sqlite", seed_path=db.DEFAULT_SEED)
+    conn = db.init_db(tmp_path / "ea.sqlite", seed_path=db.DEFAULT_SEED)
+    # Clear seed demo feed rows (keep people/topics/config)
+    conn.executescript(
+        "DELETE FROM content_links; DELETE FROM content_tags; DELETE FROM tags; "
+        "DELETE FROM news_items; DELETE FROM learning;"
+    )
+    return conn
 
 
 def test_overview_counts_and_recent(tmp_path):

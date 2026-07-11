@@ -6,6 +6,11 @@ from web.app import create_app
 def _client(tmp_path):
     p = tmp_path / "ea.sqlite"
     conn = db.init_db(p, seed_path=db.DEFAULT_SEED)
+    # Clear seed demo feed rows (keep people/topics/config)
+    conn.executescript(
+        "DELETE FROM content_links; DELETE FROM content_tags; DELETE FROM tags; "
+        "DELETE FROM news_items; DELETE FROM learning;"
+    )
     db.add_news_item(conn, title="N1", url="u1", external_ref="u1", topic_id=1, event_at="2026-07-10T00:00:00")
     db.add_news_item(conn, title="N2", url="u2", external_ref="u2")
     nid = next(r["id"] for r in db.list_news(conn) if r["external_ref"] == "u1")  # N1 (dated, topic 1)
