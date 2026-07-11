@@ -72,14 +72,12 @@ export function DocsView() {
 
         {/* Skill detail modal */}
         <Dialog open={!!selected} onClose={() => setSelected(null)} maxWidth="sm" fullWidth>
-          <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            {selected?.name}
+          <DialogTitle sx={{ pb: 1 }}>{selected?.name}</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             {selected?.schedule && (
               <Chip size="small" variant="outlined" label={selected.schedule}
-                sx={{ fontFamily: 'monospace', fontSize: '0.7rem' }} />
+                sx={{ fontFamily: 'monospace', fontSize: '0.7rem', alignSelf: 'flex-start', maxWidth: '100%' }} />
             )}
-          </DialogTitle>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               {selected?.description || 'No description'}
             </Typography>
