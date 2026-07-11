@@ -21,6 +21,23 @@ export interface ContentTag { tag_id: number; name: string; color: string }
 export interface ContentLink { id: number; target_type: string; target_id: number; label: string }
 export interface ContentRefs { tags: ContentTag[]; links: ContentLink[] }
 
+export interface NewsItem {
+  id: number; title: string; url?: string; synopsis?: string; topic_id?: number
+  source?: string; event_at?: string; relevance?: number; status: string
+  tags?: ContentTag[]; links?: ContentLink[]
+}
+export interface LearningItem {
+  id: number; kind: string; title: string; synopsis?: string; url?: string; provider?: string
+  event_at?: string; topic_id?: number; relevance?: number; status: string
+  tags?: ContentTag[]; links?: ContentLink[]
+}
+export interface FeedRecent {
+  category: string; id: number; title: string; when: string; url?: string; status: string
+  tags?: ContentTag[]; links?: ContentLink[]
+}
+export interface FeedOverview { counts: Record<string, number>; recent: FeedRecent[] }
+export interface FeedFilters { status?: string; topic?: number; tag?: string; person?: number; origin?: string }
+
 export interface Trend {
   id: number
   term: string
@@ -215,6 +232,22 @@ export const linkContent = (refType: string, refId: number, target_type: string,
   postJson<{ ok: boolean }>(`/api/content/${refType}/${refId}/links`, { target_type, target_id })
 export const unlinkContent = (refType: string, refId: number, linkId: number) =>
   del<{ deleted: number }>(`/api/content/${refType}/${refId}/links/${linkId}`)
+
+const feedQuery = (f?: FeedFilters) => {
+  if (!f) return ''
+  const p = new URLSearchParams()
+  for (const [k, v] of Object.entries(f)) if (v !== undefined && v !== '') p.set(k, String(v))
+  const s = p.toString()
+  return s ? `?${s}` : ''
+}
+
+export const getFeed = () => fetchJson<FeedOverview>('/api/feed')
+export const getNews = (filters?: FeedFilters) => fetchJson<NewsItem[]>(`/api/news${feedQuery(filters)}`)
+export const getLearning = (filters?: FeedFilters) => fetchJson<LearningItem[]>(`/api/learning${feedQuery(filters)}`)
+export const setNewsStatus = (id: number, status: string) =>
+  postJson<{ updated: number }>(`/api/news_items/${id}/status`, { status })
+export const setLearningStatus = (id: number, status: string) =>
+  postJson<{ updated: number }>(`/api/learning/${id}/status`, { status })
 
 export const setSignalStatus = (table: string, id: number, status: string) =>
   postJson<{ updated: number }>(`/api/${table}/${id}/status`, { status })
