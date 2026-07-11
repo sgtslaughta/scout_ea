@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Popover, Tooltip } from '@mui/material'
 import { MarqueeText } from './MarqueeText'
 
-export interface FlankItem { key: string; title: string; when: string; type: 'deadline' | 'task' }
+export interface FlankItem { key: string; id: number; title: string; when: string; type: 'deadline' | 'task' }
 
 interface TimelineFlankProps {
   items: FlankItem[]
@@ -33,7 +33,7 @@ export function TimelineFlank({ items, title, icon, accent, bucketOrder, bucketO
     .map((b) => ({ bucket: b, items: shown.filter((i) => bucketOf(i.when) === b) }))
     .filter((g) => g.items.length > 0)
   const close = () => { setAnchor(null); setExpanded(false) }
-  const goto = (type: 'deadline' | 'task') => { navigate(type === 'deadline' ? '/deadlines' : '/tasks'); close() }
+  const goto = (type: 'deadline' | 'task', id?: number) => { navigate(`${type === 'deadline' ? '/deadlines' : '/tasks'}${id ? `?focus=${id}` : ''}`); close() }
   const color = accent === 'error' ? 'error.main' : 'text.secondary'
   const hoverBg = accent === 'error' ? 'rgba(var(--mui-palette-error-mainChannel) / 0.12)' : 'action.hover'
 
@@ -63,7 +63,7 @@ export function TimelineFlank({ items, title, icon, accent, bucketOrder, bucketO
               {g.items.map((i) => (
                 <Box
                   key={i.key} role="button" tabIndex={0} aria-label={`${i.type === 'deadline' ? 'Deadline' : 'Task'}: ${i.title}`}
-                  onClick={() => goto(i.type)}
+                  onClick={() => goto(i.type, i.id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(i.type) } }}
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
                 >

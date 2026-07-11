@@ -139,4 +139,19 @@ describe('Tasks board', () => {
     expect(await screen.findByLabelText('Status for To Do')).toBeInTheDocument()
     expect(screen.getByLabelText('Status for Done')).toBeInTheDocument()
   })
+
+  it('does not crash when ?focus=<id> is present', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([mkTask({ id: 55, title: 'Deep link task', detail: 'x', board_column_id: 1 })])
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={['/tasks?focus=55']}>
+          <TasksView />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+    // Just verify the component renders without crashing
+    await screen.findByText('Deep link task')
+    expect(screen.getByText('Deep link task')).toBeDefined()
+  })
 })

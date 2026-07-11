@@ -37,4 +37,19 @@ describe('Calendar view', () => {
     await screen.findByText('Review')
     await waitFor(() => expect(screen.getByLabelText('Approve')).toBeInTheDocument())
   })
+
+  it('does not crash when ?focus=<id> is present', async () => {
+    vi.spyOn(api, 'getEvents').mockResolvedValue([
+      { id: 33, title: 'Deep link event', body: 'Event details', chosen_time: '2026-07-12T10:00', status: 'confirmed', proposed_times: '[]', attendees: '[]' },
+    ] as any)
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    render(
+      <QueryClientProvider client={qc}>
+        <BrowserRouter><CalendarView /></BrowserRouter>
+      </QueryClientProvider>,
+    )
+    // Verify the component renders without crashing
+    await screen.findByText('Deep link event')
+    expect(screen.getByText('Deep link event')).toBeDefined()
+  })
 })

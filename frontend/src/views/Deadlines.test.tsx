@@ -256,4 +256,21 @@ describe('Deadlines view', () => {
     const allText = screen.getByText('Deadlines')
     expect(allText).toBeDefined()
   })
+
+  it('does not crash when ?focus=<id> is present', async () => {
+    const due = new Date(Date.now() + 86400000).toISOString()
+    vi.stubGlobal('fetch', vi.fn((url: string) => url.includes('/api/config')
+      ? Promise.resolve({ ok: true, json: () => Promise.resolve({ deadlines_visible_global: '1' }) })
+      : Promise.resolve({ ok: true, json: () => Promise.resolve([{ id: 42, title: 'Deep link test', detail: '', due_at: due, countdown_seconds: 86400, visible: true, source: 'manual' }]) })))
+    render(
+      <MemoryRouter initialEntries={['/deadlines?focus=42']}>
+        <QueryClientProvider client={queryClient}>
+          <DeadlinesView />
+        </QueryClientProvider>
+      </MemoryRouter>
+    )
+    // Just verify the component renders without crashing
+    await screen.findByText('Deep link test')
+    expect(screen.getByText('Deep link test')).toBeDefined()
+  })
 })

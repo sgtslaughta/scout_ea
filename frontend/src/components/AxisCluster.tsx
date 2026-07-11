@@ -4,7 +4,7 @@ import { Box, Typography, Tooltip, Popover } from '@mui/material'
 import { MarqueeText } from './MarqueeText'
 
 export type AxisItemType = 'deadline' | 'task' | 'event'
-export interface AxisDot { key: string; title: string; when: string; type: AxisItemType }
+export interface AxisDot { key: string; id: number; title: string; when: string; type: AxisItemType }
 
 const ROUTE: Record<AxisItemType, string> = { deadline: '/deadlines', task: '/tasks', event: '/calendar' }
 const TAG: Record<AxisItemType, string> = { deadline: 'D', task: 'T', event: 'E' }
@@ -27,8 +27,8 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const multi = items.length > 1
   const close = () => setAnchor(null)
-  const go = (type: AxisItemType) => { navigate(ROUTE[type]); close() }
-  const activate = (el: HTMLElement) => { if (multi) setAnchor(el); else go(items[0].type) }
+  const go = (type: AxisItemType, id?: number) => { navigate(`${ROUTE[type]}${id ? `?focus=${id}` : ''}`); close() }
+  const activate = (el: HTMLElement) => { if (multi) setAnchor(el); else go(items[0].type, items[0].id) }
 
   const tip = (
     <Box sx={{ p: 0.5 }}>
@@ -67,7 +67,7 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
             {items.map((i) => (
               <Box
                 key={i.key} role="button" tabIndex={0} aria-label={`${i.type}: ${i.title}`}
-                onClick={() => go(i.type)}
+                onClick={() => go(i.type, i.id)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i.type) } }}
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
               >
