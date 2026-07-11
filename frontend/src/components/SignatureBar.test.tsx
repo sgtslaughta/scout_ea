@@ -68,6 +68,15 @@ describe('SignatureBar', () => {
     expect(await screen.findByRole('button', { name: /2 upcoming items/i })).toBeInTheDocument()
   })
 
+  it('shows an overdue flank counting past-due items', async () => {
+    const past = new Date(Date.now() - 3 * 86400 * 1000).toISOString()
+    vi.spyOn(api, 'getDeadlines').mockResolvedValue([
+      mkDeadline({ id: 9, title: 'Late report', due_at: past, countdown_seconds: -100 }),
+    ])
+    renderBar()
+    expect(await screen.findByRole('button', { name: /1 overdue items/i })).toBeInTheDocument()
+  })
+
   it('opens a popover of clickable upcoming items on click', async () => {
     const future = new Date(Date.now() + 3 * 86400 * 1000).toISOString()
     vi.spyOn(api, 'getDeadlines').mockResolvedValue([
