@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Box, Typography, Tooltip, Popover } from '@mui/material'
 import { MarqueeText } from './MarqueeText'
 import { TimelineTypeChip } from './TimelineTypeChip'
+import type { Urgency } from '@/lib/horizon'
 
 export type AxisItemType = 'deadline' | 'task' | 'event'
 export interface AxisDot { key: string; id: number; title: string; when: string; type: AxisItemType }
@@ -14,6 +15,7 @@ interface AxisClusterProps {
   percent: number
   items: AxisDot[]
   color: string
+  urgency: Urgency
   compactWhen: (iso: string) => string
 }
 
@@ -22,10 +24,13 @@ interface AxisClusterProps {
  * overlapping items opens a popover with per-item click-to-nav. Hover always
  * previews the contents.
  */
-export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterProps) {
+export function AxisCluster({ percent, items, color, urgency, compactWhen }: AxisClusterProps) {
   const navigate = useNavigate()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const multi = items.length > 1
+  // Approaching items (critical/urgent) emit a radar-ping halo to draw the eye.
+  const pinging = urgency === 'critical' || urgency === 'urgent'
+  const size = multi ? 15 : 10
   const close = () => setAnchor(null)
   const go = (type: AxisItemType, id?: number) => { navigate(`${ROUTE[type]}${id ? `?focus=${id}` : ''}`); close() }
   const activate = (el: HTMLElement) => { if (multi) setAnchor(el); else go(items[0].type, items[0].id) }
@@ -42,6 +47,23 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
 
   return (
     <>
+      {pinging && (
+        <Box
+          aria-hidden data-testid="axis-ping"
+          sx={{
+            position: 'absolute', left: `${percent}%`, top: '50%', transform: 'translate(-50%,-50%)',
+            width: size, height: size, borderRadius: '50%', bgcolor: color, pointerEvents: 'none',
+            '@media (prefers-reduced-motion: reduce)': { transform: 'translate(-50%,-50%) scale(1.9)', opacity: 0.22 },
+            '@media (prefers-reduced-motion: no-preference)': {
+              '@keyframes axisPing': {
+                '0%': { transform: 'translate(-50%,-50%) scale(1)', opacity: 0.6 },
+                '100%': { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 },
+              },
+              animation: `axisPing ${urgency === 'critical' ? '1.4s' : '2.4s'} ease-out infinite`,
+            },
+          }}
+        />
+      )}
       <Tooltip arrow title={tip}>
         <Box
           role="button" tabIndex={0} aria-label={multi ? `${items.length} items` : items[0].title}
@@ -49,7 +71,7 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(e.currentTarget) } }}
           sx={{
             position: 'absolute', left: `${percent}%`, top: '50%', transform: 'translate(-50%,-50%)',
-            width: multi ? 15 : 10, height: multi ? 15 : 10, borderRadius: '50%', cursor: 'pointer',
+            width: size, height: size, borderRadius: '50%', cursor: 'pointer',
             bgcolor: color, border: '2px solid', borderColor: 'background.paper',
             display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 6px ${color}`,
             '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },

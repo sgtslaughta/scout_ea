@@ -103,7 +103,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const clusters = clusterByProximity(axisDots).map((c) => {
     const worst = c.items.reduce<Urgency>((m, i) => (SEVERITY[i.urgency] > SEVERITY[m] ? i.urgency : m), 'normal')
     const items: AxisDot[] = c.items.map((i) => ({ key: i.key, id: extractId(i.key), title: i.title, when: i.when, type: i.type }))
-    return { percent: c.percent, color: URGENCY_COLOR[worst], items }
+    return { percent: c.percent, color: URGENCY_COLOR[worst], urgency: worst, items }
   })
 
   // Flanks stay deadlines + tasks only (events live on the axis / calendar).
@@ -130,7 +130,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
 
         {/* dated items on the workday axis, overlaps clustered */}
         {clusters.map((c) => (
-          <AxisCluster key={c.items[0].key} percent={c.percent} items={c.items} color={c.color} compactWhen={compactWhen} />
+          <AxisCluster key={c.items[0].key} percent={c.percent} items={c.items} color={c.color} urgency={c.urgency} compactWhen={compactWhen} />
         ))}
 
         {/* now-marker + centered live time readout */}
