@@ -3,6 +3,15 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { listActions, approveAction, dismissAction, type Action } from '../api'
 
+const safeHttpUrl = (u: unknown): string | null => {
+  try {
+    const p = new URL(String(u))
+    return p.protocol === 'http:' || p.protocol === 'https:' ? p.toString() : null
+  } catch {
+    return null
+  }
+}
+
 const preview = (a: Action) =>
   a.rationale || (a.payload?.subject as string) || (a.payload?.message as string) || a.action_type
 
@@ -47,6 +56,7 @@ export function ActionsView() {
           {running.map((a) => (
             <Typography key={a.id} variant="body2">⏳ {a.action_type} — {preview(a)}</Typography>
           ))}
+          {running.length === 0 && <Typography variant="caption" color="text.secondary">Nothing running.</Typography>}
         </Stack>
       </section>
 
@@ -57,11 +67,12 @@ export function ActionsView() {
             <Typography key={a.id} variant="body2"
               color={a.status === 'failed' ? 'error' : 'text.primary'}>
               {a.status === 'failed' ? '✗' : '✓'} {a.action_type} — {preview(a)}{' '}
-              {a.result?.access_url ? (
-                <Link href={String(a.result.access_url)} target="_blank" rel="noreferrer">Open</Link>
+              {safeHttpUrl(a.result?.access_url) ? (
+                <Link href={safeHttpUrl(a.result?.access_url)!} target="_blank" rel="noopener noreferrer">Open</Link>
               ) : null}
             </Typography>
           ))}
+          {recent.length === 0 && <Typography variant="caption" color="text.secondary">No recent results.</Typography>}
         </Stack>
       </section>
     </Box>

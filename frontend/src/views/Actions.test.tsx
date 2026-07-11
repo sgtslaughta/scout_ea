@@ -21,3 +21,20 @@ it('renders a pending-review draft with a Go button', async () => {
   await waitFor(() => expect(screen.getByText('follow up')).toBeInTheDocument())
   expect(screen.getByRole('button', { name: /go/i })).toBeInTheDocument()
 })
+
+it('blocks javascript: URLs in result.access_url and renders safe https URLs', async () => {
+  vi.spyOn(api, 'listActions').mockResolvedValue([
+    { id: 1, action_type: 'email_new', status: 'completed',
+      result: { access_url: 'javascript:alert(1)' }, created_at: '2026-07-11T00:00:00Z' } as unknown as api.Action,
+    { id: 2, action_type: 'send_message', status: 'completed',
+      result: { access_url: 'https://example.com/path' }, created_at: '2026-07-11T00:00:00Z' } as unknown as api.Action,
+  ])
+  wrap(<ActionsView />)
+  await waitFor(() => {
+    const link = screen.getByRole('link', { name: /open/i })
+    expect(link).toHaveAttribute('href', 'https://example.com/path')
+  })
+  expect(screen.getAllByRole('link', { name: /open/i }).length).toBe(1)
+  const link = screen.getByRole('link', { name: /open/i })
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+})
