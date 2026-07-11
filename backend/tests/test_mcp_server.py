@@ -11,12 +11,19 @@ def test_runtime_params_requires_token():
 
 
 def test_runtime_params_parses(tmp_path):
-    """_runtime_params resolves db_path, token, port from environ."""
-    p, t, port = server._runtime_params(
+    """_runtime_params resolves db_path, token, port, host from environ."""
+    p, t, port, host = server._runtime_params(
         {"EA_MCP_TOKEN": "x", "EA_DB_PATH": str(tmp_path / "d.sqlite"), "EA_MCP_PORT": "9001"})
     assert t == "x"
     assert port == 9001
     assert str(p).endswith("d.sqlite")
+    assert host == "127.0.0.1"  # safe default
+
+
+def test_runtime_params_host_override():
+    """EA_MCP_HOST overrides the bind host (container needs 0.0.0.0)."""
+    _, _, _, host = server._runtime_params({"EA_MCP_TOKEN": "x", "EA_MCP_HOST": "0.0.0.0"})
+    assert host == "0.0.0.0"
 
 
 def test_build_server_returns_fastmcp(tmp_path):

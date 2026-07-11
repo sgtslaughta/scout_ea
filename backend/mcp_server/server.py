@@ -155,14 +155,17 @@ def _runtime_params(environ):
         raise RuntimeError("EA_MCP_TOKEN environment variable is required")
     db_path = Path(environ.get("EA_DB_PATH", "ea.sqlite"))
     port = int(environ.get("EA_MCP_PORT", "8766"))
-    return db_path, token, port
+    # ponytail: default localhost-only; container sets 0.0.0.0 so Docker's
+    # 127.0.0.1-published port can reach it. Bearer auth fails closed regardless.
+    host = environ.get("EA_MCP_HOST", "127.0.0.1")
+    return db_path, token, port, host
 
 
 def main():  # pragma: no cover - process entry, not unit-tested
     import os
     import uvicorn
-    db_path, token, port = _runtime_params(os.environ)
-    uvicorn.run(http_app(db_path, token), host="127.0.0.1", port=port)
+    db_path, token, port, host = _runtime_params(os.environ)
+    uvicorn.run(http_app(db_path, token), host=host, port=port)
 
 
 if __name__ == "__main__":
