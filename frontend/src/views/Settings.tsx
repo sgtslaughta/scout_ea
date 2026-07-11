@@ -13,6 +13,8 @@ import {
 import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
 import { useTimePrefs } from '@/lib/timePrefs'
 import { COMMON_ZONES, effectiveZone, formatFriendly } from '@/lib/datetime'
+
+const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`
 import {
   getSubscriptionState,
   enablePush,
@@ -24,7 +26,7 @@ import {
 export function SettingsView() {
   const { mode, setMode } = useColorScheme()
   const { selectedKey, setThemeKey } = useThemeSelection()
-  const { timeZone, hour24, setTimeZone, setHour24 } = useTimePrefs()
+  const { timeZone, hour24, setTimeZone, setHour24, workdayStart, workdayEnd, setWorkday } = useTimePrefs()
   const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
   const [loadingPush, setLoadingPush] = useState(false)
 
@@ -192,8 +194,7 @@ export function SettingsView() {
                 size="small"
                 value={timeZone}
                 onChange={(e) => setTimeZone(e.target.value)}
-                aria-label="Timezone"
-                slotProps={{ select: { native: true } }}
+                slotProps={{ select: { native: true }, htmlInput: { 'aria-label': 'Timezone' } }}
                 sx={{ minWidth: 240 }}
               >
                 {COMMON_ZONES.map((z) => (
@@ -202,6 +203,27 @@ export function SettingsView() {
                   </option>
                 ))}
               </TextField>
+            </Box>
+            {/* Workday span (timeline) */}
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>Workday (timeline span)</Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <TextField
+                  select size="small" label="Start" value={workdayStart}
+                  onChange={(e) => setWorkday(Math.min(Number(e.target.value), workdayEnd - 1), workdayEnd)}
+                  slotProps={{ select: { native: true }, htmlInput: { 'aria-label': 'Workday start' } }} sx={{ minWidth: 110 }}
+                >
+                  {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                </TextField>
+                <Typography variant="caption" color="text.secondary">to</Typography>
+                <TextField
+                  select size="small" label="End" value={workdayEnd}
+                  onChange={(e) => setWorkday(workdayStart, Math.max(Number(e.target.value), workdayStart + 1))}
+                  slotProps={{ select: { native: true }, htmlInput: { 'aria-label': 'Workday end' } }} sx={{ minWidth: 110 }}
+                >
+                  {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{hourLabel(h)}</option>)}
+                </TextField>
+              </Box>
             </Box>
             {/* Live preview */}
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>

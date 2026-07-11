@@ -7,10 +7,6 @@ import type { Deadline } from '@/api'
 
 export type Urgency = 'critical' | 'urgent' | 'soon' | 'normal'
 
-/** Workday window the axis spans: 7:00 (0%) to 18:00 (100%). */
-const DAY_START_MIN = 7 * 60
-const DAY_SPAN_MIN = 11 * 60
-
 export interface AxisDeadline {
   deadline: Deadline
   percent: number
@@ -30,11 +26,33 @@ export function urgencyOf(countdownSeconds: number): Urgency {
   return 'normal'
 }
 
-/** Position of a clock time on the 7a-6p axis, clamped to 0..100. */
-export function clockPercent(date: Date): number {
+/** Position of a clock time on the workday axis (default 7a-6p), clamped to 0..100. */
+export function clockPercent(date: Date, startHour = 7, endHour = 18): number {
+  const startMin = startHour * 60
+  const spanMin = Math.max(1, (endHour - startHour) * 60)
   const minutes = date.getHours() * 60 + date.getMinutes()
-  const pct = ((minutes - DAY_START_MIN) / DAY_SPAN_MIN) * 100
+  const pct = ((minutes - startMin) / spanMin) * 100
   return Math.max(0, Math.min(100, pct))
+}
+
+/** True if a datetime falls within the workday hour span [start, end). */
+export function inWorkday(date: Date, startHour: number, endHour: number): boolean {
+  const h = date.getHours() + date.getMinutes() / 60
+  return h >= startHour && h < endHour
+}
+
+/** Greedily group items whose percent are within thresholdPct of the cluster anchor. */
+export function clusterByProximity<T extends { percent: number }>(
+  items: T[], thresholdPct = 4,
+): { percent: number; items: T[] }[] {
+  const sorted = [...items].sort((a, b) => a.percent - b.percent)
+  const clusters: { percent: number; items: T[] }[] = []
+  for (const it of sorted) {
+    const last = clusters[clusters.length - 1]
+    if (last && it.percent - last.percent <= thresholdPct) last.items.push(it)
+    else clusters.push({ percent: it.percent, items: [it] })
+  }
+  return clusters
 }
 
 /** True if both dates fall on the same local calendar day. */
