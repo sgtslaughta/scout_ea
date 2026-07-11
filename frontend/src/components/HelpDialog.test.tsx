@@ -17,11 +17,11 @@ describe('HelpDialog', () => {
     expect(screen.queryByText(/keyboard shortcuts/i)).toBeNull()
   })
 
-  it('shows shortcuts and a docs link when open', () => {
+  it('shows shortcuts and a skills link when open', () => {
     wrap(true)
     expect(screen.getByText(/keyboard shortcuts/i)).toBeInTheDocument()
     expect(screen.getByText('⌘K')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /documentation/i })).toHaveAttribute('href', '/docs')
+    expect(screen.getByRole('link', { name: /skills library/i })).toHaveAttribute('href', '/skills')
   })
 
   it('calls onClose from the Close button', () => {

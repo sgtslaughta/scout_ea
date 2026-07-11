@@ -52,6 +52,10 @@ export interface Skill {
   description: string
   schedule?: string
   body: string
+  /** ISO timestamp of the most recent skill_run, or null if never run. */
+  last_run?: string | null
+  /** True when the skill has run recently enough for its cadence. */
+  active?: boolean
 }
 
 export interface Activity {

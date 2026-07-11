@@ -15,6 +15,7 @@ from web import changes
 from lib import deadlines as _deadlines
 from lib import outlook as _outlook
 from lib import skills as _skills
+from lib import skill_health as _skill_health
 
 
 class SPAStaticFiles(StaticFiles):
@@ -247,8 +248,19 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return _outlook.assemble(now, deadlines, trends, proactive, tasks)
 
     @app.get("/api/skills")
-    def get_skills():
-        return _skills.list_skills(skills_dir) if skills_dir else []
+    def get_skills(conn=Depends(get_db)):
+        skills = _skills.list_skills(skills_dir) if skills_dir else []
+        if not skills:
+            return []
+        # Latest run per skill from the activity log; decide active-by-cadence.
+        last = {r["skill"]: r["last_run"] for r in conn.execute(
+            "SELECT skill, MAX(ran_at) AS last_run FROM skill_runs GROUP BY skill")}
+        now = datetime.now(timezone.utc)
+        for s in skills:
+            lr = last.get(s["name"])
+            s["last_run"] = lr
+            s["active"] = _skill_health.is_active(s.get("schedule"), lr, now)
+        return skills
 
     @app.get("/api/people")
     def list_people(include_inactive: bool = False, conn=Depends(get_db)):
