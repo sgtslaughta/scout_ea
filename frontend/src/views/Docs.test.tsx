@@ -1,24 +1,23 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ThemeProvider } from '@mui/material/styles'
-import { theme } from '../theme'
 import { DocsView } from './Docs'
-import { vi } from 'vitest'
+import * as api from '@/api'
 
-// ponytail: render-only test, no interactions needed for pass 2 verification
-describe('Docs view', () => {
-  it('renders Skills Library header', () => {
-    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }))
+function renderView() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={qc}><DocsView /></QueryClientProvider>)
+}
 
-    render(
-      <QueryClientProvider client={qc}>
-        <ThemeProvider theme={theme}>
-          <DocsView />
-        </ThemeProvider>
-      </QueryClientProvider>
-    )
+beforeEach(() => vi.restoreAllMocks())
 
-    expect(screen.getByText('Skills Library')).toBeInTheDocument()
+describe('DocsView', () => {
+  it('renders skills as grid rows with copy action', async () => {
+    vi.spyOn(api, 'getSkills').mockResolvedValue([
+      { name: 'daily-brief', description: 'Morning summary', schedule: '0 7 * * *', body: 'BODY' },
+    ])
+    renderView()
+    expect(await screen.findByText('daily-brief')).toBeInTheDocument()
+    expect(screen.getByLabelText('Copy daily-brief to clipboard')).toBeInTheDocument()
   })
 })
