@@ -118,6 +118,34 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def tag_content(ref_type: str, ref_id: int, tag: str, color: str = "neutral") -> int:
+        """Attach a label tag to a content row. ref_type in deadline|task|signal|event|trend|
+        trend_finding|learning|news|person|topic. color is a palette key. Returns rowcount."""
+        conn = _conn()
+        try:
+            return tools.tag_content(conn, ref_type, ref_id, tag, color)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def link_content(ref_type: str, ref_id: int, target_type: str, target_id: int) -> int:
+        """Link a content row to a person or topic (target_type in person|topic). Returns rowcount."""
+        conn = _conn()
+        try:
+            return tools.link_content(conn, ref_type, ref_id, target_type, target_id)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def list_tags() -> list[dict]:
+        """List all known tags [{id,name,color}]. Call before inventing a new tag name."""
+        conn = _conn()
+        try:
+            return tools.list_tags(conn)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def m365_status() -> dict:
         """Whether M365 actions are enabled (an external M365 MCP is configured)."""
         from mcp_server import m365
