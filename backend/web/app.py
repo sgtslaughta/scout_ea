@@ -131,6 +131,11 @@ class ActionCreate(BaseModel):
     approve: bool = False
 
 
+class GuidanceBody(BaseModel):
+    scope: str
+    text: str
+
+
 class BoardColumnPatch(BaseModel):
     name: str | None = None
     position: int | None = None
@@ -231,6 +236,18 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="action not found")
         return {"updated": n}
+
+    @app.get("/api/guidance")
+    def list_guidance_ep(scope: str | None = None, conn=Depends(get_db)):
+        return db.list_guidance(conn, scope=scope)
+
+    @app.post("/api/guidance")
+    def create_guidance_ep(body: GuidanceBody, conn=Depends(get_db)):
+        return {"id": db.add_guidance(conn, body.scope, body.text)}
+
+    @app.delete("/api/guidance/{guidance_id}")
+    def delete_guidance_ep(guidance_id: int, conn=Depends(get_db)):
+        return {"deleted": db.delete_guidance(conn, guidance_id)}
 
     @app.get("/api/alerts")
     def list_alerts(conn=Depends(get_db)):

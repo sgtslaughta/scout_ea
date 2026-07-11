@@ -20,3 +20,11 @@ def test_action_create_list_approve_dismiss(tmp_path):
     assert c.post(f"/api/actions/{aid}/approve").json()["updated"] == 1
     assert c.get("/api/actions?status=approved").json()[0]["id"] == aid
     assert c.post(f"/api/actions/{aid}/dismiss").json()["updated"] == 1
+
+
+def test_guidance_endpoints(tmp_path):
+    c = _client(tmp_path)
+    gid = c.post("/api/guidance", json={"scope": "topic:AI", "text": "skip spam"}).json()["id"]
+    got = c.get("/api/guidance?scope=topic:AI").json()
+    assert any(g["text"] == "skip spam" for g in got)
+    assert c.delete(f"/api/guidance/{gid}").json()["deleted"] == 1
