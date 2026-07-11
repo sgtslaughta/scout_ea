@@ -5,7 +5,9 @@ import Tooltip from '@mui/material/Tooltip'
 import Box from '@mui/material/Box'
 import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef } from '@mui/x-data-grid'
+import { useMemo } from 'react'
 import { getDeadlines, type Deadline } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 import { useWidgetCount } from './WidgetCard'
 
 export function formatCountdown(seconds: number): string {
@@ -16,7 +18,7 @@ export function formatCountdown(seconds: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`
 }
 
-const columns: GridColDef<Deadline>[] = [
+const makeColumns = (friendly: (iso: string) => string): GridColDef<Deadline>[] => [
   {
     field: 'title',
     headerName: 'Deadline',
@@ -26,7 +28,7 @@ const columns: GridColDef<Deadline>[] = [
         title={
           <Box sx={{ p: 0.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.row.title}</Typography>
-            <Typography variant="caption">Due {new Date(p.row.due_at).toLocaleString()}</Typography>
+            <Typography variant="caption">Due {friendly(p.row.due_at)}</Typography>
             {p.row.detail && <Typography variant="caption" sx={{ display: 'block' }}>{p.row.detail}</Typography>}
             <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>source: {p.row.source}</Typography>
           </Box>
@@ -55,6 +57,8 @@ const columns: GridColDef<Deadline>[] = [
 export default function DeadlinesWidget() {
   const { data = [], isLoading } = useQuery({ queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000 })
   const navigate = useNavigate()
+  const friendly = useFriendlyTime()
+  const columns = useMemo(() => makeColumns(friendly), [friendly])
   const rows = [...data].sort((a, b) => a.countdown_seconds - b.countdown_seconds)
   useWidgetCount(rows.length)
 

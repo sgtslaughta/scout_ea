@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
 import ThemeSelectionProvider from '../themes/ThemeSelectionProvider'
+import { TimePrefsProvider } from '@/lib/timePrefs'
 import { SettingsView } from './Settings'
 import * as push from '@/lib/push'
 
@@ -10,7 +11,9 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 function renderSettings() {
   return render(
     <ThemeSelectionProvider>
-      <SettingsView />
+      <TimePrefsProvider>
+        <SettingsView />
+      </TimePrefsProvider>
     </ThemeSelectionProvider>,
   )
 }
@@ -60,5 +63,17 @@ describe('Settings view', () => {
     const cyber = await screen.findByRole('button', { name: /cyberpunk/i })
     fireEvent.click(cyber)
     await waitFor(() => expect(localStorage.getItem('ea-theme-name')).toBe('cyberpunk'))
+  })
+
+  it('24-hour clock toggle persists to ea-time-24h', () => {
+    renderSettings()
+    fireEvent.click(screen.getByRole('button', { name: /24-hour clock/i }))
+    expect(localStorage.getItem('ea-time-24h')).toBe('true')
+  })
+
+  it('timezone select persists to ea-timezone', () => {
+    renderSettings()
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'UTC' } })
+    expect(localStorage.getItem('ea-timezone')).toBe('UTC')
   })
 })

@@ -3,8 +3,10 @@ import { Box, Typography, Tooltip } from '@mui/material'
 import { DataGrid, type GridColDef } from '@mui/x-data-grid'
 import { Check, X } from 'lucide-react'
 import { getActivity, type Activity } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 
 export function ActivityView() {
+  const friendly = useFriendlyTime()
   const { data: rows = [], isLoading, error } = useQuery({
     queryKey: ['activity', 'all'], queryFn: () => getActivity(200), refetchInterval: 15000,
   })
@@ -17,8 +19,8 @@ export function ActivityView() {
     { field: 'skill', headerName: 'Skill', flex: 1,
       renderCell: (p) => <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{p.row.skill}</Typography> },
     { field: 'items_created', headerName: 'Items', width: 90, type: 'number' },
-    { field: 'ran_at', headerName: 'Ran', width: 180,
-      renderCell: (p) => <Typography variant="caption" color="text.secondary">{new Date(p.row.ran_at).toLocaleString()}</Typography> },
+    { field: 'ran_at', headerName: 'Ran', flex: 1, minWidth: 240,
+      renderCell: (p) => <Typography variant="caption" color="text.secondary">{friendly(p.row.ran_at)}</Typography> },
     { field: 'note', headerName: 'Note', flex: 1,
       renderCell: (p) => p.row.note
         ? <Tooltip title={p.row.note} arrow><span>{p.row.note}</span></Tooltip>

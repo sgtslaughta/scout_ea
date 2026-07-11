@@ -8,8 +8,11 @@ import {
   Typography,
   ToggleButton,
   ToggleButtonGroup,
+  TextField,
 } from '@mui/material'
 import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
+import { useTimePrefs } from '@/lib/timePrefs'
+import { COMMON_ZONES, effectiveZone, formatFriendly } from '@/lib/datetime'
 import {
   getSubscriptionState,
   enablePush,
@@ -21,6 +24,7 @@ import {
 export function SettingsView() {
   const { mode, setMode } = useColorScheme()
   const { selectedKey, setThemeKey } = useThemeSelection()
+  const { timeZone, hour24, setTimeZone, setHour24 } = useTimePrefs()
   const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
   const [loadingPush, setLoadingPush] = useState(false)
 
@@ -159,6 +163,50 @@ export function SettingsView() {
                 Currently: <span style={{ fontFamily: 'monospace' }}>{mode ?? 'system'}</span>
               </Typography>
             </Box>
+          </Box>
+        </Box>
+
+        {/* Date & Time section */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
+            Date &amp; Time
+          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* Clock format */}
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>Clock</Typography>
+              <ToggleButtonGroup
+                value={hour24 ? '24h' : '12h'}
+                exclusive
+                onChange={(_e, v) => { if (v !== null) setHour24(v === '24h') }}
+              >
+                <ToggleButton value="12h" aria-label="12-hour clock">12-hour</ToggleButton>
+                <ToggleButton value="24h" aria-label="24-hour clock">24-hour</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+            {/* Timezone */}
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>Timezone</Typography>
+              <TextField
+                select
+                size="small"
+                value={timeZone}
+                onChange={(e) => setTimeZone(e.target.value)}
+                aria-label="Timezone"
+                slotProps={{ select: { native: true } }}
+                sx={{ minWidth: 240 }}
+              >
+                {COMMON_ZONES.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.id === 'auto' ? `Auto (${effectiveZone('auto')})` : z.label}
+                  </option>
+                ))}
+              </TextField>
+            </Box>
+            {/* Live preview */}
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              Preview: <span style={{ fontFamily: 'monospace' }}>{formatFriendly(new Date(), { timeZone, hour24 })}</span>
+            </Typography>
           </Box>
         </Box>
 

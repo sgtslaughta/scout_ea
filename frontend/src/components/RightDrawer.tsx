@@ -9,6 +9,7 @@ import Stack from '@mui/material/Stack'
 import Tooltip from '@mui/material/Tooltip'
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react'
 import { getDeadlines, getTrends } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 
 const formatCountdown = (seconds: number): string => {
   if (seconds <= 0) return '0m'
@@ -20,6 +21,7 @@ const formatCountdown = (seconds: number): string => {
 
 export function RightDrawer() {
   const navigate = useNavigate()
+  const friendly = useFriendlyTime()
   const { data: deadlines = [], isLoading: deadlinesLoading, error: deadlinesError } = useQuery({
     queryKey: ['deadlines'],
     queryFn: getDeadlines,
@@ -54,7 +56,7 @@ export function RightDrawer() {
                   title={
                     <Box sx={{ p: 0.5 }}>
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{item.title}</Typography>
-                      <Typography variant="caption" sx={{ display: 'block' }}>Due {new Date(item.due_at).toLocaleString()}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block' }}>Due {friendly(item.due_at)}</Typography>
                       <Typography variant="caption" color="text.secondary">source: {item.source}</Typography>
                     </Box>
                   }

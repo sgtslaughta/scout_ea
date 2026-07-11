@@ -5,7 +5,9 @@ import Tooltip from '@mui/material/Tooltip'
 import Box from '@mui/material/Box'
 import { DataGrid } from '@mui/x-data-grid'
 import type { GridColDef } from '@mui/x-data-grid'
+import { useMemo } from 'react'
 import { getSignals, type Signal } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 import { useWidgetCount } from './WidgetCard'
 
 export function relativeTime(isoStr: string, now = new Date()): string {
@@ -18,7 +20,7 @@ export function relativeTime(isoStr: string, now = new Date()): string {
 
 const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
 
-const columns: GridColDef<Signal>[] = [
+const makeColumns = (friendly: (iso: string) => string): GridColDef<Signal>[] => [
   {
     field: 'priority',
     headerName: '',
@@ -37,7 +39,7 @@ const columns: GridColDef<Signal>[] = [
           <Box sx={{ p: 0.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.row.title}</Typography>
             <Typography variant="caption" sx={{ display: 'block' }}>{p.row.source}{p.row.source_skill ? ` · ${p.row.source_skill}` : ''}</Typography>
-            <Typography variant="caption" color="text.secondary">{new Date(p.row.created_at).toLocaleString()} · priority {p.row.priority}</Typography>
+            <Typography variant="caption" color="text.secondary">{friendly(p.row.created_at)} · priority {p.row.priority}</Typography>
           </Box>
         }
       >
@@ -58,6 +60,8 @@ const columns: GridColDef<Signal>[] = [
 export default function SignalsWidget() {
   const { data = [], isLoading } = useQuery({ queryKey: ['signals', 'new'], queryFn: () => getSignals('new'), refetchInterval: 15000 })
   const navigate = useNavigate()
+  const friendly = useFriendlyTime()
+  const columns = useMemo(() => makeColumns(friendly), [friendly])
   const rows = data.filter((s) => s.type !== 'proactive')
   useWidgetCount(rows.length)
 
