@@ -6,6 +6,7 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/jetbrains-mono/400.css";
 @import "@fontsource/jetbrains-mono/500.css";
+@import "./themes/textures.css";
 
 /* Chart + horizon + accent-personalization tokens (MUI palette covers everything else) */
 :root {

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useColorScheme } from '@mui/material/styles'
 import {
@@ -9,9 +8,8 @@ import {
   Typography,
   ToggleButton,
   ToggleButtonGroup,
-  IconButton,
 } from '@mui/material'
-import { applyAccent } from '@/theme'
+import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
 import {
   getSubscriptionState,
   enablePush,
@@ -20,34 +18,11 @@ import {
   type SubscriptionState
 } from '@/lib/push'
 
-const ACCENT_COLORS = [
-  { name: 'Amber', hex: '#F2A65A' },
-  { name: 'Indigo', hex: '#6C8FE5' },
-  { name: 'Emerald', hex: '#3DD68C' },
-  { name: 'Coral', hex: '#E5484D' },
-  { name: 'Violet', hex: '#A78BFA' },
-]
-
-const getCheckColor = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16)
-  const lum = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)
-  return lum > 150 ? '#000' : '#fff'
-}
-
 export function SettingsView() {
   const { mode, setMode } = useColorScheme()
-  const [currentAccent, setCurrentAccent] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('ea-accent') || '#F2A65A'
-    }
-    return '#F2A65A'
-  })
+  const { selectedKey, setThemeKey } = useThemeSelection()
   const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
   const [loadingPush, setLoadingPush] = useState(false)
-
-  useEffect(() => {
-    applyAccent(currentAccent)
-  }, [currentAccent])
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -120,47 +95,45 @@ export function SettingsView() {
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Accent color picker */}
+            {/* Theme picker */}
             <Box>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                Accent Color
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-                {ACCENT_COLORS.map((color) => (
-                  <IconButton
-                    key={color.hex}
-                    onClick={() => setCurrentAccent(color.hex)}
-                    title={color.name}
-                    sx={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 1,
-                      p: 0,
-                      position: 'relative',
-                      bgcolor: color.hex,
-                      border: '2px solid',
-                      borderColor: currentAccent === color.hex ? 'primary.main' : 'action.disabled',
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        transform: 'scale(1.1)',
-                      },
-                    }}
-                  >
-                    {currentAccent === color.hex && (
-                      <Check size={20} style={{ color: getCheckColor(color.hex) }} />
-                    )}
-                  </IconButton>
-                ))}
+              <Typography variant="overline" color="text.secondary">Theme</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 1 }}>
+                {THEMES.map((t) => {
+                  const selected = t.key === selectedKey
+                  const strip = [t.dark.primary, t.dark.secondary, ...t.dark.cat.slice(0, 3)]
+                  return (
+                    <Box
+                      key={t.key}
+                      component="button"
+                      aria-label={t.label}
+                      aria-pressed={selected}
+                      onClick={() => setThemeKey(t.key)}
+                      sx={{
+                        textAlign: 'left', cursor: 'pointer', p: 1.5, borderRadius: 2,
+                        border: 2, borderColor: selected ? 'primary.main' : 'divider',
+                        bgcolor: 'background.paper', color: 'text.primary', font: 'inherit',
+                        display: 'flex', flexDirection: 'column', gap: 0.75,
+                        '&:hover': { borderColor: 'primary.light' },
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{t.label}</Typography>
+                      <Typography variant="caption" color="text.secondary">{t.mood}</Typography>
+                      <Box sx={{ display: 'flex', gap: 0.5, mt: 0.5 }}>
+                        {strip.map((c, i) => (
+                          <Box key={i} sx={{ width: 22, height: 14, borderRadius: 0.5, bgcolor: c }} />
+                        ))}
+                      </Box>
+                    </Box>
+                  )
+                })}
               </Box>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                Currently: <span style={{ fontFamily: 'monospace' }}>{currentAccent}</span>
-              </Typography>
             </Box>
 
-            {/* Theme selector */}
+            {/* Mode selector */}
             <Box>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
-                Theme
+                Mode
               </Typography>
               <ToggleButtonGroup
                 value={mode || 'system'}

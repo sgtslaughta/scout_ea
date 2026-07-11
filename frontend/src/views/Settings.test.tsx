@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { ThemeProvider } from '@mui/material/styles'
 import { toast } from 'sonner'
-import { theme } from '../theme'
+import ThemeSelectionProvider from '../themes/ThemeSelectionProvider'
 import { SettingsView } from './Settings'
 import * as push from '@/lib/push'
 
@@ -10,9 +9,9 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 
 function renderSettings() {
   return render(
-    <ThemeProvider theme={theme} defaultMode="dark" modeStorageKey="ea-theme">
+    <ThemeSelectionProvider>
       <SettingsView />
-    </ThemeProvider>,
+    </ThemeSelectionProvider>,
   )
 }
 
@@ -22,15 +21,9 @@ describe('Settings view', () => {
   })
 
   it('renders Settings header', () => {
-    render(<SettingsView />)
+    renderSettings()
     const heading = screen.getByText('Settings')
     expect(heading).toBeDefined()
-  })
-
-  it('renders accent color picker', () => {
-    render(<SettingsView />)
-    const label = screen.getByText('Accent Color')
-    expect(label).toBeDefined()
   })
 
   it('wires theme mode selection to ea-theme localStorage', () => {
@@ -59,5 +52,13 @@ describe('Settings view', () => {
         'No active subscriptions — enable notifications first (requires a real browser + push service)',
       ),
     )
+  })
+
+  it('theme picker lists all themes and selecting persists', async () => {
+    localStorage.clear()
+    renderSettings()
+    const cyber = await screen.findByRole('button', { name: /cyberpunk/i })
+    fireEvent.click(cyber)
+    await waitFor(() => expect(localStorage.getItem('ea-theme-name')).toBe('cyberpunk'))
   })
 })
