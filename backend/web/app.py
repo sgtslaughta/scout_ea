@@ -96,7 +96,8 @@ def _rows(conn, sql, params=()):
 
 
 def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
-    app = FastAPI(title="Scout EA")
+    # Relocate auto-docs off /docs so the SPA route /docs wins on hard refresh
+    app = FastAPI(title="Scout EA", docs_url="/api/docs", redoc_url="/api/redoc")
     db_path = Path(db_path)
 
     def get_db():

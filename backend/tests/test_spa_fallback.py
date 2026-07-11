@@ -25,3 +25,12 @@ def test_api_404_still_404(tmp_path):
     app = create_app(tmp_path / "t.sqlite", static_dir=_mk_static(tmp_path))
     client = TestClient(app)
     assert client.get("/api/nope").status_code == 404
+
+
+def test_docs_serves_spa_not_swagger(tmp_path):
+    """FastAPI auto-docs relocated to /api/docs so /docs is the SPA view."""
+    app = create_app(tmp_path / "t.sqlite", static_dir=_mk_static(tmp_path))
+    client = TestClient(app)
+    r = client.get("/docs")
+    assert r.status_code == 200 and "scout" in r.text and "swagger" not in r.text.lower()
+    assert client.get("/api/docs").status_code == 200  # swagger still available, relocated
