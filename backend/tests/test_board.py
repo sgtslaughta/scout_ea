@@ -189,3 +189,29 @@ def test_patch_task_with_board_column_id_moves_card(tmp_path):
     # Verify
     task = conn.execute("SELECT board_column_id FROM tasks WHERE id=?", (tid,)).fetchone()
     assert task["board_column_id"] == done["id"]
+
+
+def test_patch_task_with_invalid_column_id_fails(tmp_path):
+    """Moving a task to a non-existent column violates the FK -> 400 (not silent)."""
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    conn = db.get_conn(p)
+    tid = db.add_task(conn, title="x", priority=3, status="open")
+    c = TestClient(create_app(p))
+    r = c.patch(f"/api/tasks/{tid}", json={"board_column_id": 9999})
+    assert r.status_code == 400
+
+
+def test_delete_last_column_nulls_tasks(tmp_path):
+    """Deleting every column reassigns down to the last, then NULL on the final delete."""
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    conn = db.get_conn(p)
+    tid = db.add_task(conn, title="x", priority=3, status="open")
+    cols = [r["id"] for r in conn.execute("SELECT id FROM board_columns ORDER BY position")]
+    c = TestClient(create_app(p))
+    for cid in cols:
+        assert c.delete(f"/api/board/columns/{cid}").status_code == 200
+    assert conn.execute("SELECT count(*) FROM board_columns").fetchone()[0] == 0
+    row = db.get_conn(p).execute("SELECT board_column_id FROM tasks WHERE id=?", (tid,)).fetchone()
+    assert row["board_column_id"] is None
