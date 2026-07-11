@@ -351,7 +351,7 @@ export interface ActionCreate {
 export const listActions = (status?: string) =>
   fetchJson<Action[]>(`/api/actions${status ? `?status=${encodeURIComponent(status)}` : ''}`)
 export const createAction = (body: ActionCreate) =>
-  postJson<{ id: number }>('/api/actions', body as Record<string, unknown>)
+  postJson<{ id: number }>('/api/actions', body as unknown as Record<string, unknown>)
 export const approveAction = (id: number) =>
   postJson<{ updated: number }>(`/api/actions/${id}/approve`, {})
 export const dismissAction = (id: number) =>
