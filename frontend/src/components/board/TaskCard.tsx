@@ -71,43 +71,50 @@ export function TaskCard({ task, onEdit, onComplete, onDismiss, onConvert }: Tas
   )
 
   return (
-    <Tooltip arrow placement="right" enterDelay={400} title={hoverCard}>
-      <Box
-        ref={setNodeRef}
-        style={{ transform: CSS.Translate.toString(transform) }}
-        {...attributes}
-        {...listeners}
-        onClick={() => onEdit(task)}
-        role="button"
-        aria-label={`Edit ${task.title}`}
-        sx={{
-          p: 1, mb: 1, borderRadius: 1, border: '1px solid', borderColor: 'divider',
-          bgcolor: 'background.paper', cursor: 'grab', opacity: isDragging ? 0.4 : 1,
-          '&:hover': { borderColor: 'primary.main' },
-          '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
-          touchAction: 'none',
-        }}
-      >
+    <Box
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      {...attributes}
+      {...listeners}
+      onClick={() => onEdit(task)}
+      role="button"
+      aria-label={`Edit ${task.title}`}
+      sx={{
+        p: 1, mb: 1, borderRadius: 1, border: '1px solid', borderColor: 'divider',
+        bgcolor: 'background.paper', cursor: 'grab', opacity: isDragging ? 0.4 : 1,
+        '&:hover': { borderColor: 'primary.main' },
+        '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
+        touchAction: 'none',
+      }}
+    >
+      {/* hover card scoped to the title area so it doesn't fight the action tooltips */}
+      <Tooltip arrow placement="right" enterDelay={400} title={hoverCard}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 0.75 }}>
           <Box sx={{ mt: 0.5, width: 8, height: 8, borderRadius: '50%', flexShrink: 0, bgcolor: PRIORITY_COLOR[task.priority] ?? 'info.main' }} aria-label={`priority ${task.priority}`} />
           <Typography variant="body2" sx={{ flex: 1, fontWeight: 500, lineHeight: 1.3, textDecoration: isDone ? 'line-through' : 'none', color: isDone ? 'text.secondary' : 'text.primary' }}>{task.title}</Typography>
         </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, pl: 1.75 }}>
-          {due && (
-            <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: due.color }}>{due.text}</Typography>
-          )}
-          <Box sx={{ flex: 1 }} />
+      </Tooltip>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, pl: 1.75 }}>
+        {due && (
+          <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: due.color }}>{due.text}</Typography>
+        )}
+        <Box sx={{ flex: 1 }} />
+        <Tooltip arrow title={isDone ? 'Completed' : 'Complete'}>
           <IconButton size="small" aria-label="Complete" onClick={(e) => { e.stopPropagation(); onComplete(task.id) }} sx={{ p: 0.25, color: isDone ? 'success.main' : 'inherit' }}>
             <CheckCircle size={14} />
           </IconButton>
+        </Tooltip>
+        <Tooltip arrow title="Convert to deadline">
           <IconButton size="small" aria-label="Convert to deadline" onClick={(e) => { e.stopPropagation(); onConvert(task) }} sx={{ p: 0.25 }}>
             <Flag size={14} />
           </IconButton>
+        </Tooltip>
+        <Tooltip arrow title="Dismiss">
           <IconButton size="small" aria-label="Dismiss" onClick={(e) => { e.stopPropagation(); onDismiss(task.id) }} sx={{ p: 0.25 }}>
             <Trash2 size={14} />
           </IconButton>
-        </Box>
+        </Tooltip>
       </Box>
-    </Tooltip>
+    </Box>
   )
 }

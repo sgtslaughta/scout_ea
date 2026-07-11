@@ -51,7 +51,7 @@ export function BoardColumn({
     <Box sx={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', maxHeight: '100%' }}>
       {/* header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75, mb: 1, borderRadius: 1, bgcolor: 'action.hover' }}>
-        <IconButton size="small" aria-label={`Move ${column.name} left`} disabled={isFirst} onClick={() => onMove(column, -1)} sx={{ p: 0.25 }}><ChevronLeft size={14} /></IconButton>
+        <Tooltip arrow title="Move column left"><span><IconButton size="small" aria-label={`Move ${column.name} left`} disabled={isFirst} onClick={() => onMove(column, -1)} sx={{ p: 0.25 }}><ChevronLeft size={14} /></IconButton></span></Tooltip>
         {editing ? (
           <TextField
             value={name} onChange={(e) => setName(e.target.value)} onBlur={commit}
@@ -70,8 +70,8 @@ export function BoardColumn({
           </Tooltip>
         )}
         <Typography variant="caption" color="text.secondary">{tasks.length}</Typography>
-        <IconButton size="small" aria-label={`Move ${column.name} right`} disabled={isLast} onClick={() => onMove(column, 1)} sx={{ p: 0.25 }}><ChevronRight size={14} /></IconButton>
-        <IconButton size="small" aria-label={`Delete ${column.name}`} onClick={() => onDelete(column)} sx={{ p: 0.25 }}><Trash2 size={14} /></IconButton>
+        <Tooltip arrow title="Move column right"><span><IconButton size="small" aria-label={`Move ${column.name} right`} disabled={isLast} onClick={() => onMove(column, 1)} sx={{ p: 0.25 }}><ChevronRight size={14} /></IconButton></span></Tooltip>
+        <Tooltip arrow title="Delete column"><IconButton size="small" aria-label={`Delete ${column.name}`} onClick={() => onDelete(column)} sx={{ p: 0.25 }}><Trash2 size={14} /></IconButton></Tooltip>
       </Box>
 
       {/* status this column applies on drop */}
