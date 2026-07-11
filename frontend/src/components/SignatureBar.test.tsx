@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { theme } from '../theme'
+import { TimePrefsProvider } from '@/lib/timePrefs'
 import { SignatureBar } from './SignatureBar'
 import * as api from '@/api'
 import type { Deadline } from '@/api'
@@ -17,7 +18,9 @@ function renderBar() {
   return render(
     <QueryClientProvider client={qc}>
       <ThemeProvider theme={theme} defaultMode="dark" modeStorageKey="ea-theme">
-        <MemoryRouter><SignatureBar /></MemoryRouter>
+        <TimePrefsProvider>
+          <MemoryRouter><SignatureBar /></MemoryRouter>
+        </TimePrefsProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   )
