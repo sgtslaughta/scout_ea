@@ -55,14 +55,6 @@ export function DeadlinesView() {
     queryFn: () => getDeadlines(showHidden),
   })
 
-  // Open modal when focus param present
-  React.useEffect(() => {
-    if (focusId !== null && deadlines.length > 0) {
-      const d = deadlines.find(x => x.id === focusId)
-      if (d) { handleEdit(d); setSearchParams({}) }
-    }
-  }, [focusId])
-
   const urgentOnly = searchParams.get('due') === '24h'
   const visibleDeadlines = urgentOnly
     ? deadlines.filter((d) => d.countdown_seconds < 86400)
@@ -124,6 +116,14 @@ export function DeadlinesView() {
   const handleEdit = (d: Deadline) => {
     setEditingId(d.id); setTitle(d.title); setDetail(d.detail ?? ''); setDueAt(isoToLocalInput(d.due_at)); setAddOpen(true)
   }
+
+  // Open modal when focus param present
+  React.useEffect(() => {
+    if (focusId !== null && deadlines.length > 0) {
+      const d = deadlines.find(x => x.id === focusId)
+      if (d) { handleEdit(d); setSearchParams({}) }
+    }
+  }, [focusId])
 
   const handleCloseDialog = () => {
     setTitle('')

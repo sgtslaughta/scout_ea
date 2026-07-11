@@ -68,7 +68,7 @@ export function AxisCluster({ percent, items, color, compactWhen }: AxisClusterP
               <Box
                 key={i.key} role="button" tabIndex={0} aria-label={`${i.type}: ${i.title}`}
                 onClick={() => go(i.type, i.id)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i.type) } }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(i.type, i.id) } }}
                 sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
               >
                 <Box component="span" sx={{ color: TAG_COLOR[i.type], fontWeight: 700, fontSize: 11 }}>{TAG[i.type]}</Box>

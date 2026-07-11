@@ -91,7 +91,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   ]
 
   // ponytail: extract id from key (d123 → 123, t456 → 456)
-  const extractId = (key: string) => parseInt(key.slice(1), 10)
+  const extractId = (key: string) => { const n = parseInt(key.slice(1), 10); return Number.isNaN(n) ? 0 : n }
 
   // Timeline axis = items falling in today's workday span; everything else goes to a flank.
   const onAxis = (i: Item) => {

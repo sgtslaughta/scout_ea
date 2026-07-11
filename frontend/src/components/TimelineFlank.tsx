@@ -64,7 +64,7 @@ export function TimelineFlank({ items, title, icon, accent, bucketOrder, bucketO
                 <Box
                   key={i.key} role="button" tabIndex={0} aria-label={`${i.type === 'deadline' ? 'Deadline' : 'Task'}: ${i.title}`}
                   onClick={() => goto(i.type, i.id)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(i.type) } }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto(i.type, i.id) } }}
                   sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
                 >
                   <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, fontSize: 11 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
