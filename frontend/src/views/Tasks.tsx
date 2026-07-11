@@ -181,7 +181,7 @@ export function TasksView() {
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>Delete “{deleteTarget?.name}”?</DialogTitle>
         <DialogContent>
-          <Typography variant="body2">Its tasks move to the first column. This doesn’t delete any tasks.</Typography>
+          <Typography variant="body2">Its tasks move to the first remaining column. This doesn’t delete any tasks.</Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteTarget(null)}>Cancel</Button>
