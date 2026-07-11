@@ -31,9 +31,9 @@ Fix a batch of broken/dead UI, and add the missing safety net that let one bad v
 
 ### A1. Trending white screen (crash)
 
-**Root cause:** `frontend/src/views/Trending.tsx` uses `bgcolor: 'bg.main'` (2 places: the error branch and the main return). `bg` is not a palette namespace — the theme defines `background.default`/`paper`. MUI's sx resolver evaluates `theme.palette.bg.main` → `theme.palette.bg` is `undefined` → `.main` throws `TypeError` during render. With no route-level error boundary, the thrown error unmounts the whole React tree → white screen.
+**Root cause (reproduced headless — pageerror `t.toFixed is not a function`):** the `trends.delta` field is stored as SQLite TEXT (`upsert_trend` types it `str | None`, `backend/ea/db.py:166`), so `/api/trends` returns `delta` as a **string** (`"8"`, `"-3"`), but the frontend `Trend` interface (`api.ts`) declares `delta?: number`. `Trending.tsx` is the only consumer that trusts the type — it calls `delta.toFixed(1)` (and `score.toFixed(1)`), and `"8".toFixed` is not a function → uncaught `TypeError` during render. Widgets/RightDrawer survived only because they string-concatenate delta instead of calling a numeric method. (`bgcolor: 'bg.main'`, present in the same file, does NOT crash — MUI's `getPath` resolves a missing palette key to `undefined` safely; it is a latent no-op tidied up opportunistically, not the cause.)
 
-**Fix:** replace both `bgcolor: 'bg.main'` with `bgcolor: 'background.default'`.
+**Fix (data boundary):** coerce in the `getTrends` fetcher (`api.ts`) so the returned `delta` matches its declared `number | undefined` type: `delta: r.delta == null ? undefined : Number(r.delta)`. This makes the type honest for every frontend consumer at once and requires no backend/schema/DB change (delta is TEXT by design). Also tidy the two `bgcolor: 'bg.main'` → `background.default` while in the file.
 
 ### A2. Route error boundary (durable safety net)
 
