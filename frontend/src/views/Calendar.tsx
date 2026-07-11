@@ -1,13 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  Box,
-  Button,
-  Typography,
-  Chip,
-  Tooltip,
-  Skeleton,
-} from '@mui/material'
-import { getEvents, setSignalStatus } from '@/api'
+import { Box, Button, Typography, Chip, Tooltip, Skeleton } from '@mui/material'
+import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
+import { Check, X } from 'lucide-react'
+import { getEvents, setSignalStatus, type EventItem } from '@/api'
 import { toast } from 'sonner'
 
 export function CalendarView() {
@@ -41,177 +36,69 @@ export function CalendarView() {
 
   const parseJsonSafe = <T,>(json: string | undefined): T[] => {
     if (!json) return []
-    try {
-      return JSON.parse(json)
-    } catch {
-      return []
-    }
+    try { return JSON.parse(json) } catch { return [] }
   }
+
+  const detailTip = (e: EventItem) => {
+    const times = parseJsonSafe<string>(e.proposed_times)
+    const attendees = parseJsonSafe<string>(e.attendees)
+    const lines: string[] = []
+    if (e.body) lines.push(e.body)
+    if (!e.chosen_time && times.length) lines.push('Proposed: ' + times.slice(0, 3).join(', ') + (times.length > 3 ? ` +${times.length - 3} more` : ''))
+    if (attendees.length) lines.push(`${attendees.length} ${attendees.length === 1 ? 'attendee' : 'attendees'}`)
+    return lines.join('\n') || 'No details'
+  }
+
+  const columns: GridColDef<EventItem>[] = [
+    {
+      field: 'title', headerName: 'Event', flex: 1,
+      renderCell: (p) => (
+        <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{detailTip(p.row)}</span>} arrow>
+          <span>{p.row.title}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      field: 'chosen_time', headerName: 'Time', width: 200,
+      renderCell: (p) => p.row.chosen_time
+        ? <Chip size="small" color="primary" variant="filled" label={p.row.chosen_time} />
+        : <Typography variant="caption" color="text.secondary">Unscheduled</Typography>,
+    },
+    {
+      field: 'status', headerName: 'Status', width: 120,
+      renderCell: (p) => <Chip size="small" variant="outlined" label={p.row.status} />,
+    },
+    {
+      field: 'actions', type: 'actions', width: 90,
+      getActions: (p) => p.row.status === 'suggested' ? [
+        <GridActionsCellItem key="approve" icon={<Check size={16} />} label="Approve"
+          onClick={() => approveMutation.mutate(p.row.id)} disabled={approveMutation.isPending} showInMenu={false} />,
+        <GridActionsCellItem key="reject" icon={<X size={16} />} label="Reject"
+          onClick={() => rejectMutation.mutate(p.row.id)} disabled={rejectMutation.isPending} showInMenu={false} />,
+      ] : [],
+    },
+  ]
 
   return (
     <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
       <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {/* Header */}
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Calendar
-        </Typography>
-
-        {/* Error alert */}
+        <Typography variant="h5" sx={{ mb: 2 }}>Calendar</Typography>
         {error && (
-          <Box
-            sx={{
-              bgcolor: 'error.main',
-              opacity: 0.3,
-              border: '1px solid',
-              borderColor: 'error.main',
-              borderRadius: 1,
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 2,
-            }}
-          >
-            <Typography variant="body2" sx={{ color: 'error.main' }}>
-              Error loading events
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => refetch()}
-              sx={{ color: 'error.main', textDecoration: 'underline' }}
-            >
-              Retry
-            </Button>
+          <Box sx={{ bgcolor: 'error.main', opacity: 0.3, border: '1px solid', borderColor: 'error.main', borderRadius: 1, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+            <Typography variant="body2" sx={{ color: 'error.main' }}>Error loading events</Typography>
+            <Button size="small" onClick={() => refetch()} sx={{ color: 'error.main', textDecoration: 'underline' }}>Retry</Button>
           </Box>
         )}
-
-        {/* Events list */}
         {isLoading ? (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
-            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
-            <Skeleton variant="rounded" height={40} sx={{ mb: 1 }} />
+            <Skeleton variant="rounded" height={40} /><Skeleton variant="rounded" height={40} /><Skeleton variant="rounded" height={40} />
           </Box>
         ) : events.length === 0 ? (
-          <Box
-            sx={{
-              bgcolor: 'background.paper',
-              border: '1px solid',
-              borderColor: 'divider',
-              borderRadius: 1,
-              p: 3,
-              textAlign: 'center',
-              color: 'text.secondary',
-              fontSize: '0.875rem',
-            }}
-          >
-            No events scheduled.
-          </Box>
+          <Typography variant="caption" color="text.secondary">No events scheduled.</Typography>
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-            {events.map((e) => {
-              const proposedTimes = parseJsonSafe<string>(e.proposed_times)
-              const attendeesList = parseJsonSafe<string>(e.attendees)
-              const chosenTime = e.chosen_time
-
-              return (
-                <Box
-                  key={e.id}
-                  sx={{
-                    bgcolor: 'background.paper',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    p: 2,
-                    transition: 'background-color 0.2s',
-                    '&:hover': {
-                      bgcolor: 'action.hover',
-                    },
-                  }}
-                >
-                  {/* Event header */}
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1.5 }}>
-                    <Box>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {e.title}
-                      </Typography>
-                      {e.body && (
-                        <Typography variant="caption" sx={{ color: 'text.secondary', mt: 0.5, display: 'block' }}>
-                          {e.body}
-                        </Typography>
-                      )}
-                    </Box>
-                    <Chip
-                      label={e.status}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Box>
-
-                  {/* Event times and attendees */}
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 1.5 }}>
-                    {chosenTime ? (
-                      <Tooltip title={`Scheduled for ${chosenTime}`}>
-                        <Chip
-                          label={chosenTime}
-                          size="small"
-                          variant="filled"
-                          color="primary"
-                        />
-                      </Tooltip>
-                    ) : proposedTimes.length > 0 ? (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                        {proposedTimes.slice(0, 3).map((time, i) => (
-                          <Tooltip key={i} title={`Proposed: ${time}`}>
-                            <Chip
-                              label={time}
-                              size="small"
-                              variant="outlined"
-                            />
-                          </Tooltip>
-                        ))}
-                        {proposedTimes.length > 3 && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center' }}>
-                            +{proposedTimes.length - 3} more
-                          </Typography>
-                        )}
-                      </Box>
-                    ) : null}
-
-                    {attendeesList.length > 0 && (
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {attendeesList.length} {attendeesList.length === 1 ? 'attendee' : 'attendees'}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  {/* Action buttons */}
-                  {e.status === 'suggested' && (
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        onClick={() => approveMutation.mutate(e.id)}
-                        disabled={approveMutation.isPending}
-                        sx={{ flex: 1 }}
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => rejectMutation.mutate(e.id)}
-                        disabled={rejectMutation.isPending}
-                        sx={{ flex: 1 }}
-                      >
-                        Reject
-                      </Button>
-                    </Box>
-                  )}
-                </Box>
-              )
-            })}
-          </Box>
+          <DataGrid rows={events} columns={columns} loading={isLoading} density="compact"
+            disableColumnMenu pageSizeOptions={[25, 50]}
+            initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} sx={{ border: 0 }} />
         )}
       </Box>
     </Box>

@@ -20,6 +20,7 @@ const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.Tas
 const CalendarView = lazy(() => import('@/views/Calendar').then(m => ({ default: m.CalendarView })))
 const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
 const TopicsView = lazy(() => import('@/views/Topics').then(m => ({ default: m.TopicsView })))
+const ActivityView = lazy(() => import('@/views/Activity').then(m => ({ default: m.ActivityView })))
 
 export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(
@@ -97,6 +98,7 @@ export function App() {
                     <Route path="/people" element={<PeopleView />} />
                     <Route path="/topics" element={<TopicsView />} />
                     <Route path="/docs" element={<DocsView />} />
+                    <Route path="/activity" element={<ActivityView />} />
                     <Route path="/settings" element={<SettingsView />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>

@@ -78,6 +78,14 @@ class TopicPatch(BaseModel):
     max_suggest: int | None = None
 
 
+class TaskPatch(BaseModel):
+    title: str | None = None
+    detail: str | None = None
+    due_at: str | None = None
+    priority: int | None = None
+    status: str | None = None
+
+
 class SubscribeBody(BaseModel):
     endpoint: str
     keys: dict
@@ -118,6 +126,19 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     @app.get("/api/tasks")
     def list_tasks(conn=Depends(get_db)):
         return _rows(conn, "SELECT * FROM tasks ORDER BY created_at DESC, id DESC")
+
+    @app.patch("/api/tasks/{task_id}")
+    def update_task_endpoint(task_id: int, body: TaskPatch, conn=Depends(get_db)):
+        fields = body.model_dump(exclude_none=True)
+        if not fields:
+            return {"updated": 0}
+        try:
+            n = db.update_task(conn, task_id, **fields)
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="update failed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="task not found")
+        return {"updated": n}
 
     @app.get("/api/alerts")
     def list_alerts(conn=Depends(get_db)):

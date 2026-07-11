@@ -172,6 +172,9 @@ export const setSignalStatus = (table: string, id: number, status: string) =>
 
 export const getTasks = () => fetchJson<Task[]>('/api/tasks')
 
+export const updateTask = (id: number, body: Partial<Task>) =>
+  patchJson<{ updated: number }>(`/api/tasks/${id}`, body)
+
 export const getEvents = () => fetchJson<EventItem[]>('/api/events')
 
 export const getPeople = (includeInactive?: boolean) => {
