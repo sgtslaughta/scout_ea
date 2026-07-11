@@ -71,9 +71,15 @@ describe('Settings view', () => {
     expect(localStorage.getItem('ea-time-24h')).toBe('true')
   })
 
+  it('workday start persists to ea-workday-start', () => {
+    renderSettings()
+    fireEvent.change(screen.getByRole('combobox', { name: /workday start/i }), { target: { value: '9' } })
+    expect(localStorage.getItem('ea-workday-start')).toBe('9')
+  })
+
   it('timezone select persists to ea-timezone', () => {
     renderSettings()
-    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'UTC' } })
+    fireEvent.change(screen.getByRole('combobox', { name: /timezone/i }), { target: { value: 'UTC' } })
     expect(localStorage.getItem('ea-timezone')).toBe('UTC')
   })
 })

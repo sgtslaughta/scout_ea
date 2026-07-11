@@ -8,23 +8,42 @@ import { DEFAULT_TIME_PREFS, formatFriendly, formatClock, type TimePrefs } from 
 
 const TZ_KEY = 'ea-timezone'
 const H24_KEY = 'ea-time-24h'
+const WD_START_KEY = 'ea-workday-start'
+const WD_END_KEY = 'ea-workday-end'
 
-interface TimePrefsCtx extends TimePrefs {
+export const DEFAULT_WORKDAY = { start: 7, end: 18 }
+
+interface StoredPrefs extends TimePrefs {
+  workdayStart: number
+  workdayEnd: number
+}
+
+interface TimePrefsCtx extends StoredPrefs {
   setTimeZone: (tz: string) => void
   setHour24: (v: boolean) => void
+  setWorkday: (start: number, end: number) => void
 }
 
 const Ctx = createContext<TimePrefsCtx | null>(null)
 
-function load(): TimePrefs {
+function loadNum(key: string, fallback: number): number {
+  const raw = localStorage.getItem(key)
+  if (raw === null || raw === '') return fallback
+  const n = Number(raw)
+  return Number.isInteger(n) && n >= 0 && n <= 23 ? n : fallback
+}
+
+function load(): StoredPrefs {
   return {
     timeZone: localStorage.getItem(TZ_KEY) || DEFAULT_TIME_PREFS.timeZone,
     hour24: localStorage.getItem(H24_KEY) === 'true',
+    workdayStart: loadNum(WD_START_KEY, DEFAULT_WORKDAY.start),
+    workdayEnd: loadNum(WD_END_KEY, DEFAULT_WORKDAY.end),
   }
 }
 
 export function TimePrefsProvider({ children }: { children: ReactNode }) {
-  const [prefs, setPrefs] = useState<TimePrefs>(load)
+  const [prefs, setPrefs] = useState<StoredPrefs>(load)
 
   const setTimeZone = useCallback((tz: string) => {
     localStorage.setItem(TZ_KEY, tz)
@@ -34,10 +53,15 @@ export function TimePrefsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(H24_KEY, String(v))
     setPrefs((p) => ({ ...p, hour24: v }))
   }, [])
+  const setWorkday = useCallback((start: number, end: number) => {
+    localStorage.setItem(WD_START_KEY, String(start))
+    localStorage.setItem(WD_END_KEY, String(end))
+    setPrefs((p) => ({ ...p, workdayStart: start, workdayEnd: end }))
+  }, [])
 
   const value = useMemo<TimePrefsCtx>(
-    () => ({ ...prefs, setTimeZone, setHour24 }),
-    [prefs, setTimeZone, setHour24],
+    () => ({ ...prefs, setTimeZone, setHour24, setWorkday }),
+    [prefs, setTimeZone, setHour24, setWorkday],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -70,4 +94,11 @@ export function useClockFormat(): (iso: string | number | Date | null | undefine
 export function useTimeZone(): string {
   const ctx = useContext(Ctx)
   return (ctx ?? load()).timeZone
+}
+
+/** The workday span (start/end hours) for the timeline. Resilient: no throw outside a provider. */
+export function useWorkday(): { start: number; end: number } {
+  const ctx = useContext(Ctx)
+  const p = ctx ?? load()
+  return { start: p.workdayStart, end: p.workdayEnd }
 }

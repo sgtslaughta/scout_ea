@@ -31,6 +31,7 @@ describe('SignatureBar', () => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getDeadlines').mockResolvedValue([])
     vi.spyOn(api, 'getTasks').mockResolvedValue([])
+    vi.spyOn(api, 'getEvents').mockResolvedValue([])
   })
 
   it('toggles color mode via useColorScheme', () => {

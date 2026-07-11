@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
 import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
@@ -8,11 +7,11 @@ import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
 import { useColorScheme } from '@mui/material/styles'
 import { Sun, Moon, Sparkles, Search, CalendarClock, AlertTriangle } from 'lucide-react'
-import { getDeadlines, getTasks } from '@/api'
-import { formatCountdown } from '@/widgets/DeadlinesWidget'
-import { useFriendlyTime, useClockFormat, useTimeZone } from '@/lib/timePrefs'
+import { getDeadlines, getTasks, getEvents } from '@/api'
+import { useClockFormat, useTimeZone, useWorkday } from '@/lib/timePrefs'
 import { TimelineFlank } from '@/components/TimelineFlank'
-import { bucketDeadlines, clockPercent, type Urgency, type AxisDeadline } from '@/lib/horizon'
+import { AxisCluster, type AxisDot } from '@/components/AxisCluster'
+import { clockPercent, inWorkday, clusterByProximity, sameLocalDay, urgencyOf, type Urgency } from '@/lib/horizon'
 
 interface SignatureBarProps {
   onCommandOpen?: () => void
@@ -26,13 +25,6 @@ const URGENCY_COLOR: Record<Urgency, string> = {
   soon: 'var(--mui-palette-warning-main)',
   normal: 'var(--color-accent)',
 }
-
-const dotAnimation = (u: Urgency) =>
-  u === 'critical'
-    ? { '@media (prefers-reduced-motion: no-preference)': { animation: 'horizonFlash 0.8s steps(2) infinite' } }
-    : u === 'urgent'
-      ? { '@media (prefers-reduced-motion: no-preference)': { animation: 'horizonPulse 2s ease-in-out infinite' } }
-      : {}
 
 const DAY_MS = 86400000
 const BUCKET_ORDER = ['Today', 'Tomorrow', 'This week', 'Next week', 'Later'] as const
@@ -62,10 +54,9 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const [time, setTime] = useState(new Date())
   const { mode, systemMode, setMode } = useColorScheme()
   const resolved = (mode === 'system' ? systemMode : mode) ?? 'dark'
-  const navigate = useNavigate()
-  const friendly = useFriendlyTime()
   const clock = useClockFormat()
   const timeZone = useTimeZone()
+  const workday = useWorkday()
   const compactTz = timeZone && timeZone !== 'auto' ? timeZone : undefined
   const compactWhen = (iso: string) => {
     const d = new Date(iso)
@@ -79,40 +70,49 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000,
   })
-  // Unified lists: deadlines + active dated tasks, split into upcoming vs overdue.
-  const nowMs = Date.now()
-  const activeTask = (t: typeof tasks[number]) => t.due_at && t.status !== 'done' && t.status !== 'dismissed'
-  const upcomingItems = [
-    ...deadlines.filter((d) => d.countdown_seconds > 0)
-      .map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const })),
-    ...tasks.filter((t) => activeTask(t) && new Date(t.due_at as string).getTime() >= nowMs)
-      .map((t) => ({ key: `t${t.id}`, title: t.title, when: t.due_at as string, type: 'task' as const })),
-  ].sort((a, b) => a.when.localeCompare(b.when))
-  const overdueItems = [
-    ...deadlines.filter((d) => d.countdown_seconds <= 0)
-      .map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const })),
-    ...tasks.filter((t) => activeTask(t) && new Date(t.due_at as string).getTime() < nowMs)
-      .map((t) => ({ key: `t${t.id}`, title: t.title, when: t.due_at as string, type: 'task' as const })),
-  ].sort((a, b) => a.when.localeCompare(b.when))
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'], queryFn: getEvents, refetchInterval: 15000,
+  })
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
     return () => clearInterval(timer)
   }, [])
 
-  const nowPercent = clockPercent(time)
-  const { onAxis } = bucketDeadlines(deadlines, time)
+  // Every dated item (deadlines + active tasks + scheduled events) with an urgency.
+  const nowMs = Date.now()
+  const secsUntil = (when: string) => Math.floor((new Date(when).getTime() - nowMs) / 1000)
+  const activeTask = (t: typeof tasks[number]) => t.due_at && t.status !== 'done' && t.status !== 'dismissed'
+  type Item = { key: string; title: string; when: string; type: 'deadline' | 'task' | 'event'; urgency: Urgency; past: boolean }
+  const allItems: Item[] = [
+    ...deadlines.map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const, urgency: urgencyOf(d.countdown_seconds), past: d.countdown_seconds <= 0 })),
+    ...tasks.filter(activeTask).map((t) => { const w = t.due_at as string; const s = secsUntil(w); return { key: `t${t.id}`, title: t.title, when: w, type: 'task' as const, urgency: urgencyOf(s), past: s <= 0 } }),
+    ...events.filter((e) => e.chosen_time).map((e) => { const w = e.chosen_time as string; const s = secsUntil(w); return { key: `e${e.id}`, title: e.title, when: w, type: 'event' as const, urgency: urgencyOf(s), past: s <= 0 } }),
+  ]
 
-  const dotTip = (a: AxisDeadline) =>
-    `${a.deadline.title} — due ${friendly(a.deadline.due_at)} · ${formatCountdown(a.deadline.countdown_seconds)}`
+  // Timeline axis = items falling in today's workday span; everything else goes to a flank.
+  const onAxis = (i: Item) => {
+    const d = new Date(i.when)
+    return !isNaN(d.getTime()) && sameLocalDay(d, time) && inWorkday(d, workday.start, workday.end)
+  }
+  const SEVERITY: Record<Urgency, number> = { critical: 3, urgent: 2, soon: 1, normal: 0 }
+  const axisDots = allItems.filter(onAxis).map((i) => ({ ...i, percent: clockPercent(new Date(i.when), workday.start, workday.end) }))
+  const clusters = clusterByProximity(axisDots).map((c) => {
+    const worst = c.items.reduce<Urgency>((m, i) => (SEVERITY[i.urgency] > SEVERITY[m] ? i.urgency : m), 'normal')
+    const items: AxisDot[] = c.items.map((i) => ({ key: i.key, title: i.title, when: i.when, type: i.type }))
+    return { percent: c.percent, color: URGENCY_COLOR[worst], items }
+  })
+
+  // Flanks stay deadlines + tasks only (events live on the axis / calendar).
+  const flankItem = (i: Item) => ({ key: i.key, title: i.title, when: i.when, type: i.type as 'deadline' | 'task' })
+  const overdueItems = allItems.filter((i) => i.type !== 'event' && i.past && !onAxis(i)).map(flankItem).sort((a, b) => a.when.localeCompare(b.when))
+  const upcomingItems = allItems.filter((i) => i.type !== 'event' && !i.past && !onAxis(i)).map(flankItem).sort((a, b) => a.when.localeCompare(b.when))
+
+  const nowPercent = clockPercent(time, workday.start, workday.end)
 
   return (
     <Box sx={{ height: 48, display: 'flex', alignItems: 'center', px: 2, gap: 1.5, bgcolor: 'background.paper', borderBottom: 1, borderColor: 'divider' }}>
-      <Box sx={{
-        '@keyframes horizonPulse': { '0%,100%': { opacity: 0.55, transform: 'translate(-50%,-50%) scale(1)' }, '50%': { opacity: 1, transform: 'translate(-50%,-50%) scale(1.35)' } },
-        '@keyframes horizonFlash': { '0%': { opacity: 1 }, '100%': { opacity: 0.3 } },
-        '@keyframes nowPulse': { '0%,100%': { opacity: 0.8 }, '50%': { opacity: 1 } },
-      }} />
+      <Box sx={{ '@keyframes nowPulse': { '0%,100%': { opacity: 0.8 }, '50%': { opacity: 1 } } }} />
       <Typography variant="h6" sx={{ fontSize: 18, mr: 1 }}>SCOUT</Typography>
 
       {/* overdue flank (left of the timeline = the past) */}
@@ -125,23 +125,9 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
         {/* horizon line */}
         <Box sx={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 3, borderRadius: 1, background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-2))' }} />
 
-        {/* deadline dots on the today axis */}
-        {onAxis.map((a) => (
-          <Tooltip key={a.deadline.id} title={dotTip(a)} arrow>
-            <Box
-              role="button" tabIndex={0} aria-label={dotTip(a)}
-              onClick={() => navigate('/deadlines')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
-              sx={{
-                position: 'absolute', left: `${a.percent}%`, top: '50%', transform: 'translate(-50%,-50%)',
-                width: 10, height: 10, borderRadius: '50%', cursor: 'pointer',
-                bgcolor: URGENCY_COLOR[a.urgency], border: '2px solid', borderColor: 'background.paper',
-                boxShadow: a.urgency === 'critical' || a.urgency === 'urgent' ? `0 0 6px ${URGENCY_COLOR[a.urgency]}` : 'none',
-                '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
-                ...dotAnimation(a.urgency),
-              }}
-            />
-          </Tooltip>
+        {/* dated items on the workday axis, overlaps clustered */}
+        {clusters.map((c) => (
+          <AxisCluster key={c.items[0].key} percent={c.percent} items={c.items} color={c.color} compactWhen={compactWhen} />
         ))}
 
         {/* now-marker + centered live time readout */}
