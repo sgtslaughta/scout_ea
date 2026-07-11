@@ -6,13 +6,12 @@ import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
-import Popover from '@mui/material/Popover'
 import { useColorScheme } from '@mui/material/styles'
-import { Sun, Moon, Sparkles, Search, CalendarClock } from 'lucide-react'
+import { Sun, Moon, Sparkles, Search, CalendarClock, AlertTriangle } from 'lucide-react'
 import { getDeadlines, getTasks } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { useFriendlyTime, useClockFormat, useTimeZone } from '@/lib/timePrefs'
-import { MarqueeText } from '@/components/MarqueeText'
+import { TimelineFlank } from '@/components/TimelineFlank'
 import { bucketDeadlines, clockPercent, type Urgency, type AxisDeadline } from '@/lib/horizon'
 
 interface SignatureBarProps {
@@ -49,6 +48,16 @@ function bucketOf(whenIso: string, now: Date): string {
   return 'Later'
 }
 
+const OVERDUE_ORDER = ['Today', 'This week', 'Older'] as const
+function overdueBucketOf(whenIso: string, now: Date): string {
+  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0)
+  const w = new Date(whenIso); w.setHours(0, 0, 0, 0)
+  const days = Math.round((w.getTime() - startToday.getTime()) / DAY_MS)
+  if (days === 0) return 'Today'
+  if (days >= -7) return 'This week'
+  return 'Older'
+}
+
 export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProps) {
   const [time, setTime] = useState(new Date())
   const { mode, systemMode, setMode } = useColorScheme()
@@ -70,12 +79,19 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000,
   })
-  // Unified upcoming list: future deadlines + future-dated active tasks.
+  // Unified lists: deadlines + active dated tasks, split into upcoming vs overdue.
   const nowMs = Date.now()
+  const activeTask = (t: typeof tasks[number]) => t.due_at && t.status !== 'done' && t.status !== 'dismissed'
   const upcomingItems = [
     ...deadlines.filter((d) => d.countdown_seconds > 0)
       .map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const })),
-    ...tasks.filter((t) => t.due_at && new Date(t.due_at).getTime() >= nowMs && t.status !== 'done' && t.status !== 'dismissed')
+    ...tasks.filter((t) => activeTask(t) && new Date(t.due_at as string).getTime() >= nowMs)
+      .map((t) => ({ key: `t${t.id}`, title: t.title, when: t.due_at as string, type: 'task' as const })),
+  ].sort((a, b) => a.when.localeCompare(b.when))
+  const overdueItems = [
+    ...deadlines.filter((d) => d.countdown_seconds <= 0)
+      .map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const })),
+    ...tasks.filter((t) => activeTask(t) && new Date(t.due_at as string).getTime() < nowMs)
       .map((t) => ({ key: `t${t.id}`, title: t.title, when: t.due_at as string, type: 'task' as const })),
   ].sort((a, b) => a.when.localeCompare(b.when))
 
@@ -86,17 +102,6 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
 
   const nowPercent = clockPercent(time)
   const { onAxis } = bucketDeadlines(deadlines, time)
-
-  const [upcomingAnchor, setUpcomingAnchor] = useState<HTMLElement | null>(null)
-  const [upcomingExpanded, setUpcomingExpanded] = useState(false)
-  const UPCOMING_CAP = 10
-  const shownUpcoming = upcomingExpanded ? upcomingItems : upcomingItems.slice(0, UPCOMING_CAP)
-  const hiddenUpcoming = upcomingItems.length - shownUpcoming.length
-  const groupedUpcoming = BUCKET_ORDER
-    .map((b) => ({ bucket: b, items: shownUpcoming.filter((i) => bucketOf(i.when, time) === b) }))
-    .filter((g) => g.items.length > 0)
-  const closeUpcoming = () => { setUpcomingAnchor(null); setUpcomingExpanded(false) }
-  const gotoItem = (type: 'deadline' | 'task') => { navigate(type === 'deadline' ? '/deadlines' : '/tasks'); closeUpcoming() }
 
   const dotTip = (a: AxisDeadline) =>
     `${a.deadline.title} — due ${friendly(a.deadline.due_at)} · ${formatCountdown(a.deadline.countdown_seconds)}`
@@ -110,7 +115,13 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
       }} />
       <Typography variant="h6" sx={{ fontSize: 18, mr: 1 }}>SCOUT</Typography>
 
-      <Box sx={{ position: 'relative', flex: 9, height: 32 }}>
+      {/* overdue flank (left of the timeline = the past) */}
+      <TimelineFlank
+        items={overdueItems} title="Overdue" icon={<AlertTriangle size={16} />} accent="error"
+        bucketOrder={OVERDUE_ORDER} bucketOf={(iso) => overdueBucketOf(iso, time)} compactWhen={compactWhen}
+      />
+
+      <Box sx={{ position: 'relative', flex: 8, height: 32 }}>
         {/* horizon line */}
         <Box sx={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 3, borderRadius: 1, background: 'linear-gradient(90deg, var(--color-accent), var(--color-accent-2))' }} />
 
@@ -147,53 +158,11 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
 
       </Box>
 
-      {/* upcoming indicator (deadlines + tasks, grouped by day/week; click for a nav-able list) */}
-      <Tooltip arrow title="Upcoming deadlines & tasks">
-        <Box
-          role="button" tabIndex={0} aria-label={`${upcomingItems.length} upcoming items`} aria-haspopup="true"
-          onClick={(e) => setUpcomingAnchor(e.currentTarget)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setUpcomingAnchor(e.currentTarget) } }}
-          sx={{ flex: 1, minWidth: 40, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, borderRadius: 1, cursor: 'pointer', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
-        >
-          <CalendarClock size={16} />
-          <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{upcomingItems.length}</Typography>
-        </Box>
-      </Tooltip>
-      <Popover
-        open={!!upcomingAnchor} anchorEl={upcomingAnchor} onClose={closeUpcoming}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Box sx={{ minWidth: 260, maxWidth: 340, maxHeight: 420, overflowY: 'auto', p: 1 }}>
-          <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5, px: 0.5 }}>Upcoming{upcomingItems.length ? ` (${upcomingItems.length})` : ''}</Typography>
-          {upcomingItems.length === 0 && <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>Nothing upcoming.</Typography>}
-          {groupedUpcoming.map((g) => (
-            <Box key={g.bucket} sx={{ mb: 0.5 }}>
-              <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'text.secondary', px: 0.5, mt: 0.5 }}>{g.bucket}</Typography>
-              {g.items.map((i) => (
-                <Box
-                  key={i.key} role="button" tabIndex={0} aria-label={`${i.type === 'deadline' ? 'Deadline' : 'Task'}: ${i.title}`}
-                  onClick={() => gotoItem(i.type)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gotoItem(i.type) } }}
-                  sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
-                >
-                  <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, fontSize: 11 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
-                  <Box sx={{ flex: 1, minWidth: 0, fontSize: '0.75rem' }}><MarqueeText text={i.title} /></Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontFamily: '"JetBrains Mono", monospace', fontSize: 10 }}>{compactWhen(i.when)}</Typography>
-                </Box>
-              ))}
-            </Box>
-          ))}
-          {hiddenUpcoming > 0 && (
-            <Box
-              role="button" tabIndex={0} onClick={() => setUpcomingExpanded(true)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setUpcomingExpanded(true) } }}
-              sx={{ textAlign: 'center', py: 0.5, mt: 0.25, borderRadius: 1, cursor: 'pointer', color: 'primary.main', fontSize: 12, '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
-            >
-              +{hiddenUpcoming} more
-            </Box>
-          )}
-        </Box>
-      </Popover>
+      {/* upcoming flank (right of the timeline = the future) */}
+      <TimelineFlank
+        items={upcomingItems} title="Upcoming" icon={<CalendarClock size={16} />} accent="neutral"
+        bucketOrder={BUCKET_ORDER} bucketOf={(iso) => bucketOf(iso, time)} compactWhen={compactWhen}
+      />
 
       <IconButton size="small" onClick={onOpenBriefing} aria-label="Open today briefing">
         <Sparkles size={16} />
