@@ -9,10 +9,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   TextField,
+  IconButton,
 } from '@mui/material'
+import { Trash2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
 import { useTimePrefs } from '@/lib/timePrefs'
 import { COMMON_ZONES, effectiveZone, formatFriendly } from '@/lib/datetime'
+import { getGuidance, deleteGuidance } from '@/api'
 
 const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`
 import {
@@ -233,7 +237,7 @@ export function SettingsView() {
         </Box>
 
         {/* Notifications section */}
-        <Box>
+        <Box sx={{ mb: 4 }}>
           <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
             Notifications
           </Typography>
@@ -307,6 +311,52 @@ export function SettingsView() {
             </Box>
           </Box>
         </Box>
+
+        {/* Guidance section */}
+        <GuidanceSection />
+      </Box>
+    </Box>
+  )
+}
+
+function GuidanceSection() {
+  const qc = useQueryClient()
+  const { data: allGuidance = [] } = useQuery({
+    queryKey: ['guidance'],
+    queryFn: () => getGuidance(),
+  })
+  const del = useMutation({
+    mutationFn: (id: number) => deleteGuidance(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['guidance'] }),
+  })
+
+  return (
+    <Box>
+      <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>
+        Guidance
+      </Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {allGuidance.length === 0 ? (
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            No guidance notes yet.
+          </Typography>
+        ) : (
+          allGuidance.map((g) => (
+            <Box key={g.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
+              <Typography variant="body2">
+                <span style={{ fontWeight: 600 }}>{g.scope}:</span> {g.text}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => del.mutate(g.id)}
+                disabled={del.isPending}
+                sx={{ ml: 1 }}
+              >
+                <Trash2 size={16} />
+              </IconButton>
+            </Box>
+          ))
+        )}
       </Box>
     </Box>
   )
