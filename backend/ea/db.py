@@ -788,3 +788,30 @@ def has_open_action(conn, entity_type, entity_id, action_type) -> bool:
         "     OR (status='completed' AND executed_at > datetime('now','-1 day'))) "
         "LIMIT 1", (entity_type, entity_id, action_type)).fetchone()
     return row is not None
+
+
+# --- guidance primitives ---------------------------------------------------
+
+def add_guidance(conn, scope, text) -> int:
+    """Insert a guidance entry. Returns the new id."""
+    cur = conn.execute("INSERT INTO guidance (scope, text) VALUES (?, ?)", (scope, text))
+    conn.commit()
+    return cur.lastrowid
+
+
+def list_guidance(conn, scope=None) -> list:
+    """List guidance entries, newest first. If scope given, matches that scope OR 'global'."""
+    if scope is None:
+        rows = conn.execute("SELECT * FROM guidance ORDER BY created_at DESC, id DESC")
+    else:
+        rows = conn.execute(
+            "SELECT * FROM guidance WHERE scope=? OR scope='global' "
+            "ORDER BY created_at DESC, id DESC", (scope,))
+    return [dict(r) for r in rows.fetchall()]
+
+
+def delete_guidance(conn, guidance_id) -> int:
+    """Delete a guidance entry by id. Returns rows affected."""
+    cur = conn.execute("DELETE FROM guidance WHERE id=?", (guidance_id,))
+    conn.commit()
+    return cur.rowcount

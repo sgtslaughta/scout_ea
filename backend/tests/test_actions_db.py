@@ -38,3 +38,14 @@ def test_claim_is_exclusive_and_dedup(tmp_path):
                   entity_id=3, status="drafted")
     assert db.has_open_action(conn, "person", 3, "teams_dm") is True
     assert db.has_open_action(conn, "person", 3, "email_new") is False
+
+
+def test_guidance_crud(tmp_path):
+    conn = db.init_db(tmp_path / "t.db")
+    gid = db.add_guidance(conn, "topic:AI", "ignore vendor spam")
+    db.add_guidance(conn, "global", "keep replies short")
+    scoped = db.list_guidance(conn, scope="topic:AI")
+    texts = {g["text"] for g in scoped}
+    assert "ignore vendor spam" in texts and "keep replies short" in texts  # global included
+    assert db.delete_guidance(conn, gid) == 1
+    assert all(g["text"] != "ignore vendor spam" for g in db.list_guidance(conn))
