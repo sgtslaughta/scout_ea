@@ -23,7 +23,6 @@ def test_patch_task_updates_fields(tmp_path):
 
 
 def test_patch_missing_task_404(tmp_path):
-    app, _ = _client(tmp_path), None
     r = _client(tmp_path).patch("/api/tasks/9999", json={"title": "x"})
     assert r.status_code == 404
 
