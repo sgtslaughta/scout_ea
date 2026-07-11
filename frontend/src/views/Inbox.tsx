@@ -19,6 +19,8 @@ import { getSignals, setSignalStatus } from '@/api'
 import { toast } from 'sonner'
 import { relativeTime } from '@/widgets/SignalsWidget'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { ActionBadge } from '@/components/actions/ActionBadge'
+import { ActionMenu } from '@/components/actions/ActionMenu'
 
 const PRIORITY_COLOR: Record<number, string> = { 1: 'error.main', 2: 'warning.main' }
 
@@ -124,8 +126,21 @@ export function InboxView() {
     {
       field: 'actions',
       type: 'actions',
-      width: 100,
+      width: 140,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="badge"
+          icon={<ActionBadge entityType="email" entityId={params.row.id} />}
+          label="Action status"
+          showInMenu={false}
+          disabled
+        />,
+        <GridActionsCellItem
+          key="menu"
+          icon={<ActionMenu entity={{ type: 'email', id: params.row.id }} />}
+          label="Actions"
+          showInMenu={false}
+        />,
         <GridActionsCellItem
           key="dismiss"
           icon={<Trash2 size={16} />}

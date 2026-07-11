@@ -21,6 +21,7 @@ import {
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 import { getPeople, addPerson, updatePerson, deletePerson, type Person } from '@/api'
 import { toast } from 'sonner'
+import { ActionMenu } from '@/components/actions/ActionMenu'
 
 const IMPORTANCE_LEVELS = [
   { value: 1, label: 'Critical' },
@@ -202,8 +203,14 @@ export function PeopleView() {
     {
       field: 'actions',
       type: 'actions',
-      width: 80,
+      width: 120,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="menu"
+          icon={<ActionMenu entity={{ type: 'person', id: params.row.id }} />}
+          label="Actions"
+          showInMenu={false}
+        />,
         <GridActionsCellItem
           key="edit"
           icon={<Pencil size={16} />}

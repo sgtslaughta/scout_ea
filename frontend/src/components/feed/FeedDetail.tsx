@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { setNewsStatus, setLearningStatus } from '@/api'
 import { TagEditor } from '@/components/TagEditor'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { ActionMenu } from '@/components/actions/ActionMenu'
 import { refTypeOf, type FeedSelection } from './types'
 
 interface Props { selection: FeedSelection | null; onClose: () => void }
@@ -65,6 +66,7 @@ export function FeedDetail({ selection, onClose }: Props) {
                 {category}{when ? ` · ${friendly(when)}` : ''}
               </Typography>
             </Box>
+            <ActionMenu entity={{ type: category === 'signal' ? 'signal' : 'news', id: selection.id }} />
             <IconButton size="small" onClick={onClose} aria-label="Close detail"><X size={16} /></IconButton>
           </Box>
           <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto', p: 2 }}>
