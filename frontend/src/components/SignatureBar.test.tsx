@@ -27,7 +27,7 @@ describe('SignatureBar', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getDeadlines').mockResolvedValue([])
-    vi.spyOn(api, 'getEvents').mockResolvedValue([])
+    vi.spyOn(api, 'getTasks').mockResolvedValue([])
   })
 
   it('toggles color mode via useColorScheme', () => {
@@ -52,21 +52,16 @@ describe('SignatureBar', () => {
     expect(await screen.findByRole('button', { name: /Ship it/i })).toBeInTheDocument()
   })
 
-  it('shows an upcoming-events indicator with a count', async () => {
-    const future = new Date(Date.now() + 3600 * 1000).toISOString()
-    vi.spyOn(api, 'getEvents').mockResolvedValue([
-      { id: 1, title: 'Standup', chosen_time: future, status: 'confirmed' },
-    ])
-    renderBar()
-    expect(await screen.findByRole('button', { name: /1 upcoming events/i })).toBeInTheDocument()
-  })
-
-  it('summarizes future deadlines in a later cluster', async () => {
-    const future = new Date(Date.now() + 3 * 86400 * 1000)
+  it('counts upcoming deadlines and tasks in the indicator', async () => {
+    const future = new Date(Date.now() + 3 * 86400 * 1000).toISOString()
     vi.spyOn(api, 'getDeadlines').mockResolvedValue([
-      mkDeadline({ id: 8, title: 'Next week', due_at: future.toISOString(), countdown_seconds: 3 * 86400 }),
+      mkDeadline({ id: 8, title: 'Next week deadline', due_at: future, countdown_seconds: 3 * 86400 }),
+    ])
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      { id: 1, title: 'Due task', due_at: future, priority: 2, status: 'open', board_column_id: null },
     ])
     renderBar()
-    expect(await screen.findByRole('button', { name: /1 later deadlines/i })).toBeInTheDocument()
+    // 1 deadline + 1 task = 2 upcoming items
+    expect(await screen.findByRole('button', { name: /2 upcoming items/i })).toBeInTheDocument()
   })
 })

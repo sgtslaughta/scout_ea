@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
 import { useColorScheme } from '@mui/material/styles'
 import { Sun, Moon, Sparkles, Search, CalendarClock } from 'lucide-react'
-import { getDeadlines, getEvents } from '@/api'
+import { getDeadlines, getTasks } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { useFriendlyTime, useClockFormat } from '@/lib/timePrefs'
 import { bucketDeadlines, clockPercent, type Urgency, type AxisDeadline } from '@/lib/horizon'
@@ -33,6 +33,20 @@ const dotAnimation = (u: Urgency) =>
       ? { '@media (prefers-reduced-motion: no-preference)': { animation: 'horizonPulse 2s ease-in-out infinite' } }
       : {}
 
+const DAY_MS = 86400000
+const BUCKET_ORDER = ['Today', 'Tomorrow', 'This week', 'Next week', 'Later'] as const
+// Which day/week bucket a date falls into, relative to now.
+function bucketOf(whenIso: string, now: Date): string {
+  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0)
+  const w = new Date(whenIso); w.setHours(0, 0, 0, 0)
+  const days = Math.round((w.getTime() - startToday.getTime()) / DAY_MS)
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Tomorrow'
+  if (days <= 7) return 'This week'
+  if (days <= 14) return 'Next week'
+  return 'Later'
+}
+
 export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProps) {
   const [time, setTime] = useState(new Date())
   const { mode, systemMode, setMode } = useColorScheme()
@@ -44,12 +58,17 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const { data: deadlines = [] } = useQuery({
     queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000,
   })
-  const { data: events = [] } = useQuery({
-    queryKey: ['events'], queryFn: getEvents, refetchInterval: 15000,
+  const { data: tasks = [] } = useQuery({
+    queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000,
   })
-  const upcoming = events
-    .filter((e) => e.chosen_time && new Date(e.chosen_time).getTime() >= Date.now())
-    .sort((a, b) => (a.chosen_time ?? '').localeCompare(b.chosen_time ?? ''))
+  // Unified upcoming list: future deadlines + future-dated active tasks.
+  const nowMs = Date.now()
+  const upcomingItems = [
+    ...deadlines.filter((d) => d.countdown_seconds > 0)
+      .map((d) => ({ key: `d${d.id}`, title: d.title, when: d.due_at, type: 'deadline' as const })),
+    ...tasks.filter((t) => t.due_at && new Date(t.due_at).getTime() >= nowMs && t.status !== 'done' && t.status !== 'dismissed')
+      .map((t) => ({ key: `t${t.id}`, title: t.title, when: t.due_at as string, type: 'task' as const })),
+  ].sort((a, b) => a.when.localeCompare(b.when))
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000)
@@ -57,7 +76,10 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   }, [])
 
   const nowPercent = clockPercent(time)
-  const { onAxis, later } = bucketDeadlines(deadlines, time)
+  const { onAxis } = bucketDeadlines(deadlines, time)
+  const groupedUpcoming = BUCKET_ORDER
+    .map((b) => ({ bucket: b, items: upcomingItems.filter((i) => bucketOf(i.when, time) === b) }))
+    .filter((g) => g.items.length > 0)
 
   const dotTip = (a: AxisDeadline) =>
     `${a.deadline.title} — due ${friendly(a.deadline.due_at)} · ${formatCountdown(a.deadline.countdown_seconds)}`
@@ -106,49 +128,35 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
           }} />
         </Box>
 
-        {/* later overflow cluster */}
-        {later.length > 0 && (
-          <Tooltip arrow title={
-            <Box sx={{ p: 0.5 }}>
-              <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>Later ({later.length})</Typography>
-              {later.slice(0, 6).map((d) => (
-                <Typography key={d.id} variant="caption" sx={{ display: 'block' }}>{d.title} — {friendly(d.due_at)}</Typography>
-              ))}
-              {later.length > 6 && <Typography variant="caption" color="text.secondary">+{later.length - 6} more</Typography>}
-            </Box>
-          }>
-            <Box
-              role="button" tabIndex={0} aria-label={`${later.length} later deadlines`}
-              onClick={() => navigate('/deadlines')}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
-              sx={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 0.25, px: 0.5, py: '1px', borderRadius: 1, cursor: 'pointer', bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
-            >
-              <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'text.secondary' }} />
-              <Typography sx={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace', color: 'text.secondary' }}>+{later.length}</Typography>
-            </Box>
-          </Tooltip>
-        )}
       </Box>
 
-      {/* upcoming events indicator (fills the ~10% freed from the horizon) */}
+      {/* upcoming indicator (deadlines + tasks, grouped by day/week) */}
       <Tooltip arrow title={
-        <Box sx={{ p: 0.5, maxWidth: 260 }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>Upcoming events{upcoming.length ? ` (${upcoming.length})` : ''}</Typography>
-          {upcoming.length === 0 && <Typography variant="caption" color="text.secondary">Nothing scheduled.</Typography>}
-          {upcoming.slice(0, 6).map((e) => (
-            <Typography key={e.id} variant="caption" sx={{ display: 'block' }}>{e.title} — {friendly(e.chosen_time) || e.chosen_time}</Typography>
+        <Box sx={{ p: 0.5, maxWidth: 280 }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>Upcoming{upcomingItems.length ? ` (${upcomingItems.length})` : ''}</Typography>
+          {groupedUpcoming.length === 0 && <Typography variant="caption" color="text.secondary">Nothing upcoming.</Typography>}
+          {groupedUpcoming.map((g) => (
+            <Box key={g.bucket} sx={{ mb: 0.5 }}>
+              <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'text.secondary' }}>{g.bucket}</Typography>
+              {g.items.slice(0, 5).map((i) => (
+                <Typography key={i.key} variant="caption" sx={{ display: 'block' }}>
+                  <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, mr: 0.5 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
+                  {i.title} — {friendly(i.when) || i.when}
+                </Typography>
+              ))}
+              {g.items.length > 5 && <Typography variant="caption" color="text.secondary">+{g.items.length - 5} more</Typography>}
+            </Box>
           ))}
-          {upcoming.length > 6 && <Typography variant="caption" color="text.secondary">+{upcoming.length - 6} more</Typography>}
         </Box>
       }>
         <Box
-          role="button" tabIndex={0} aria-label={`${upcoming.length} upcoming events`}
-          onClick={() => navigate('/calendar')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/calendar') } }}
+          role="button" tabIndex={0} aria-label={`${upcomingItems.length} upcoming items`}
+          onClick={() => navigate('/deadlines')}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
           sx={{ flex: 1, minWidth: 40, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, borderRadius: 1, cursor: 'pointer', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
         >
           <CalendarClock size={16} />
-          <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{upcoming.length}</Typography>
+          <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{upcomingItems.length}</Typography>
         </Box>
       </Tooltip>
 
