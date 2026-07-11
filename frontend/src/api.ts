@@ -110,9 +110,13 @@ export const getOutlook = () => fetchJson<OutlookResponse>('/api/outlook')
 
 export const getDeadlines = () => fetchJson<Deadline[]>('/api/deadlines')
 
-export const getTrends = (windowStart?: string) => {
+export const getTrends = async (windowStart?: string): Promise<Trend[]> => {
   const qs = windowStart ? `?window_start=${encodeURIComponent(windowStart)}` : ''
-  return fetchJson<Trend[]>(`/api/trends${qs}`)
+  const rows = await fetchJson<Trend[]>(`/api/trends${qs}`)
+  return rows.map((r) => ({
+    ...r,
+    delta: r.delta == null ? undefined : Number(r.delta),
+  }))
 }
 
 export const getSkills = () => fetchJson<Skill[]>('/api/skills')

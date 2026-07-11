@@ -50,12 +50,20 @@ describe('DashboardView (widget grid)', () => {
     expect(screen.queryByText('Deadlines')).toBeNull()
   })
 
-  it('hidden widgets come back via Add widget menu', async () => {
-    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ order: WIDGETS.map((w) => w.key), hidden: ['deadlines'] }))
+  it('Manage widgets menu toggles visibility and persists', async () => {
     wrap()
-    fireEvent.click(await screen.findByRole('button', { name: /add widget/i }))
-    fireEvent.click(await screen.findByRole('menuitem', { name: /deadlines/i }))
-    expect(await screen.findByText('Deadlines')).toBeInTheDocument()
+    const btn = await screen.findByRole('button', { name: /manage widgets/i })
+    expect(btn).not.toBeDisabled()
+    fireEvent.click(btn)
+    // every widget listed
+    const items = await screen.findAllByRole('menuitemcheckbox')
+    expect(items.length).toBe(WIDGETS.length)
+    // hide the first widget
+    fireEvent.click(items[0])
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(LAYOUT_KEY)!)
+      expect(stored.hidden.length).toBe(1)
+    })
   })
 
   it('move down persists new order', async () => {
