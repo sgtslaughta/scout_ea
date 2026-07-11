@@ -28,6 +28,11 @@ export interface Deadline {
   tags?: DeadlineTag[]
 }
 
+export interface Tag { id: number; name: string; color: string }
+export interface ContentTag { tag_id: number; name: string; color: string }
+export interface ContentLink { id: number; target_type: string; target_id: number; label: string }
+export interface ContentRefs { tags: ContentTag[]; links: ContentLink[] }
+
 export interface Trend {
   id: number
   term: string
@@ -220,6 +225,20 @@ export const deleteDeadlineTag = (deadlineId: number, tagId: number) =>
 
 export const setConfig = (key: string, value: string) =>
   postJson<{ key: string; value: string }>(`/api/config/${key}`, { value })
+
+export const getTags = () => fetchJson<Tag[]>('/api/tags')
+export const createTag = (name: string, color = 'neutral') =>
+  postJson<{ id: number }>('/api/tags', { name, color })
+export const getContentRefs = (refType: string, refId: number) =>
+  fetchJson<ContentRefs>(`/api/content/${refType}/${refId}/refs`)
+export const tagContent = (refType: string, refId: number, name: string, color = 'neutral') =>
+  postJson<{ ok: boolean }>(`/api/content/${refType}/${refId}/tags`, { name, color })
+export const untagContent = (refType: string, refId: number, tagId: number) =>
+  del<{ deleted: number }>(`/api/content/${refType}/${refId}/tags/${tagId}`)
+export const linkContent = (refType: string, refId: number, target_type: string, target_id: number) =>
+  postJson<{ ok: boolean }>(`/api/content/${refType}/${refId}/links`, { target_type, target_id })
+export const unlinkContent = (refType: string, refId: number, linkId: number) =>
+  del<{ deleted: number }>(`/api/content/${refType}/${refId}/links/${linkId}`)
 
 export const setSignalStatus = (table: string, id: number, status: string) =>
   postJson<{ updated: number }>(`/api/${table}/${id}/status`, { status })
