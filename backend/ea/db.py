@@ -239,6 +239,19 @@ def add_task(conn: sqlite3.Connection, **fields) -> int:
     return cur.lastrowid
 
 
+def update_task(conn: sqlite3.Connection, task_id: int, **fields) -> int:
+    """Update a task row. Returns rows affected. Columns validated against _TASK_COLS."""
+    bad = set(fields) - _TASK_COLS
+    if bad:
+        raise ValueError(f"unknown task columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(f"UPDATE tasks SET {sets} WHERE id=?", [*fields.values(), task_id])
+    conn.commit()
+    return cur.rowcount
+
+
 def add_skill_run(conn: sqlite3.Connection, skill: str, window_start: str | None = None,
                   window_end: str | None = None, items_created: int = 0, status: str = "ok",
                   note: str | None = None) -> int:

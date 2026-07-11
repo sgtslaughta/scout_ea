@@ -9,14 +9,20 @@ import {
   Chip,
   Tooltip,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
 } from '@mui/material'
 import {
   DataGrid,
   GridActionsCellItem,
   type GridColDef,
 } from '@mui/x-data-grid'
-import { CheckCircle, Trash2 } from 'lucide-react'
-import { getTasks, setSignalStatus } from '@/api'
+import { CheckCircle, Trash2, Edit2 } from 'lucide-react'
+import { getTasks, setSignalStatus, updateTask, type Task } from '@/api'
 import { toast } from 'sonner'
 
 const statusFilters = ['open', 'in_progress', 'done', 'dismissed']
@@ -62,6 +68,31 @@ export function TasksView() {
     },
     onError: () => toast.error('Failed to dismiss'),
   })
+
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [fTitle, setFTitle] = useState('')
+  const [fDetail, setFDetail] = useState('')
+  const [fDue, setFDue] = useState('')
+  const [fPriority, setFPriority] = useState(3)
+  const [fStatus, setFStatus] = useState('open')
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateTask(editingId!, {
+      title: fTitle.trim(), detail: fDetail.trim() || undefined,
+      due_at: fDue ? new Date(fDue).toISOString() : undefined,
+      priority: fPriority, status: fStatus,
+    }),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['tasks'] }); toast.success('Task updated'); handleCloseEdit() },
+    onError: () => toast.error('Failed to update task'),
+  })
+
+  const handleEdit = (t: Task) => {
+    setEditingId(t.id); setFTitle(t.title); setFDetail(t.detail ?? '')
+    setFDue(t.due_at ? new Date(t.due_at).toISOString().slice(0, 10) : '')
+    setFPriority(t.priority); setFStatus(t.status); setEditOpen(true)
+  }
+  const handleCloseEdit = () => { setEditOpen(false); setEditingId(null) }
 
   const formatDueDate = (dueAt: string): string => {
     const dueDate = new Date(dueAt)
@@ -153,6 +184,9 @@ export function TasksView() {
       type: 'actions',
       width: 100,
       getActions: (params) => [
+        <GridActionsCellItem
+          key="edit" icon={<Edit2 size={16} />} label="Edit"
+          onClick={() => handleEdit(params.row)} showInMenu={false} />,
         <GridActionsCellItem
           key="complete"
           icon={<CheckCircle size={16} />}
@@ -277,6 +311,30 @@ export function TasksView() {
             }}
           />
         )}
+
+        <Dialog open={editOpen} onClose={handleCloseEdit} maxWidth="xs" fullWidth>
+          <DialogTitle>Edit task</DialogTitle>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField label="Title" value={fTitle} onChange={(e) => setFTitle(e.target.value)} autoFocus required fullWidth />
+            <TextField label="Detail" value={fDetail} onChange={(e) => setFDetail(e.target.value)} multiline rows={2} fullWidth />
+            <TextField label="Due" type="date" value={fDue} onChange={(e) => setFDue(e.target.value)} fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Priority" select value={fPriority} onChange={(e) => setFPriority(Number(e.target.value))} required fullWidth slotProps={{ select: { native: true } }}>
+              <option value={1}>1 - Critical</option>
+              <option value={2}>2 - High</option>
+              <option value={3}>3 - Normal</option>
+            </TextField>
+            <TextField label="Status" select value={fStatus} onChange={(e) => setFStatus(e.target.value)} required fullWidth slotProps={{ select: { native: true } }}>
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+              <option value="dismissed">Dismissed</option>
+            </TextField>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseEdit}>Cancel</Button>
+            <Button variant="contained" disabled={!fTitle.trim()} onClick={() => updateMutation.mutate()}>Save</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   )
