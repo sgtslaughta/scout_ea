@@ -81,6 +81,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
                 width: 10, height: 10, borderRadius: '50%', cursor: 'pointer',
                 bgcolor: URGENCY_COLOR[a.urgency], border: '2px solid', borderColor: 'background.paper',
                 boxShadow: a.urgency === 'critical' || a.urgency === 'urgent' ? `0 0 6px ${URGENCY_COLOR[a.urgency]}` : 'none',
+                '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 },
                 ...dotAnimation(a.urgency),
               }}
             />
@@ -114,7 +115,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
               role="button" tabIndex={0} aria-label={`${later.length} later deadlines`}
               onClick={() => navigate('/deadlines')}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
-              sx={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 0.25, px: 0.5, py: '1px', borderRadius: 1, cursor: 'pointer', bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' } }}
+              sx={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center', gap: 0.25, px: 0.5, py: '1px', borderRadius: 1, cursor: 'pointer', bgcolor: 'action.hover', '&:hover': { bgcolor: 'action.selected' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
             >
               <Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: 'text.secondary' }} />
               <Typography sx={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace', color: 'text.secondary' }}>+{later.length}</Typography>
