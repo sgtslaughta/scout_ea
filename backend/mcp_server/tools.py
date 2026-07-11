@@ -74,3 +74,31 @@ def add_learning(conn, **fields) -> int:
 
 def add_news(conn, **fields) -> int:
     return db.add_news_item(conn, **fields)
+
+
+def add_action(conn, **fields) -> int:
+    return db.add_action(conn, **fields)
+
+
+def list_actions(conn, status=None, mode=None):
+    return db.list_actions(conn, status=status, mode=mode)
+
+
+def update_action(conn, action_id, **kw) -> int:
+    return db.update_action(conn, action_id, **kw)
+
+
+def claim_action(conn, action_id) -> bool:
+    return db.claim_action(conn, action_id)
+
+
+def has_open_action(conn, entity_type, entity_id, action_type) -> bool:
+    return db.has_open_action(conn, entity_type, entity_id, action_type)
+
+
+def add_guidance(conn, scope, text) -> int:
+    return db.add_guidance(conn, scope, text)
+
+
+def list_guidance(conn, scope=None):
+    return db.list_guidance(conn, scope=scope)

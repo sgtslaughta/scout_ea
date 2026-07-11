@@ -200,6 +200,77 @@ def build_server(db_path) -> FastMCP:
         return m365.call("create_event",
                          {"title": title, "start": start, "end": end, "attendees": attendees})
 
+    @mcp.tool()
+    def add_action(action_type: str, entity_type: str | None = None,
+                   entity_id: int | None = None, mode: str = "review",
+                   payload: dict | None = None, rationale: str | None = None,
+                   created_by: str = "skill") -> int:
+        """Draft an outgoing action. mode 'review' needs approval; 'auto' runs unattended.
+        Returns the new action id."""
+        conn = _conn()
+        try:
+            return tools.add_action(conn, action_type=action_type, entity_type=entity_type,
+                                    entity_id=entity_id, mode=mode, payload=payload,
+                                    rationale=rationale, created_by=created_by)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def list_actions(status: str | None = None, mode: str | None = None) -> list[dict]:
+        """List actions (optionally by status/mode), newest first."""
+        conn = _conn()
+        try:
+            return tools.list_actions(conn, status=status, mode=mode)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def update_action(action_id: int, status: str | None = None,
+                      result: dict | None = None, error: str | None = None) -> int:
+        """Write back an action's status/result/error. Returns rows affected."""
+        conn = _conn()
+        try:
+            return tools.update_action(conn, action_id, status=status, result=result, error=error)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def claim_action(action_id: int) -> bool:
+        """Atomically claim an action for execution (approved, or auto+drafted).
+        Returns True iff this caller won the claim."""
+        conn = _conn()
+        try:
+            return tools.claim_action(conn, action_id)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def has_open_action(entity_type: str, entity_id: int, action_type: str) -> bool:
+        """True if an equivalent action is open or was completed in the last 24h (dedup guard)."""
+        conn = _conn()
+        try:
+            return tools.has_open_action(conn, entity_type, entity_id, action_type)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def add_guidance(scope: str, text: str) -> int:
+        """Store user guidance for a scope (e.g. 'topic:AI', 'person:5', 'global'). Returns id."""
+        conn = _conn()
+        try:
+            return tools.add_guidance(conn, scope, text)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def list_guidance(scope: str | None = None) -> list[dict]:
+        """List guidance; if scope given, returns that scope plus 'global'."""
+        conn = _conn()
+        try:
+            return tools.list_guidance(conn, scope=scope)
+        finally:
+            conn.close()
+
     return mcp
 
 
