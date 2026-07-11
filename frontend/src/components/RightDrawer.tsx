@@ -62,8 +62,10 @@ export function RightDrawer() {
                   <Paper
                     variant="outlined"
                     role="button"
+                    tabIndex={0}
                     aria-label={item.title}
                     onClick={() => navigate('/deadlines')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
                     sx={{
                       px: 1.5, py: 1, cursor: 'pointer',
                       '&:hover': { bgcolor: 'action.hover' },
@@ -105,8 +107,10 @@ export function RightDrawer() {
                 >
                   <Box
                     role="button"
+                    tabIndex={0}
                     aria-label={item.term}
                     onClick={() => navigate('/trending')}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/trending') } }}
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 1.5, py: 1, borderRadius: 1, border: 1, borderColor: 'divider', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                   >
                     <Typography variant="body2" sx={{ fontWeight: 500, flex: 1 }}>{item.term}</Typography>
