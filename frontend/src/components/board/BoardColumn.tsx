@@ -33,6 +33,11 @@ export function BoardColumn({
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(column.name)
+  const [showAll, setShowAll] = useState(false)
+
+  const COLLAPSE_AT = 8
+  const shown = showAll ? tasks : tasks.slice(0, COLLAPSE_AT)
+  const hiddenCount = tasks.length - shown.length
 
   const commit = () => {
     setEditing(false)
@@ -90,9 +95,27 @@ export function BoardColumn({
           border: '1px dashed', borderColor: isOver ? 'primary.main' : 'transparent', transition: 'background-color 0.15s',
         }}
       >
-        {tasks.map((t) => (
+        {shown.map((t) => (
           <TaskCard key={t.id} task={t} onEdit={onEditTask} onComplete={onCompleteTask} onDismiss={onDismissTask} />
         ))}
+        {hiddenCount > 0 && (
+          <Box
+            role="button" tabIndex={0} onClick={() => setShowAll(true)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowAll(true) } }}
+            sx={{ textAlign: 'center', py: 0.75, borderRadius: 1, cursor: 'pointer', color: 'primary.main', fontSize: 13, '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
+          >
+            +{hiddenCount} more
+          </Box>
+        )}
+        {showAll && tasks.length > COLLAPSE_AT && (
+          <Box
+            role="button" tabIndex={0} onClick={() => setShowAll(false)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setShowAll(false) } }}
+            sx={{ textAlign: 'center', py: 0.75, borderRadius: 1, cursor: 'pointer', color: 'text.secondary', fontSize: 13, '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
+          >
+            Show less
+          </Box>
+        )}
         {tasks.length === 0 && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', py: 2 }}>Drop tasks here</Typography>
         )}

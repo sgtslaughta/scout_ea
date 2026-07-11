@@ -77,6 +77,37 @@ describe('Tasks board', () => {
     await waitFor(() => expect(add).toHaveBeenCalledWith('Blocked', 'open'))
   })
 
+  it('Complete moves the task to the Done column and marks it done', async () => {
+    const upd = vi.spyOn(api, 'updateTask').mockResolvedValue({ updated: 1 })
+    vi.spyOn(api, 'getTasks').mockResolvedValue([mkTask({ id: 9, title: 'Finish', board_column_id: 1 })])
+    const user = userEvent.setup()
+    renderBoard()
+    await screen.findByText('Finish')
+    await user.click(screen.getByLabelText('Complete'))
+    // Done column has id 2 / status 'done' in the mock
+    await waitFor(() => expect(upd).toHaveBeenCalledWith(9, { board_column_id: 2, status: 'done' }))
+  })
+
+  it('Dismiss without a dismissed column just sets status', async () => {
+    const upd = vi.spyOn(api, 'updateTask').mockResolvedValue({ updated: 1 })
+    vi.spyOn(api, 'getTasks').mockResolvedValue([mkTask({ id: 9, title: 'Junk', board_column_id: 1 })])
+    const user = userEvent.setup()
+    renderBoard()
+    await screen.findByText('Junk')
+    await user.click(screen.getByLabelText('Dismiss'))
+    await waitFor(() => expect(upd).toHaveBeenCalledWith(9, { status: 'dismissed' }))
+  })
+
+  it('hides dismissed tasks from the board', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      mkTask({ id: 1, title: 'Visible', board_column_id: 1 }),
+      mkTask({ id: 2, title: 'Gone', board_column_id: 1, status: 'dismissed' }),
+    ])
+    renderBoard()
+    expect(await screen.findByText('Visible')).toBeInTheDocument()
+    expect(screen.queryByText('Gone')).not.toBeInTheDocument()
+  })
+
   it('shows the per-column status control', async () => {
     renderBoard()
     // each column exposes a "sets <status>" select so drops map to a status

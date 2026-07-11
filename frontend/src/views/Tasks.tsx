@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { Plus } from 'lucide-react'
 import {
-  getTasks, getBoardColumns, updateTask, setSignalStatus,
+  getTasks, getBoardColumns, updateTask,
   addBoardColumn, updateBoardColumn, deleteBoardColumn,
   type Task, type BoardColumn as Column,
 } from '@/api'
@@ -34,11 +34,22 @@ export function TasksView() {
     ? allTasks.filter((t) => t.due_at && new Date(t.due_at).toDateString() === new Date().toDateString())
     : allTasks
 
+  const [sortBy, setSortBy] = useState<'priority' | 'due' | 'created'>('priority')
   const sortedCols = [...columns].sort((a, b) => a.position - b.position)
   const firstColId = sortedCols[0]?.id ?? null
-  const tasksFor = (colId: number) => visibleTasks
+  const doneCol = sortedCols.find((c) => c.status === 'done')
+  const dismissedCol = sortedCols.find((c) => c.status === 'dismissed')
+
+  // Dismissed tasks only appear if a dismissed column holds them; otherwise hidden.
+  const boardTasks = visibleTasks.filter((t) => t.status !== 'dismissed' || t.board_column_id === dismissedCol?.id)
+  const sortCards = (a: Task, b: Task) => {
+    if (sortBy === 'due') return (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')
+    if (sortBy === 'created') return (b.created_at ?? '').localeCompare(a.created_at ?? '') // newest first
+    return a.priority - b.priority || (a.due_at ?? '9999').localeCompare(b.due_at ?? '9999')
+  }
+  const tasksFor = (colId: number) => boardTasks
     .filter((t) => (t.board_column_id ?? firstColId) === colId)
-    .sort((a, b) => a.priority - b.priority || (a.due_at ?? '').localeCompare(b.due_at ?? ''))
+    .sort(sortCards)
 
   // --- mutations ---
   const moveMutation = useMutation({
@@ -52,8 +63,14 @@ export function TasksView() {
     onSuccess: invalidateCols,
     onError: () => toast.error('Failed to set column status'),
   })
-  const completeMutation = useMutation({ mutationFn: (id: number) => setSignalStatus('tasks', id, 'done'), onSuccess: () => { invalidate(); toast.success('Completed') }, onError: () => toast.error('Failed') })
-  const dismissMutation = useMutation({ mutationFn: (id: number) => setSignalStatus('tasks', id, 'dismissed'), onSuccess: () => { invalidate(); toast.success('Dismissed') }, onError: () => toast.error('Failed') })
+  const completeMutation = useMutation({
+    mutationFn: (id: number) => updateTask(id, doneCol ? { board_column_id: doneCol.id, status: 'done' } : { status: 'done' }),
+    onSuccess: () => { invalidate(); toast.success('Completed') }, onError: () => toast.error('Failed'),
+  })
+  const dismissMutation = useMutation({
+    mutationFn: (id: number) => updateTask(id, dismissedCol ? { board_column_id: dismissedCol.id, status: 'dismissed' } : { status: 'dismissed' }),
+    onSuccess: () => { invalidate(); toast.success('Dismissed') }, onError: () => toast.error('Failed'),
+  })
   const addColMutation = useMutation({ mutationFn: (v: { name: string; status: string }) => addBoardColumn(v.name, v.status), onSuccess: () => { invalidateCols(); toast.success('Column added') }, onError: () => toast.error('Failed to add column') })
   const renameColMutation = useMutation({ mutationFn: (v: { id: number; name: string }) => updateBoardColumn(v.id, { name: v.name }), onSuccess: invalidateCols, onError: () => toast.error('Failed to rename') })
   const reorderMutation = useMutation({
@@ -126,6 +143,15 @@ export function TasksView() {
         <Typography variant="h5">Tasks</Typography>
         {dueToday && <Chip label="Due today" size="small" onDelete={() => setSearchParams({})} />}
         <Box sx={{ flex: 1 }} />
+        <TextField
+          size="small" select label="Sort" value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as 'priority' | 'due' | 'created')}
+          slotProps={{ select: { native: true } }} sx={{ minWidth: 120 }}
+        >
+          <option value="priority">Priority</option>
+          <option value="due">Due date</option>
+          <option value="created">Created</option>
+        </TextField>
         {addingCol ? (
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <TextField
