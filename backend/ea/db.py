@@ -271,6 +271,90 @@ def list_deadline_tags(conn: sqlite3.Connection, deadline_id: int) -> list[sqlit
     ).fetchall()
 
 
+# --- universal tags & links ------------------------------------------------
+
+_TAGGABLE_TYPES = {"deadline", "task", "signal", "event", "trend", "trend_finding",
+                   "learning", "news", "person", "topic"}
+# target_type -> label-lookup SQL. Whitelist doubles as target_type validation.
+_LINK_TARGET_SQL = {
+    "person": "SELECT name AS label FROM people WHERE id=?",
+    "topic":  "SELECT name AS label FROM topics WHERE id=?",
+}
+
+
+def _check_ref_type(ref_type: str) -> None:
+    if ref_type not in _TAGGABLE_TYPES:
+        raise ValueError(f"unknown ref_type: {ref_type!r}")
+
+
+def get_or_create_tag(conn: sqlite3.Connection, name: str, color: str = "neutral") -> int:
+    """Return the id of the tag named `name`, creating it (with `color`) if absent."""
+    name = name.strip()
+    if not name:
+        raise ValueError("tag name cannot be empty")
+    row = conn.execute("SELECT id FROM tags WHERE name=?", (name,)).fetchone()
+    if row:
+        return row["id"]
+    cur = conn.execute("INSERT INTO tags (name, color) VALUES (?,?)", (name, color))
+    conn.commit()
+    return cur.lastrowid
+
+
+def tag_content(conn: sqlite3.Connection, ref_type: str, ref_id: int, name: str, color: str = "neutral") -> int:
+    """Attach tag `name` to a content row. Idempotent. Returns rowcount."""
+    _check_ref_type(ref_type)
+    tag_id = get_or_create_tag(conn, name, color)
+    cur = conn.execute(
+        "INSERT INTO content_tags (tag_id, ref_type, ref_id) VALUES (?,?,?) "
+        "ON CONFLICT(tag_id, ref_type, ref_id) DO NOTHING",
+        (tag_id, ref_type, ref_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def untag_content(conn: sqlite3.Connection, ref_type: str, ref_id: int, tag_id: int) -> int:
+    """Detach a tag from a content row. Returns rows affected."""
+    _check_ref_type(ref_type)
+    cur = conn.execute(
+        "DELETE FROM content_tags WHERE ref_type=? AND ref_id=? AND tag_id=?",
+        (ref_type, ref_id, tag_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def list_tags_for(conn: sqlite3.Connection, ref_type: str, ref_id: int) -> list[dict]:
+    """Tags on a content row: [{tag_id, name, color}]."""
+    _check_ref_type(ref_type)
+    rows = conn.execute(
+        "SELECT t.id AS tag_id, t.name, t.color FROM content_tags c "
+        "JOIN tags t ON t.id=c.tag_id WHERE c.ref_type=? AND c.ref_id=? ORDER BY t.name",
+        (ref_type, ref_id),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_all_tags(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    """All tags [{id, name, color}] for pickers."""
+    return conn.execute("SELECT id, name, color FROM tags ORDER BY name").fetchall()
+
+
+def content_ids_by_tag(conn: sqlite3.Connection, tag_id: int, ref_type: str | None = None) -> list[dict]:
+    """[{ref_type, ref_id}] for everything carrying `tag_id` (optionally one ref_type)."""
+    if ref_type is not None:
+        _check_ref_type(ref_type)
+        rows = conn.execute(
+            "SELECT ref_type, ref_id FROM content_tags WHERE tag_id=? AND ref_type=?",
+            (tag_id, ref_type),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT ref_type, ref_id FROM content_tags WHERE tag_id=?", (tag_id,)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 # --- config helpers --------------------------------------------------------
 
 # NOTE: WRITABLE_CONFIG is a deliberate security allowlist; only specific config keys
