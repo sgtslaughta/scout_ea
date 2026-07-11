@@ -63,3 +63,9 @@ INSERT INTO skill_runs (
 ```
 
 Then exit.
+
+## Associate what you create
+After inserting each row, associate it:
+- `link_content("signal", <id>, "topic", <topic_id>)` for its topic(s); `"person"` for people it concerns.
+- `tag_content("signal", <id>, "<label>")` with 1–3 reused labels (`list_tags()` first).
+  Trending/news rows also get an `internal` or `external` origin tag.
