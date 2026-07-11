@@ -215,3 +215,28 @@ def test_delete_last_column_nulls_tasks(tmp_path):
     assert conn.execute("SELECT count(*) FROM board_columns").fetchone()[0] == 0
     row = db.get_conn(p).execute("SELECT board_column_id FROM tasks WHERE id=?", (tid,)).fetchone()
     assert row["board_column_id"] is None
+
+
+def test_default_columns_have_mapped_statuses(tmp_path):
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    conn = db.get_conn(p)
+    rows = {r["name"]: r["status"] for r in conn.execute("SELECT name, status FROM board_columns")}
+    assert rows == {"To Do": "open", "In Progress": "in_progress", "Done": "done"}
+
+
+def test_add_column_with_status_and_update(tmp_path):
+    c = _client(tmp_path)
+    cid = c.post("/api/board/columns", json={"name": "Blocked", "status": "in_progress"}).json()["id"]
+    got = [col for col in c.get("/api/board/columns").json() if col["id"] == cid][0]
+    assert got["status"] == "in_progress"
+    assert c.patch(f"/api/board/columns/{cid}", json={"status": "done"}).json() == {"updated": 1}
+    got2 = [col for col in c.get("/api/board/columns").json() if col["id"] == cid][0]
+    assert got2["status"] == "done"
+
+
+def test_invalid_status_rejected(tmp_path):
+    c = _client(tmp_path)
+    assert c.post("/api/board/columns", json={"name": "X", "status": "bogus"}).status_code == 400
+    cid = c.get("/api/board/columns").json()[0]["id"]
+    assert c.patch(f"/api/board/columns/{cid}", json={"status": "bogus"}).status_code == 400

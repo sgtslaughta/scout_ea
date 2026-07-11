@@ -52,6 +52,8 @@ export interface BoardColumn {
   id: number
   name: string
   position: number
+  /** Task status applied when a card is dropped into this column. */
+  status: string
 }
 
 export interface Skill {
@@ -198,10 +200,10 @@ export const updateTask = (id: number, body: Partial<Task>) =>
 
 export const getBoardColumns = () => fetchJson<BoardColumn[]>('/api/board/columns')
 
-export const addBoardColumn = (name: string) =>
-  postJson<{ id: number }>('/api/board/columns', { name })
+export const addBoardColumn = (name: string, status: string = 'open') =>
+  postJson<{ id: number }>('/api/board/columns', { name, status })
 
-export const updateBoardColumn = (id: number, body: Partial<Pick<BoardColumn, 'name' | 'position'>>) =>
+export const updateBoardColumn = (id: number, body: Partial<Pick<BoardColumn, 'name' | 'position' | 'status'>>) =>
   patchJson<{ updated: number }>(`/api/board/columns/${id}`, body)
 
 export const deleteBoardColumn = (id: number) =>

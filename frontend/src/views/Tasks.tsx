@@ -15,7 +15,7 @@ import {
   addBoardColumn, updateBoardColumn, deleteBoardColumn,
   type Task, type BoardColumn as Column,
 } from '@/api'
-import { BoardColumn } from '@/components/board/BoardColumn'
+import { BoardColumn, STATUS_OPTIONS } from '@/components/board/BoardColumn'
 import { toast } from 'sonner'
 
 export function TasksView() {
@@ -42,13 +42,19 @@ export function TasksView() {
 
   // --- mutations ---
   const moveMutation = useMutation({
-    mutationFn: (v: { taskId: number; columnId: number }) => updateTask(v.taskId, { board_column_id: v.columnId }),
+    mutationFn: (v: { taskId: number; columnId: number; status: string }) =>
+      updateTask(v.taskId, { board_column_id: v.columnId, status: v.status }),
     onSuccess: invalidate,
     onError: () => toast.error('Failed to move task'),
   })
+  const setColStatusMutation = useMutation({
+    mutationFn: (v: { id: number; status: string }) => updateBoardColumn(v.id, { status: v.status }),
+    onSuccess: invalidateCols,
+    onError: () => toast.error('Failed to set column status'),
+  })
   const completeMutation = useMutation({ mutationFn: (id: number) => setSignalStatus('tasks', id, 'done'), onSuccess: () => { invalidate(); toast.success('Completed') }, onError: () => toast.error('Failed') })
   const dismissMutation = useMutation({ mutationFn: (id: number) => setSignalStatus('tasks', id, 'dismissed'), onSuccess: () => { invalidate(); toast.success('Dismissed') }, onError: () => toast.error('Failed') })
-  const addColMutation = useMutation({ mutationFn: (name: string) => addBoardColumn(name), onSuccess: () => { invalidateCols(); toast.success('Column added') }, onError: () => toast.error('Failed to add column') })
+  const addColMutation = useMutation({ mutationFn: (v: { name: string; status: string }) => addBoardColumn(v.name, v.status), onSuccess: () => { invalidateCols(); toast.success('Column added') }, onError: () => toast.error('Failed to add column') })
   const renameColMutation = useMutation({ mutationFn: (v: { id: number; name: string }) => updateBoardColumn(v.id, { name: v.name }), onSuccess: invalidateCols, onError: () => toast.error('Failed to rename') })
   const reorderMutation = useMutation({
     mutationFn: (v: { a: Column; b: Column }) => Promise.all([
@@ -86,11 +92,12 @@ export function TasksView() {
   // --- column controls ---
   const [addingCol, setAddingCol] = useState(false)
   const [newColName, setNewColName] = useState('')
+  const [newColStatus, setNewColStatus] = useState('open')
   const [deleteTarget, setDeleteTarget] = useState<Column | null>(null)
   const submitAddCol = () => {
     const n = newColName.trim()
-    if (n) addColMutation.mutate(n)
-    setNewColName(''); setAddingCol(false)
+    if (n) addColMutation.mutate({ name: n, status: newColStatus })
+    setNewColName(''); setNewColStatus('open'); setAddingCol(false)
   }
   const onMoveCol = (col: Column, dir: -1 | 1) => {
     const idx = sortedCols.findIndex((c) => c.id === col.id)
@@ -108,7 +115,9 @@ export function TasksView() {
     const targetCol = Number(over.id)
     const from = (active.data.current?.columnId ?? firstColId) as number | null
     if (from === targetCol) return
-    moveMutation.mutate({ taskId: Number(active.id), columnId: targetCol })
+    const col = sortedCols.find((c) => c.id === targetCol)
+    if (!col) return
+    moveMutation.mutate({ taskId: Number(active.id), columnId: targetCol, status: col.status })
   }
 
   return (
@@ -118,11 +127,22 @@ export function TasksView() {
         {dueToday && <Chip label="Due today" size="small" onDelete={() => setSearchParams({})} />}
         <Box sx={{ flex: 1 }} />
         {addingCol ? (
-          <TextField
-            size="small" autoFocus placeholder="Column name" value={newColName}
-            onChange={(e) => setNewColName(e.target.value)} onBlur={submitAddCol}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitAddCol(); if (e.key === 'Escape') { setNewColName(''); setAddingCol(false) } }}
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <TextField
+              size="small" autoFocus placeholder="Column name" value={newColName}
+              onChange={(e) => setNewColName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') submitAddCol(); if (e.key === 'Escape') { setNewColName(''); setAddingCol(false) } }}
+            />
+            <TextField
+              size="small" select label="Status" value={newColStatus}
+              onChange={(e) => setNewColStatus(e.target.value)}
+              slotProps={{ select: { native: true } }} sx={{ minWidth: 130 }}
+            >
+              {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </TextField>
+            <Button size="small" variant="contained" onClick={submitAddCol}>Add</Button>
+            <Button size="small" onClick={() => { setNewColName(''); setAddingCol(false) }}>Cancel</Button>
+          </Box>
         ) : (
           <Button size="small" variant="outlined" startIcon={<Plus size={16} />} onClick={() => setAddingCol(true)}>Add column</Button>
         )}
@@ -145,6 +165,7 @@ export function TasksView() {
                 isFirst={i === 0} isLast={i === sortedCols.length - 1}
                 onEditTask={handleEdit} onCompleteTask={completeMutation.mutate} onDismissTask={dismissMutation.mutate}
                 onRename={(id, name) => renameColMutation.mutate({ id, name })}
+                onSetStatus={(id, status) => setColStatusMutation.mutate({ id, status })}
                 onDelete={setDeleteTarget} onMove={onMoveCol}
               />
             ))}

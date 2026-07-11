@@ -24,8 +24,8 @@ describe('Tasks board', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     vi.spyOn(api, 'getBoardColumns').mockResolvedValue([
-      { id: 1, name: 'To Do', position: 0 },
-      { id: 2, name: 'Done', position: 1 },
+      { id: 1, name: 'To Do', position: 0, status: 'open' },
+      { id: 2, name: 'Done', position: 1, status: 'done' },
     ])
     vi.spyOn(api, 'getTasks').mockResolvedValue([])
   })
@@ -33,8 +33,10 @@ describe('Tasks board', () => {
   it('renders heading and board columns', async () => {
     renderBoard()
     expect(screen.getByText('Tasks')).toBeInTheDocument()
+    // 'To Do' is unique to the column header; the Done column is asserted via its status control
+    // ('Done' also appears as a <option> in every status select).
     expect(await screen.findByText('To Do')).toBeInTheDocument()
-    expect(screen.getByText('Done')).toBeInTheDocument()
+    expect(screen.getByLabelText('Status for Done')).toBeInTheDocument()
   })
 
   it('places a task in the first column (null board_column_id)', async () => {
@@ -72,6 +74,13 @@ describe('Tasks board', () => {
     await user.click(await screen.findByRole('button', { name: /add column/i }))
     const input = screen.getByPlaceholderText(/column name/i)
     await user.type(input, 'Blocked{Enter}')
-    await waitFor(() => expect(add).toHaveBeenCalledWith('Blocked'))
+    await waitFor(() => expect(add).toHaveBeenCalledWith('Blocked', 'open'))
+  })
+
+  it('shows the per-column status control', async () => {
+    renderBoard()
+    // each column exposes a "sets <status>" select so drops map to a status
+    expect(await screen.findByLabelText('Status for To Do')).toBeInTheDocument()
+    expect(screen.getByLabelText('Status for Done')).toBeInTheDocument()
   })
 })
