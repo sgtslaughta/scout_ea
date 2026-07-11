@@ -14,6 +14,8 @@ self-directed work auto-runs and logs its result.
 
 ## Principles / decisions
 
+- **Host = MS Copilot Scout (desktop).** It schedules + runs the skills and bridges
+  M365 + the local machine. This repo is the brain/data/UI. (See §C.)
 - **Draft-first, human approves.** Outbound-to-humans (email/Teams/invite) stages
   a draft; nothing leaves until the user clicks **Go**. Self-directed work
   (`cowork_*`, `status_set`) runs automatically (`mode=auto`).
@@ -133,10 +135,13 @@ Each executor tick:
 **Adding a heavier action later** = add its type to the taxonomy and give it (or a
 new) executor skill; the brain, model, MCP, and UI are unchanged.
 
-**Runtime dependency (flagged):** the process that actually *runs* SKILL.md files
-on schedule is outside this repo (backend only parses `schedule` + logs runs via
-`log_skill_run`). Spec assumes it exists. If it doesn't, a `push_worker`-style
-dispatcher thread is a small follow-up — out of scope here.
+**Runtime = MS Copilot Scout (desktop host).** Copilot Scout is the scheduler: it
+runs the scheduled SKILL.md files on their cadence and provides the connections to
+Microsoft products **and the user's local machine** — so executors can send via
+Graph, generate/open documents locally, and gather local/dataverse data on the
+user's behalf. This repo is the brain/data/UI: it defines skills, holds the
+`actions` DB, exposes MCP tools, and renders the queue. `m365.call(action, params)`
+is the Graph bridge Copilot Scout backs. No in-repo dispatcher needed.
 
 ## D. Frontend shared action layer
 
