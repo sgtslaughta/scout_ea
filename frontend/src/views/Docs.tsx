@@ -16,7 +16,7 @@ export function DocsView() {
 
   const columns: GridColDef<Skill>[] = [
     { field: 'name', headerName: 'Skill', width: 220,
-      renderCell: (p) => <Typography variant="body2" sx={{ fontFamily: 'display', fontWeight: 500 }}>{p.row.name}</Typography> },
+      renderCell: (p) => <Typography variant="body2" sx={{ fontWeight: 500 }}>{p.row.name}</Typography> },
     { field: 'description', headerName: 'Description', flex: 1,
       renderCell: (p) => <Tooltip title={p.row.description || 'No description'} arrow><span>{p.row.description}</span></Tooltip> },
     { field: 'schedule', headerName: 'Schedule', width: 160,
@@ -31,18 +31,14 @@ export function DocsView() {
   ]
 
   return (
-    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-      <Box sx={{ height: 64, borderBottom: `1px solid ${theme.palette.divider}`, display: 'flex', alignItems: 'center', px: 6 }}>
-        <Typography variant="h6" sx={{ fontFamily: 'display', fontWeight: 500 }}>Skills Library</Typography>
-      </Box>
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 6, py: 6 }}>
-        <Box sx={{ mb: 6 }}>
-          <Paper variant="outlined" sx={{ p: 2 }}>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              Paste these automations into Microsoft Scout to install them.
-            </Typography>
-          </Paper>
-        </Box>
+    <Box component="main" sx={{ flex: 1, overflowY: 'auto', p: 3 }}>
+      <Box sx={{ maxWidth: '1080px', mx: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Typography variant="h5" sx={{ mb: 1 }}>Skills Library</Typography>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            Paste these automations into Microsoft Scout to install them.
+          </Typography>
+        </Paper>
         {isLoading && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 12 }}><CircularProgress size={24} /></Box>
         )}
@@ -62,7 +58,7 @@ export function DocsView() {
         )}
         {data && data.length > 0 && (
           <DataGrid rows={data} columns={columns} getRowId={(r) => r.name} density="compact"
-            disableColumnMenu pageSizeOptions={[25, 50]}
+            rowHeight={48} columnHeaderHeight={44} disableColumnMenu pageSizeOptions={[25, 50]}
             initialState={{ pagination: { paginationModel: { pageSize: 25 } } }} sx={{ border: 0 }} />
         )}
       </Box>
