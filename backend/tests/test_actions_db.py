@@ -8,3 +8,20 @@ def test_actions_and_guidance_tables_exist(tmp_path):
             "result", "error", "created_at"} <= cols
     gcols = {r[1] for r in conn.execute("PRAGMA table_info(guidance)")}
     assert {"id", "scope", "text", "created_at"} <= gcols
+
+
+def test_add_list_update_action(tmp_path):
+    conn = db.init_db(tmp_path / "t.db")
+    aid = db.add_action(conn, action_type="email_new", entity_type="signal",
+                        entity_id=7, payload={"to": "x@y.com", "subject": "hi"},
+                        rationale="follow up")
+    assert aid > 0
+    rows = db.list_actions(conn, status="drafted")
+    assert len(rows) == 1 and rows[0]["payload"]["to"] == "x@y.com"
+    n = db.update_action(conn, aid, status="completed",
+                         result={"ok": True, "access_url": "http://d/1"})
+    assert n == 1
+    got = db.list_actions(conn)[0]
+    assert got["status"] == "completed"
+    assert got["result"]["access_url"] == "http://d/1"
+    assert got["executed_at"] is not None
