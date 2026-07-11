@@ -24,6 +24,12 @@ describe('applyThemeVars', () => {
     expect(root.style.getPropertyValue('--chart-5')).toBe('#39ff9e')
     expect(root.dataset.themeTexture).toBe('scanlines')
   })
+  it('applies light-mode vars correctly', () => {
+    applyThemeVars(getTheme('cyberpunk'), 'light')
+    const root = document.documentElement
+    expect(root.style.getPropertyValue('--color-accent')).toBe('#d6006e')
+    expect(root.style.getPropertyValue('--chart-1')).toBe('#d6006e')
+  })
 })
 
 describe('ThemeSelectionProvider', () => {
@@ -40,5 +46,11 @@ describe('ThemeSelectionProvider', () => {
     localStorage.setItem('ea-theme-name', 'monokai')
     render(<ThemeSelectionProvider><Probe /></ThemeSelectionProvider>)
     expect(screen.getByTestId('key')).toHaveTextContent('monokai')
+  })
+
+  it('falls back to default when localStorage has an unknown key', () => {
+    localStorage.setItem('ea-theme-name', 'garbage_key')
+    render(<ThemeSelectionProvider><Probe /></ThemeSelectionProvider>)
+    expect(screen.getByTestId('key')).toHaveTextContent('vscode')
   })
 })
