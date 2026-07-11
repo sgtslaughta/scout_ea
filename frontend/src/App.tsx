@@ -7,7 +7,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { SignatureBar } from '@/components/SignatureBar'
 import { TodayBriefing } from '@/components/TodayBriefing'
 import { CommandPalette } from '@/components/CommandPalette'
-import { RightDrawer } from '@/components/RightDrawer'
+import { Quickdraw } from '@/components/quickdraw/Quickdraw'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
@@ -110,7 +110,7 @@ export function App() {
 
           {/* Right drawer - hidden below 1100px, fixed w-[300px] on desktop */}
           <Box sx={{ display: { xs: 'none', lg: 'flex' } }}>
-            <RightDrawer />
+            <Quickdraw />
           </Box>
         </Box>
       </Box>
