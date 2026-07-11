@@ -3,7 +3,13 @@ from ea import db
 
 
 def _conn(tmp_path):
-    return db.init_db(tmp_path / "ea.sqlite", seed_path=db.DEFAULT_SEED)
+    conn = db.init_db(tmp_path / "ea.sqlite", seed_path=db.DEFAULT_SEED)
+    # Seed ships demo feed rows + tags (SP2); clear them so exact-count asserts hold.
+    conn.executescript(
+        "DELETE FROM content_links; DELETE FROM content_tags; DELETE FROM tags; "
+        "DELETE FROM news_items; DELETE FROM learning;"
+    )
+    return conn
 
 
 def test_get_or_create_tag_dedupes(tmp_path):
