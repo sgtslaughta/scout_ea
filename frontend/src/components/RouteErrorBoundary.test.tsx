@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { useState } from 'react'
 import RouteErrorBoundary from './RouteErrorBoundary'
 
 function Boom(): React.ReactNode {
@@ -22,15 +21,14 @@ describe('RouteErrorBoundary', () => {
 
   it('reload button clears the error and re-renders children', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let shouldThrow = true
     function Flaky() {
-      const [boom, setBoom] = useState(true)
-      // expose a way to stop throwing after reset
-      ;(globalThis as Record<string, unknown>).__stop = () => setBoom(false)
-      if (boom) throw new Error('flaky')
+      if (shouldThrow) throw new Error('flaky')
       return <div>recovered</div>
     }
     render(<RouteErrorBoundary><Flaky /></RouteErrorBoundary>)
-    ;(globalThis as Record<string, unknown>).__stop && (globalThis as { __stop: () => void }).__stop()
+    expect(screen.getByRole('alert')).toBeInTheDocument()
+    shouldThrow = false
     fireEvent.click(screen.getByRole('button', { name: /reload view/i }))
     expect(screen.getByText('recovered')).toBeInTheDocument()
     spy.mockRestore()
