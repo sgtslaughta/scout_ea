@@ -146,6 +146,41 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def add_learning(kind: str, title: str, external_ref: str, source: str = "skill",
+                     synopsis: str | None = None, url: str | None = None,
+                     provider: str | None = None, event_at: str | None = None,
+                     topic_id: int | None = None, relevance: int | None = None,
+                     status: str = "suggested", source_skill: str | None = None) -> int:
+        """Add a learning/training item, dedup on external_ref. Returns rowcount."""
+        conn = _conn()
+        try:
+            fields = {"kind": kind, "title": title, "external_ref": external_ref, "source": source, "status": status}
+            for k, v in (("synopsis", synopsis), ("url", url), ("provider", provider),
+                         ("event_at", event_at), ("topic_id", topic_id), ("relevance", relevance),
+                         ("source_skill", source_skill)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_learning(conn, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def add_news(title: str, external_ref: str, url: str | None = None, synopsis: str | None = None,
+                 topic_id: int | None = None, source: str = "web", source_skill: str | None = None,
+                 event_at: str | None = None, relevance: int | None = None, status: str = "new") -> int:
+        """Add a news item, dedup on external_ref (usually the url). Returns rowcount."""
+        conn = _conn()
+        try:
+            fields = {"title": title, "external_ref": external_ref, "source": source, "status": status}
+            for k, v in (("url", url), ("synopsis", synopsis), ("topic_id", topic_id),
+                         ("source_skill", source_skill), ("event_at", event_at), ("relevance", relevance)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_news(conn, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def m365_status() -> dict:
         """Whether M365 actions are enabled (an external M365 MCP is configured)."""
         from mcp_server import m365

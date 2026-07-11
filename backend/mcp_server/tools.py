@@ -66,3 +66,11 @@ def link_content(conn, ref_type, ref_id, target_type, target_id) -> int:
 
 def list_tags(conn):
     return [dict(r) for r in db.list_all_tags(conn)]
+
+
+def add_learning(conn, **fields) -> int:
+    return db.add_learning(conn, **fields)
+
+
+def add_news(conn, **fields) -> int:
+    return db.add_news_item(conn, **fields)
