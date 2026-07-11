@@ -119,6 +119,20 @@ describe('Tasks board', () => {
     await waitFor(() => expect(create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Brand new', status: 'open', board_column_id: 1 })))
   })
 
+  it('converts a task to a deadline (task kept)', async () => {
+    const add = vi.spyOn(api, 'addDeadline').mockResolvedValue({ id: 3 })
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      mkTask({ id: 7, title: 'Ship it', detail: 'the thing', due_at: '2026-08-01T00:00:00.000Z', board_column_id: 1 }),
+    ])
+    const user = userEvent.setup()
+    renderBoard()
+    await user.click(await screen.findByLabelText('Convert to deadline'))
+    await user.click(await screen.findByRole('button', { name: /create deadline/i }))
+    await waitFor(() => expect(add).toHaveBeenCalledWith('Ship it', expect.stringContaining('2026-08-01'), 'the thing'))
+    // task still on the board
+    expect(screen.getByText('Ship it')).toBeInTheDocument()
+  })
+
   it('shows the per-column status control', async () => {
     renderBoard()
     // each column exposes a "sets <status>" select so drops map to a status

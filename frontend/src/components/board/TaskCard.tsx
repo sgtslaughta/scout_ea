@@ -2,7 +2,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { Box, Typography, Tooltip, IconButton, Chip } from '@mui/material'
 import type { SxProps, Theme } from '@mui/material'
-import { CheckCircle, Trash2 } from 'lucide-react'
+import { CheckCircle, Trash2, Flag } from 'lucide-react'
 import { useFriendlyTime } from '@/lib/timePrefs'
 import { urgencyOf, type Urgency } from '@/lib/horizon'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
@@ -41,9 +41,10 @@ interface TaskCardProps {
   onEdit: (t: Task) => void
   onComplete: (id: number) => void
   onDismiss: (id: number) => void
+  onConvert: (t: Task) => void
 }
 
-export function TaskCard({ task, onEdit, onComplete, onDismiss }: TaskCardProps) {
+export function TaskCard({ task, onEdit, onComplete, onDismiss, onConvert }: TaskCardProps) {
   const friendly = useFriendlyTime()
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id, data: { columnId: task.board_column_id ?? null },
@@ -98,6 +99,9 @@ export function TaskCard({ task, onEdit, onComplete, onDismiss }: TaskCardProps)
           <Box sx={{ flex: 1 }} />
           <IconButton size="small" aria-label="Complete" onClick={(e) => { e.stopPropagation(); onComplete(task.id) }} sx={{ p: 0.25, color: isDone ? 'success.main' : 'inherit' }}>
             <CheckCircle size={14} />
+          </IconButton>
+          <IconButton size="small" aria-label="Convert to deadline" onClick={(e) => { e.stopPropagation(); onConvert(task) }} sx={{ p: 0.25 }}>
+            <Flag size={14} />
           </IconButton>
           <IconButton size="small" aria-label="Dismiss" onClick={(e) => { e.stopPropagation(); onDismiss(task.id) }} sx={{ p: 0.25 }}>
             <Trash2 size={14} />
