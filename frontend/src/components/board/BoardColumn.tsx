@@ -5,6 +5,13 @@ import { ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import type { BoardColumn as Column, Task } from '@/api'
 import { TaskCard } from './TaskCard'
 
+export const STATUS_OPTIONS = [
+  { value: 'open', label: 'Open' },
+  { value: 'in_progress', label: 'In Progress' },
+  { value: 'done', label: 'Done' },
+  { value: 'dismissed', label: 'Dismissed' },
+]
+
 interface BoardColumnProps {
   column: Column
   tasks: Task[]
@@ -14,13 +21,14 @@ interface BoardColumnProps {
   onCompleteTask: (id: number) => void
   onDismissTask: (id: number) => void
   onRename: (id: number, name: string) => void
+  onSetStatus: (id: number, status: string) => void
   onDelete: (col: Column) => void
   onMove: (col: Column, dir: -1 | 1) => void
 }
 
 export function BoardColumn({
   column, tasks, isFirst, isLast,
-  onEditTask, onCompleteTask, onDismissTask, onRename, onDelete, onMove,
+  onEditTask, onCompleteTask, onDismissTask, onRename, onSetStatus, onDelete, onMove,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
   const [editing, setEditing] = useState(false)
@@ -58,6 +66,19 @@ export function BoardColumn({
         <Typography variant="caption" color="text.secondary">{tasks.length}</Typography>
         <IconButton size="small" aria-label={`Move ${column.name} right`} disabled={isLast} onClick={() => onMove(column, 1)} sx={{ p: 0.25 }}><ChevronRight size={14} /></IconButton>
         <IconButton size="small" aria-label={`Delete ${column.name}`} onClick={() => onDelete(column)} sx={{ p: 0.25 }}><Trash2 size={14} /></IconButton>
+      </Box>
+
+      {/* status this column applies on drop */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, mb: 1 }}>
+        <Typography variant="caption" color="text.secondary">sets</Typography>
+        <TextField
+          select value={column.status} onChange={(e) => onSetStatus(column.id, e.target.value)}
+          variant="standard" aria-label={`Status for ${column.name}`}
+          slotProps={{ select: { native: true } }}
+          sx={{ '& select': { fontSize: 12, py: 0 } }}
+        >
+          {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+        </TextField>
       </Box>
 
       {/* drop zone */}

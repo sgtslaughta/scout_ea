@@ -78,5 +78,6 @@ CREATE TABLE IF NOT EXISTS board_columns (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   name       TEXT NOT NULL,
   position   INTEGER NOT NULL,
+  status     TEXT NOT NULL DEFAULT 'open',  -- status applied to a task dropped here
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

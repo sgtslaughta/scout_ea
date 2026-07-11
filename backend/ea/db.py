@@ -40,12 +40,20 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE tasks ADD COLUMN board_column_id INTEGER REFERENCES board_columns(id)")
         conn.commit()
 
+    # Add board_columns.status for pre-existing DBs (fresh DBs get it from features.sql).
+    board_pragma = conn.execute("PRAGMA table_info(board_columns)").fetchall()
+    if not any(r[1] == "status" for r in board_pragma):
+        conn.execute("ALTER TABLE board_columns ADD COLUMN status TEXT NOT NULL DEFAULT 'open'")
+        conn.execute("UPDATE board_columns SET status='in_progress' WHERE name='In Progress'")
+        conn.execute("UPDATE board_columns SET status='done' WHERE name='Done'")
+        conn.commit()
+
     # Check if board_columns is empty and seed default columns once
     count = conn.execute("SELECT COUNT(*) as c FROM board_columns").fetchone()["c"]
     if count == 0:
-        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("To Do", 0))
-        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("In Progress", 1))
-        conn.execute("INSERT INTO board_columns (name, position) VALUES (?, ?)", ("Done", 2))
+        conn.execute("INSERT INTO board_columns (name, position, status) VALUES (?, ?, ?)", ("To Do", 0, "open"))
+        conn.execute("INSERT INTO board_columns (name, position, status) VALUES (?, ?, ?)", ("In Progress", 1, "in_progress"))
+        conn.execute("INSERT INTO board_columns (name, position, status) VALUES (?, ?, ?)", ("Done", 2, "done"))
         conn.commit()
 
         # Map existing tasks by status
@@ -426,12 +434,12 @@ def list_board_columns(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT * FROM board_columns ORDER BY position, id").fetchall()
 
 
-def add_board_column(conn: sqlite3.Connection, name: str) -> int:
+def add_board_column(conn: sqlite3.Connection, name: str, status: str = "open") -> int:
     """Insert a board column with position = max(position)+1. Returns the new id."""
     max_pos = conn.execute("SELECT COALESCE(MAX(position), -1) as m FROM board_columns").fetchone()["m"]
     cur = conn.execute(
-        "INSERT INTO board_columns (name, position) VALUES (?, ?)",
-        (name, max_pos + 1)
+        "INSERT INTO board_columns (name, position, status) VALUES (?, ?, ?)",
+        (name, max_pos + 1, status)
     )
     conn.commit()
     return cur.lastrowid
@@ -439,7 +447,7 @@ def add_board_column(conn: sqlite3.Connection, name: str) -> int:
 
 def update_board_column(conn: sqlite3.Connection, col_id: int, **fields) -> int:
     """Update a board column. Returns rows affected. Columns validated against {name, position}."""
-    allowed = {"name", "position"}
+    allowed = {"name", "position", "status"}
     bad = set(fields) - allowed
     if bad:
         raise ValueError(f"unknown board_column columns: {bad}")

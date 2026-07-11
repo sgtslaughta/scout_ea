@@ -92,6 +92,10 @@ class TaskPatch(BaseModel):
 class BoardColumnPatch(BaseModel):
     name: str | None = None
     position: int | None = None
+    status: str | None = None
+
+
+_VALID_TASK_STATUSES = {"open", "in_progress", "done", "dismissed"}
 
 
 class SubscribeBody(BaseModel):
@@ -366,7 +370,10 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     def create_board_column(body: dict, conn=Depends(get_db)):
         if "name" not in body:
             raise HTTPException(status_code=400, detail="name required")
-        col_id = db.add_board_column(conn, body["name"])
+        status = body.get("status", "open")
+        if status not in _VALID_TASK_STATUSES:
+            raise HTTPException(status_code=400, detail="invalid status")
+        col_id = db.add_board_column(conn, body["name"], status)
         return {"id": col_id}
 
     @app.patch("/api/board/columns/{col_id}")
@@ -374,6 +381,8 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         fields = body.model_dump(exclude_none=True)
         if not fields:
             return {"updated": 0}
+        if "status" in fields and fields["status"] not in _VALID_TASK_STATUSES:
+            raise HTTPException(status_code=400, detail="invalid status")
         try:
             n = db.update_board_column(conn, col_id, **fields)
         except sqlite3.Error:
