@@ -108,3 +108,23 @@ CREATE TABLE IF NOT EXISTS content_links (
   UNIQUE(ref_type, ref_id, target_type, target_id)
 );
 CREATE INDEX IF NOT EXISTS idx_content_links_ref ON content_links(ref_type, ref_id);
+
+-- Feature migration 007: news items (Data Feed)
+CREATE TABLE IF NOT EXISTS news_items (
+  id           INTEGER PRIMARY KEY,
+  title        TEXT NOT NULL,
+  url          TEXT,
+  synopsis     TEXT,
+  external_ref TEXT UNIQUE,
+  topic_id     INTEGER REFERENCES topics(id),
+  source       TEXT,
+  source_skill TEXT,
+  event_at     TEXT,
+  relevance    INTEGER,
+  status       TEXT NOT NULL DEFAULT 'new',
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_news_status ON news_items(status, created_at);
+CREATE TRIGGER IF NOT EXISTS trg_news_touch AFTER UPDATE ON news_items
+BEGIN UPDATE news_items SET updated_at = datetime('now') WHERE id = NEW.id; END;

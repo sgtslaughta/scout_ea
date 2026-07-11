@@ -49,3 +49,13 @@ def test_tag_and_link_tools(tmp_path):
     assert tools.link_content(conn, "task", 1, "person", 1) == 1
     names = {t["name"] for t in tools.list_tags(conn)}
     assert "urgent" in names
+
+
+def test_add_learning_and_news_tools(tmp_path):
+    conn = _conn(tmp_path)
+    assert tools.add_learning(conn, kind="course", title="K8s", external_ref="l1", source="email") == 1
+    assert tools.add_news(conn, title="AI", external_ref="u1", url="u1", topic_id=1) == 1
+    learning = tools.list_table(conn, "learning")
+    news = tools.list_table(conn, "news_items")
+    assert learning[0]["title"] == "K8s"
+    assert news[0]["title"] == "AI"
