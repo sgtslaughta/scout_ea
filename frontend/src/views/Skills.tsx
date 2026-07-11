@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getSkills, type Skill } from '@/api'
+import { useFriendlyTime } from '@/lib/timePrefs'
 import { Copy, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -9,8 +10,9 @@ import {
 } from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
 
-export function DocsView() {
+export function SkillsView() {
   const theme = useTheme()
+  const friendly = useFriendlyTime()
   const [selected, setSelected] = useState<Skill | null>(null)
   const { data, isLoading, error, refetch } = useQuery({ queryKey: ['skills'], queryFn: getSkills })
 
@@ -28,6 +30,17 @@ export function DocsView() {
       renderCell: (p) => p.row.schedule
         ? <Box component="span" sx={{ px: 1, py: 0.5, bgcolor: 'action.hover', border: `1px solid ${theme.palette.divider}`, borderRadius: 0.5, fontFamily: 'monospace', fontSize: '0.75rem', color: 'text.secondary' }}>{p.row.schedule}</Box>
         : <Typography variant="caption" color="text.secondary">—</Typography> },
+    { field: 'active', headerName: 'Status', width: 110,
+      renderCell: (p) => (
+        <Tooltip arrow title={p.row.last_run ? `Last run: ${friendly(p.row.last_run)}` : 'Never run'}>
+          <Chip
+            size="small"
+            variant={p.row.active ? 'filled' : 'outlined'}
+            color={p.row.active ? 'success' : 'default'}
+            label={p.row.active ? 'Active' : 'Idle'}
+          />
+        </Tooltip>
+      ) },
     { field: 'actions', type: 'actions', width: 70,
       getActions: (p) => [
         <GridActionsCellItem key="copy" icon={<Copy size={16} />} label={`Copy ${p.row.name} to clipboard`}

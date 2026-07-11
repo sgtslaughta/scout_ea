@@ -37,8 +37,8 @@ export function HelpDialog({ open, onClose }: HelpDialogProps) {
             </Box>
           ))}
         </Stack>
-        <Link component={RouterLink} to="/docs" onClick={onClose} variant="body2">
-          Open documentation
+        <Link component={RouterLink} to="/skills" onClick={onClose} variant="body2">
+          Open skills library
         </Link>
       </DialogContent>
       <DialogActions>

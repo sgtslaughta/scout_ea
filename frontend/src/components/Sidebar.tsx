@@ -19,7 +19,7 @@ const SIDEBAR_ITEMS = [
   { id: 'deadlines', route: '/deadlines', icon: AlertCircle, label: 'Deadlines' },
   { id: 'people', route: '/people', icon: Users, label: 'People' },
   { id: 'topics', route: '/topics', icon: Hash, label: 'Topics' },
-  { id: 'docs', route: '/docs', icon: FileText, label: 'Docs' },
+  { id: 'skills', route: '/skills', icon: FileText, label: 'Skills' },
   { id: 'activity', route: '/activity', icon: Activity, label: 'Activity' },
   { id: 'settings', route: '/settings', icon: Cog, label: 'Settings' },
 ]

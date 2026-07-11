@@ -16,7 +16,7 @@ const VIEWS = [
   { id: 'calendar', label: 'Calendar' },
   { id: 'trending', label: 'Trending' },
   { id: 'deadlines', label: 'Deadlines' },
-  { id: 'docs', label: 'Docs' },
+  { id: 'skills', label: 'Skills' },
   { id: 'settings', label: 'Settings' },
 ]
 

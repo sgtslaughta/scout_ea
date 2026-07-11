@@ -13,7 +13,7 @@ import { RightDrawer } from '@/components/RightDrawer'
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
 const DeadlinesView = lazy(() => import('@/views/Deadlines').then(m => ({ default: m.DeadlinesView })))
 const TrendingView = lazy(() => import('@/views/Trending').then(m => ({ default: m.TrendingView })))
-const DocsView = lazy(() => import('@/views/Docs').then(m => ({ default: m.DocsView })))
+const SkillsView = lazy(() => import('@/views/Skills').then(m => ({ default: m.SkillsView })))
 const SettingsView = lazy(() => import('@/views/Settings').then(m => ({ default: m.SettingsView })))
 const InboxView = lazy(() => import('@/views/Inbox').then(m => ({ default: m.InboxView })))
 const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.TasksView })))
@@ -97,7 +97,8 @@ export function App() {
                     <Route path="/deadlines" element={<DeadlinesView />} />
                     <Route path="/people" element={<PeopleView />} />
                     <Route path="/topics" element={<TopicsView />} />
-                    <Route path="/docs" element={<DocsView />} />
+                    <Route path="/skills" element={<SkillsView />} />
+                    <Route path="/docs" element={<Navigate to="/skills" replace />} />
                     <Route path="/activity" element={<ActivityView />} />
                     <Route path="/settings" element={<SettingsView />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
