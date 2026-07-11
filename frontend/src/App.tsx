@@ -23,7 +23,9 @@ const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.P
 const TopicsView = lazy(() => import('@/views/Topics').then(m => ({ default: m.TopicsView })))
 
 export function App() {
-  const [collapsedSidebar, setCollapsedSidebar] = useState(false)
+  const [collapsedSidebar, setCollapsedSidebar] = useState(
+    () => localStorage.getItem('ea-sidebar-collapsed') === 'true',
+  )
   const [commandOpen, setCommandOpen] = useState(false)
   const [briefingOpen, setBriefingOpen] = useState(false)
   const navigate = useNavigate()
@@ -69,7 +71,10 @@ export function App() {
       <TodayBriefing open={briefingOpen} onClose={() => setBriefingOpen(false)} />
 
       {/* Left Sidebar - 56px */}
-      <Sidebar collapsed={collapsedSidebar} onToggle={setCollapsedSidebar} />
+      <Sidebar
+        collapsed={collapsedSidebar}
+        onToggle={(c) => { setCollapsedSidebar(c); localStorage.setItem('ea-sidebar-collapsed', String(c)) }}
+      />
 
       {/* Center column - flex-1 with flex flex-col min-w-0 */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
