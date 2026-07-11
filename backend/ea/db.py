@@ -152,10 +152,12 @@ def add_deadline(conn: sqlite3.Connection, **fields) -> int:
     return cur.rowcount
 
 
-def list_deadlines(conn: sqlite3.Connection, respect_global: bool = True) -> list[sqlite3.Row]:
-    """Active, visible deadlines ordered by due_at asc.
+def list_deadlines(conn: sqlite3.Connection, respect_global: bool = True,
+                   include_hidden: bool = False) -> list[sqlite3.Row]:
+    """Active deadlines ordered by due_at asc.
 
     Returns [] when respect_global and config.deadlines_visible_global != '1'.
+    include_hidden=True also returns visible=0 rows (for a 'show hidden' view).
     """
     if respect_global:
         row = conn.execute(
@@ -163,9 +165,9 @@ def list_deadlines(conn: sqlite3.Connection, respect_global: bool = True) -> lis
         ).fetchone()
         if row is None or row["value"] != "1":
             return []
+    vis = "" if include_hidden else "AND visible=1"
     return conn.execute(
-        "SELECT * FROM critical_deadlines "
-        "WHERE status='active' AND visible=1 ORDER BY due_at ASC"
+        f"SELECT * FROM critical_deadlines WHERE status='active' {vis} ORDER BY due_at ASC"
     ).fetchall()
 
 
@@ -174,6 +176,21 @@ def set_deadline_visible(conn: sqlite3.Connection, deadline_id: int, visible: bo
     cur = conn.execute(
         "UPDATE critical_deadlines SET visible=? WHERE id=?",
         (1 if visible else 0, deadline_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def update_deadline(conn: sqlite3.Connection, deadline_id: int, **fields) -> int:
+    """Update a deadline row. Columns validated against _DEADLINE_COLS. Returns rows affected."""
+    bad = set(fields) - _DEADLINE_COLS
+    if bad:
+        raise ValueError(f"unknown deadline columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(
+        f"UPDATE critical_deadlines SET {sets} WHERE id=?", [*fields.values(), deadline_id]
     )
     conn.commit()
     return cur.rowcount

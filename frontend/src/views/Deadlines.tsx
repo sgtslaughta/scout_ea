@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router-dom'
-import { Eye, Plus } from 'lucide-react'
+import { Eye, EyeOff, Plus, Edit2 } from 'lucide-react'
 import {
   Box,
   Typography,
@@ -17,11 +17,19 @@ import {
   Tooltip,
 } from '@mui/material'
 import { DataGrid, GridActionsCellItem, type GridColDef } from '@mui/x-data-grid'
-import { getDeadlines, addDeadline, setDeadlineVisible, setConfig, type Deadline } from '@/api'
+import { getDeadlines, addDeadline, updateDeadline, setDeadlineVisible, setConfig, type Deadline } from '@/api'
 import { formatCountdown } from '@/widgets/DeadlinesWidget'
 import { useFriendlyTime } from '@/lib/timePrefs'
 import { toast } from 'sonner'
 
+// datetime-local <-> ISO helpers (browser-local wall time).
+const isoToLocalInput = (iso?: string) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+}
+const localInputToISO = (v: string) => new Date(v).toISOString()
 
 export function DeadlinesView() {
   const queryClient = useQueryClient()
@@ -31,10 +39,12 @@ export function DeadlinesView() {
   const [dueAt, setDueAt] = useState('')
   const [detail, setDetail] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [showHidden, setShowHidden] = useState(false)
 
   const { data: deadlines = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['deadlines'],
-    queryFn: getDeadlines,
+    queryKey: ['deadlines', showHidden],
+    queryFn: () => getDeadlines(showHidden),
   })
 
   const urgentOnly = searchParams.get('due') === '24h'
@@ -48,16 +58,23 @@ export function DeadlinesView() {
   })
 
   const addMutation = useMutation({
-    mutationFn: () => addDeadline(title, dueAt, detail),
+    mutationFn: () => addDeadline(title, localInputToISO(dueAt), detail),
     onSuccess: () => {
       toast.success('Deadline added')
       queryClient.invalidateQueries({ queryKey: ['deadlines'] })
-      setTitle('')
-      setDueAt('')
-      setDetail('')
-      setAddOpen(false)
+      handleCloseDialog()
     },
     onError: () => toast.error('Failed to add deadline'),
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: () => updateDeadline(editingId!, { title, due_at: localInputToISO(dueAt), detail }),
+    onSuccess: () => {
+      toast.success('Deadline updated')
+      queryClient.invalidateQueries({ queryKey: ['deadlines'] })
+      handleCloseDialog()
+    },
+    onError: () => toast.error('Failed to update deadline'),
   })
 
   const visibilityMutation = useMutation({
@@ -80,18 +97,23 @@ export function DeadlinesView() {
 
   const globalEnabled = config.deadlines_visible_global !== '0'
 
-  const handleAddSubmit = () => {
+  const handleSubmit = () => {
     if (!title.trim() || !dueAt) {
       toast.error('Title and due date required')
       return
     }
-    addMutation.mutate()
+    ;(editingId ? updateMutation : addMutation).mutate()
+  }
+
+  const handleEdit = (d: Deadline) => {
+    setEditingId(d.id); setTitle(d.title); setDetail(d.detail ?? ''); setDueAt(isoToLocalInput(d.due_at)); setAddOpen(true)
   }
 
   const handleCloseDialog = () => {
     setTitle('')
     setDueAt('')
     setDetail('')
+    setEditingId(null)
     setAddOpen(false)
   }
 
@@ -106,7 +128,10 @@ export function DeadlinesView() {
           title={`${params.row.title}${params.row.detail ? '\n' + params.row.detail : ''}\nSource: ${params.row.source}`}
           arrow
         >
-          <span>{params.row.title}</span>
+          <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.75, opacity: params.row.visible ? 1 : 0.55 }}>
+            {params.row.title}
+            {!params.row.visible && <Chip size="small" variant="outlined" label="hidden" sx={{ height: 18, fontSize: 10 }} />}
+          </Box>
         </Tooltip>
       ),
     },
@@ -147,11 +172,18 @@ export function DeadlinesView() {
     {
       field: 'actions',
       type: 'actions',
-      width: 70,
+      width: 90,
       getActions: (params) => [
         <GridActionsCellItem
+          key="edit"
+          icon={<Edit2 size={16} />}
+          label="Edit"
+          onClick={() => handleEdit(params.row)}
+          showInMenu={false}
+        />,
+        <GridActionsCellItem
           key="toggle-visibility"
-          icon={<Eye size={16} />}
+          icon={params.row.visible ? <Eye size={16} /> : <EyeOff size={16} />}
           label={params.row.visible ? 'Hide deadline' : 'Show deadline'}
           onClick={() =>
             visibilityMutation.mutate({ id: params.row.id, visible: !params.row.visible })
@@ -170,6 +202,10 @@ export function DeadlinesView() {
           <Typography variant="h5">Deadlines</Typography>
           <Box sx={{ flex: 1 }} />
           <FormControlLabel
+            control={<Switch checked={showHidden} onChange={() => setShowHidden((v) => !v)} />}
+            label="Show hidden"
+          />
+          <FormControlLabel
             control={
               <Switch
                 checked={globalEnabled}
@@ -183,7 +219,7 @@ export function DeadlinesView() {
           <Button
             variant="contained"
             startIcon={<Plus size={16} />}
-            onClick={() => setAddOpen(true)}
+            onClick={() => { setEditingId(null); setTitle(''); setDueAt(''); setDetail(''); setAddOpen(true) }}
             size="small"
           >
             Add deadline
@@ -250,7 +286,7 @@ export function DeadlinesView() {
 
         {/* Add deadline dialog */}
         <Dialog open={addOpen} onClose={handleCloseDialog} maxWidth="xs" fullWidth>
-          <DialogTitle>Add deadline</DialogTitle>
+          <DialogTitle>{editingId ? 'Edit deadline' : 'Add deadline'}</DialogTitle>
           <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             <TextField
               label="Title"
@@ -283,9 +319,9 @@ export function DeadlinesView() {
             <Button
               variant="contained"
               disabled={!title || !dueAt}
-              onClick={handleAddSubmit}
+              onClick={handleSubmit}
             >
-              Add
+              {editingId ? 'Save' : 'Add'}
             </Button>
           </DialogActions>
         </Dialog>

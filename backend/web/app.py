@@ -46,6 +46,13 @@ class VisibleBody(BaseModel):
     visible: bool
 
 
+class DeadlinePatch(BaseModel):
+    title: str | None = None
+    due_at: str | None = None
+    detail: str | None = None
+    priority: int | None = None
+
+
 class ConfigBody(BaseModel):
     value: str
 
@@ -209,10 +216,10 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return StreamingResponse(gen(), media_type="text/event-stream")
 
     @app.get("/api/deadlines")
-    def get_deadlines(conn=Depends(get_db)):
+    def get_deadlines(include_hidden: bool = False, conn=Depends(get_db)):
         now = datetime.now(timezone.utc).isoformat()
         out = []
-        for r in db.list_deadlines(conn):
+        for r in db.list_deadlines(conn, respect_global=not include_hidden, include_hidden=include_hidden):
             d = dict(r)
             d["countdown_seconds"] = _deadlines.countdown(d["due_at"], now)
             out.append(d)
@@ -235,6 +242,27 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         row = conn.execute("SELECT id FROM critical_deadlines WHERE external_ref=?",
                            (ext,)).fetchone()
         return {"id": row["id"]}
+
+    @app.patch("/api/deadlines/{deadline_id}")
+    def update_deadline_endpoint(deadline_id: int, body: DeadlinePatch, conn=Depends(get_db)):
+        fields = body.model_dump(exclude_none=True)
+        if "due_at" in fields:
+            try:
+                dt = datetime.fromisoformat(fields["due_at"].replace("Z", "+00:00"))
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                fields["due_at"] = dt.isoformat()
+            except ValueError:
+                raise HTTPException(status_code=400, detail="due_at must be ISO-8601")
+        if not fields:
+            return {"updated": 0}
+        try:
+            n = db.update_deadline(conn, deadline_id, **fields)
+        except sqlite3.Error:
+            raise HTTPException(status_code=400, detail="update failed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="deadline not found")
+        return {"updated": n}
 
     @app.post("/api/deadlines/{deadline_id}/visible")
     def set_visible(deadline_id: int, body: VisibleBody, conn=Depends(get_db)):

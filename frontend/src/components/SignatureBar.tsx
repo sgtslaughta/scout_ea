@@ -57,7 +57,7 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
   const clock = useClockFormat()
 
   const { data: deadlines = [] } = useQuery({
-    queryKey: ['deadlines'], queryFn: getDeadlines, refetchInterval: 15000,
+    queryKey: ['deadlines'], queryFn: () => getDeadlines(), refetchInterval: 15000,
   })
   const { data: tasks = [] } = useQuery({
     queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000,
