@@ -287,6 +287,44 @@ def _check_ref_type(ref_type: str) -> None:
         raise ValueError(f"unknown ref_type: {ref_type!r}")
 
 
+def link_content(conn: sqlite3.Connection, ref_type: str, ref_id: int, target_type: str, target_id: int) -> int:
+    """Link a content row to a person/topic. Idempotent. Returns rowcount."""
+    _check_ref_type(ref_type)
+    if target_type not in _LINK_TARGET_SQL:
+        raise ValueError(f"unknown target_type: {target_type!r}")
+    cur = conn.execute(
+        "INSERT INTO content_links (ref_type, ref_id, target_type, target_id) VALUES (?,?,?,?) "
+        "ON CONFLICT(ref_type, ref_id, target_type, target_id) DO NOTHING",
+        (ref_type, ref_id, target_type, target_id),
+    )
+    conn.commit()
+    return cur.rowcount
+
+
+def unlink_content(conn: sqlite3.Connection, link_id: int) -> int:
+    """Delete a content link by id. Returns rows affected."""
+    cur = conn.execute("DELETE FROM content_links WHERE id=?", (link_id,))
+    conn.commit()
+    return cur.rowcount
+
+
+def list_links_for(conn: sqlite3.Connection, ref_type: str, ref_id: int) -> list[dict]:
+    """Links on a content row with resolved labels: [{id, target_type, target_id, label}]."""
+    _check_ref_type(ref_type)
+    rows = conn.execute(
+        "SELECT id, target_type, target_id FROM content_links WHERE ref_type=? AND ref_id=? ORDER BY id",
+        (ref_type, ref_id),
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        sql = _LINK_TARGET_SQL.get(r["target_type"])
+        lbl = conn.execute(sql, (r["target_id"],)).fetchone() if sql else None
+        d["label"] = lbl["label"] if lbl else f'{r["target_type"]} #{r["target_id"]}'
+        out.append(d)
+    return out
+
+
 def get_or_create_tag(conn: sqlite3.Connection, name: str, color: str = "neutral") -> int:
     """Return the id of the tag named `name`, creating it (with `color`) if absent."""
     name = name.strip()
