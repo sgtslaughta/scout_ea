@@ -64,4 +64,15 @@ describe('SignatureBar', () => {
     // 1 deadline + 1 task = 2 upcoming items
     expect(await screen.findByRole('button', { name: /2 upcoming items/i })).toBeInTheDocument()
   })
+
+  it('opens a popover of clickable upcoming items on click', async () => {
+    const future = new Date(Date.now() + 3 * 86400 * 1000).toISOString()
+    vi.spyOn(api, 'getDeadlines').mockResolvedValue([
+      mkDeadline({ id: 8, title: 'Next week deadline', due_at: future, countdown_seconds: 3 * 86400 }),
+    ])
+    renderBar()
+    fireEvent.click(await screen.findByRole('button', { name: /1 upcoming items/i }))
+    // popover row is a button labeled by its type + title
+    expect(await screen.findByRole('button', { name: /Deadline: Next week deadline/i })).toBeInTheDocument()
+  })
 })

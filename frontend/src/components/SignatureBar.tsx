@@ -6,6 +6,7 @@ import IconButton from '@mui/material/IconButton'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import Tooltip from '@mui/material/Tooltip'
+import Popover from '@mui/material/Popover'
 import { useColorScheme } from '@mui/material/styles'
 import { Sun, Moon, Sparkles, Search, CalendarClock } from 'lucide-react'
 import { getDeadlines, getTasks } from '@/api'
@@ -77,9 +78,17 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
 
   const nowPercent = clockPercent(time)
   const { onAxis } = bucketDeadlines(deadlines, time)
+
+  const [upcomingAnchor, setUpcomingAnchor] = useState<HTMLElement | null>(null)
+  const [upcomingExpanded, setUpcomingExpanded] = useState(false)
+  const UPCOMING_CAP = 10
+  const shownUpcoming = upcomingExpanded ? upcomingItems : upcomingItems.slice(0, UPCOMING_CAP)
+  const hiddenUpcoming = upcomingItems.length - shownUpcoming.length
   const groupedUpcoming = BUCKET_ORDER
-    .map((b) => ({ bucket: b, items: upcomingItems.filter((i) => bucketOf(i.when, time) === b) }))
+    .map((b) => ({ bucket: b, items: shownUpcoming.filter((i) => bucketOf(i.when, time) === b) }))
     .filter((g) => g.items.length > 0)
+  const closeUpcoming = () => { setUpcomingAnchor(null); setUpcomingExpanded(false) }
+  const gotoItem = (type: 'deadline' | 'task') => { navigate(type === 'deadline' ? '/deadlines' : '/tasks'); closeUpcoming() }
 
   const dotTip = (a: AxisDeadline) =>
     `${a.deadline.title} — due ${friendly(a.deadline.due_at)} · ${formatCountdown(a.deadline.countdown_seconds)}`
@@ -130,35 +139,53 @@ export function SignatureBar({ onCommandOpen, onOpenBriefing }: SignatureBarProp
 
       </Box>
 
-      {/* upcoming indicator (deadlines + tasks, grouped by day/week) */}
-      <Tooltip arrow title={
-        <Box sx={{ p: 0.5, maxWidth: 280 }}>
-          <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>Upcoming{upcomingItems.length ? ` (${upcomingItems.length})` : ''}</Typography>
-          {groupedUpcoming.length === 0 && <Typography variant="caption" color="text.secondary">Nothing upcoming.</Typography>}
-          {groupedUpcoming.map((g) => (
-            <Box key={g.bucket} sx={{ mb: 0.5 }}>
-              <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'text.secondary' }}>{g.bucket}</Typography>
-              {g.items.slice(0, 5).map((i) => (
-                <Typography key={i.key} variant="caption" sx={{ display: 'block' }}>
-                  <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, mr: 0.5 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
-                  {i.title} — {friendly(i.when) || i.when}
-                </Typography>
-              ))}
-              {g.items.length > 5 && <Typography variant="caption" color="text.secondary">+{g.items.length - 5} more</Typography>}
-            </Box>
-          ))}
-        </Box>
-      }>
+      {/* upcoming indicator (deadlines + tasks, grouped by day/week; click for a nav-able list) */}
+      <Tooltip arrow title="Upcoming deadlines & tasks">
         <Box
-          role="button" tabIndex={0} aria-label={`${upcomingItems.length} upcoming items`}
-          onClick={() => navigate('/deadlines')}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/deadlines') } }}
+          role="button" tabIndex={0} aria-label={`${upcomingItems.length} upcoming items`} aria-haspopup="true"
+          onClick={(e) => setUpcomingAnchor(e.currentTarget)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setUpcomingAnchor(e.currentTarget) } }}
           sx={{ flex: 1, minWidth: 40, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, borderRadius: 1, cursor: 'pointer', color: 'text.secondary', '&:hover': { bgcolor: 'action.hover', color: 'text.primary' }, '&:focus-visible': { outline: '2px solid var(--color-accent)', outlineOffset: 2 } }}
         >
           <CalendarClock size={16} />
           <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>{upcomingItems.length}</Typography>
         </Box>
       </Tooltip>
+      <Popover
+        open={!!upcomingAnchor} anchorEl={upcomingAnchor} onClose={closeUpcoming}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Box sx={{ minWidth: 260, maxWidth: 340, maxHeight: 420, overflowY: 'auto', p: 1 }}>
+          <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5, px: 0.5 }}>Upcoming{upcomingItems.length ? ` (${upcomingItems.length})` : ''}</Typography>
+          {upcomingItems.length === 0 && <Typography variant="caption" color="text.secondary" sx={{ px: 0.5 }}>Nothing upcoming.</Typography>}
+          {groupedUpcoming.map((g) => (
+            <Box key={g.bucket} sx={{ mb: 0.5 }}>
+              <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, fontSize: 10, letterSpacing: 0.5, textTransform: 'uppercase', color: 'text.secondary', px: 0.5, mt: 0.5 }}>{g.bucket}</Typography>
+              {g.items.map((i) => (
+                <Box
+                  key={i.key} role="button" tabIndex={0} aria-label={`${i.type === 'deadline' ? 'Deadline' : 'Task'}: ${i.title}`}
+                  onClick={() => gotoItem(i.type)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gotoItem(i.type) } }}
+                  sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, px: 0.75, py: 0.4, borderRadius: 1, cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
+                >
+                  <Box component="span" sx={{ color: i.type === 'deadline' ? 'error.main' : 'primary.main', fontWeight: 700, fontSize: 11 }}>{i.type === 'deadline' ? 'D' : 'T'}</Box>
+                  <Typography variant="caption" sx={{ flex: 1, minWidth: 0 }} noWrap>{i.title}</Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>{friendly(i.when) || i.when}</Typography>
+                </Box>
+              ))}
+            </Box>
+          ))}
+          {hiddenUpcoming > 0 && (
+            <Box
+              role="button" tabIndex={0} onClick={() => setUpcomingExpanded(true)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setUpcomingExpanded(true) } }}
+              sx={{ textAlign: 'center', py: 0.5, mt: 0.25, borderRadius: 1, cursor: 'pointer', color: 'primary.main', fontSize: 12, '&:hover': { bgcolor: 'action.hover' }, '&:focus-visible': { outline: '2px solid var(--color-accent)' } }}
+            >
+              +{hiddenUpcoming} more
+            </Box>
+          )}
+        </Box>
+      </Popover>
 
       <IconButton size="small" onClick={onOpenBriefing} aria-label="Open today briefing">
         <Sparkles size={16} />
