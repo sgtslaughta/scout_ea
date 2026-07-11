@@ -91,7 +91,11 @@ export function SettingsView() {
     setLoadingPush(true)
     try {
       const n = await sendTestPush()
-      toast.success(`Sent ${n}`)
+      if (n > 0) {
+        toast.success(`Sent to ${n} subscription(s)`)
+      } else {
+        toast.info('No active subscriptions — enable notifications first (requires a real browser + push service)')
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to send test'
       toast.error(msg)
