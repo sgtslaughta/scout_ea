@@ -19,9 +19,10 @@ describe('FeedDetail', () => {
     vi.spyOn(api, 'getPeople').mockResolvedValue([])
     vi.spyOn(api, 'getTopics').mockResolvedValue([])
   })
-  it('renders null with no selection', () => {
+  it('is off-screen and aria-hidden with no selection', () => {
     const { container } = wrap(<FeedDetail selection={null} onClose={() => {}} />)
-    expect(container.firstChild).toBeNull()
+    expect(container.querySelector('[aria-hidden="true"]')).not.toBeNull()
+    expect(screen.queryByText('N')).toBeNull()
   })
   it('shows title + a status action for news; hides status for trending', () => {
     const setNews = vi.spyOn(api, 'setNewsStatus').mockResolvedValue({ updated: 1 })
