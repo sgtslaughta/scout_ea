@@ -66,6 +66,7 @@ export interface Signal {
   what?: string
   when_rel?: string
   why?: string
+  reasoning?: string
   url?: string
   person_id?: number
 }
