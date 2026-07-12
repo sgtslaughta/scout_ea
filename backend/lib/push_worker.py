@@ -16,6 +16,7 @@ def start_push_worker(db_path, interval=30):
                 try:
                     push.generate_due_reminders(conn)
                     push.push_pending_alerts(conn)
+                    push.repush_loud_alerts(conn)
                 finally:
                     conn.close()
             except Exception:
