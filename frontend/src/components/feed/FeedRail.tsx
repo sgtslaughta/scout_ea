@@ -1,9 +1,11 @@
 import { Box, Typography } from '@mui/material'
-import { LayoutGrid, TrendingUp, Newspaper, GraduationCap, Hash } from 'lucide-react'
+import { LayoutGrid, TrendingUp, Newspaper, GraduationCap, Hash, Mail, CheckCircle } from 'lucide-react'
 import type { FeedView } from './types'
 
 const ITEMS: { id: FeedView; label: string; Icon: typeof Hash }[] = [
   { id: 'overview', label: 'Overview', Icon: LayoutGrid },
+  { id: 'inbox', label: 'Inbox', Icon: Mail },
+  { id: 'actions', label: 'Actions', Icon: CheckCircle },
   { id: 'trending', label: 'Trending', Icon: TrendingUp },
   { id: 'news', label: 'News', Icon: Newspaper },
   { id: 'learning', label: 'Learning', Icon: GraduationCap },

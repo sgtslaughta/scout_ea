@@ -1,6 +1,6 @@
 import type { FeedRecent, NewsItem, LearningItem } from '@/api'
 
-export type FeedView = 'overview' | 'trending' | 'news' | 'learning' | 'topics'
+export type FeedView = 'overview' | 'trending' | 'news' | 'learning' | 'topics' | 'inbox' | 'actions'
 export type FeedItem = FeedRecent | NewsItem | LearningItem
 export interface FeedSelection { category: string; id: number; item: FeedItem }
 
