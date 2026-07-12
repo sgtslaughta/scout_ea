@@ -4,14 +4,11 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Stub the heavy child views so this test only proves tab wiring.
-vi.mock('./Inbox', () => ({ InboxView: () => <div>INBOX VIEW</div> }))
-vi.mock('./Actions', () => ({ ActionsView: () => <div>ACTIONS VIEW</div> }))
 vi.mock('./Deadlines', () => ({ DeadlinesView: () => <div>DEADLINES VIEW</div> }))
 vi.mock('./Calendar', () => ({ CalendarView: () => <div>CALENDAR VIEW</div> }))
 vi.mock('./Skills', () => ({ SkillsView: () => <div>SKILLS VIEW</div> }))
 vi.mock('./Activity', () => ({ ActivityView: () => <div>ACTIVITY VIEW</div> }))
 
-import { ReviewView } from './Review'
 import { ScheduleView } from './Schedule'
 import { AutomationsView } from './Automations'
 
@@ -25,12 +22,6 @@ function wrap(node: React.ReactNode, path = '/') {
 }
 
 describe('container views', () => {
-  it('Review shows Inbox + Actions tabs, Inbox default', async () => {
-    wrap(<ReviewView />)
-    expect(screen.getByRole('tab', { name: 'Inbox' })).toBeInTheDocument()
-    expect(screen.getByRole('tab', { name: 'Actions' })).toBeInTheDocument()
-    expect(await screen.findByText('INBOX VIEW')).toBeInTheDocument()
-  })
   it('Schedule defaults to Deadlines and honors ?tab=calendar', async () => {
     wrap(<ScheduleView />, '/schedule?tab=calendar')
     expect(await screen.findByText('CALENDAR VIEW')).toBeInTheDocument()

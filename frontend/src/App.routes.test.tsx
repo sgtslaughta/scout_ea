@@ -23,27 +23,33 @@ function renderAt(path: string) {
 }
 
 describe('routing', () => {
-  it('renders grouped sidebar nav links from the registry', async () => {
-    renderAt('/')
-    const link = await screen.findByRole('link', { name: /review/i })
-    expect(link).toHaveAttribute('href', '/review')
-  })
-
   it('marks the active route with aria-current', async () => {
     renderAt('/settings')
     const link = await screen.findByRole('link', { name: /settings/i })
     expect(link).toHaveAttribute('aria-current', 'page')
   })
 
-  it('redirects legacy /inbox to /review', async () => {
-    renderAt('/inbox')
-    const link = await screen.findByRole('link', { name: /review/i })
-    await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
-  })
-
   it('redirects legacy /deadlines to /schedule', async () => {
     renderAt('/deadlines')
     const link = await screen.findByRole('link', { name: /schedule/i })
     await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
+  })
+
+  it('redirects legacy /inbox to the feed inbox section', async () => {
+    renderAt('/inbox')
+    const link = await screen.findByRole('link', { name: /data feed/i })
+    await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
+  })
+
+  it('redirects legacy /actions to the feed actions section', async () => {
+    renderAt('/actions')
+    const link = await screen.findByRole('link', { name: /data feed/i })
+    await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
+  })
+
+  it('has no Review nav link', async () => {
+    renderAt('/')
+    await screen.findByRole('link', { name: /data feed/i })
+    expect(screen.queryByRole('link', { name: /^review$/i })).toBeNull()
   })
 })

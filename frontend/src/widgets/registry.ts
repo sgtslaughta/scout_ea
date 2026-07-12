@@ -37,7 +37,7 @@ export const WIDGETS: WidgetDef[] = [
     title: 'Signals',
     size: 'md',
     component: lazy(() => import('./SignalsWidget')),
-    drillDown: '/inbox?status=new',
+    drillDown: '/feed?view=inbox&status=new',
     queryKeys: [['signals']],
   },
   {

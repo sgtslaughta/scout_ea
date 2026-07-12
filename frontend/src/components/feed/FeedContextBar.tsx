@@ -3,7 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import type { FeedView } from './types'
 
 const TITLE: Record<FeedView, string> = {
-  overview: 'Overview', trending: 'Trending', news: 'News', learning: 'Learning', topics: 'Topics',
+  overview: 'Overview', trending: 'Trending', news: 'News', learning: 'Learning', topics: 'Topics', inbox: 'Inbox', actions: 'Actions',
 }
 
 /** Thin masthead: current view title + a context refresh. (View-specific actions live in

@@ -76,7 +76,7 @@ export default function SignalsWidget() {
       density="compact"
       hideFooter
       disableColumnMenu
-      onRowClick={() => navigate('/inbox?status=new')}
+      onRowClick={() => navigate('/feed?view=inbox&status=new')}
       sx={{ border: 0, cursor: 'pointer', maxHeight: 320 }}
     />
   )

@@ -16,7 +16,6 @@ const DataFeedView = lazy(() => import('@/views/DataFeed').then(m => ({ default:
 const SettingsView = lazy(() => import('@/views/Settings').then(m => ({ default: m.SettingsView })))
 const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.TasksView })))
 const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
-const ReviewView = lazy(() => import('@/views/Review').then(m => ({ default: m.ReviewView })))
 const ScheduleView = lazy(() => import('@/views/Schedule').then(m => ({ default: m.ScheduleView })))
 const AutomationsView = lazy(() => import('@/views/Automations').then(m => ({ default: m.AutomationsView })))
 
@@ -89,7 +88,6 @@ export function App() {
                 <RouteErrorBoundary key={location.pathname}>
                   <Routes>
                     <Route path="/" element={<DashboardView />} />
-                    <Route path="/review" element={<ReviewView />} />
                     <Route path="/tasks" element={<TasksView />} />
                     <Route path="/schedule" element={<ScheduleView />} />
                     <Route path="/feed" element={<DataFeedView />} />
@@ -98,8 +96,9 @@ export function App() {
                     <Route path="/settings" element={<SettingsView />} />
 
                     {/* legacy redirects — preserve bookmarks + ⌘K deep links */}
-                    <Route path="/inbox" element={<Navigate to="/review" replace />} />
-                    <Route path="/actions" element={<Navigate to="/review?tab=actions" replace />} />
+                    <Route path="/review" element={<Navigate to="/feed?view=inbox" replace />} />
+                    <Route path="/inbox" element={<Navigate to="/feed?view=inbox" replace />} />
+                    <Route path="/actions" element={<Navigate to="/feed?view=actions" replace />} />
                     <Route path="/deadlines" element={<Navigate to="/schedule" replace />} />
                     <Route path="/calendar" element={<Navigate to="/schedule?tab=calendar" replace />} />
                     <Route path="/skills" element={<Navigate to="/automations" replace />} />

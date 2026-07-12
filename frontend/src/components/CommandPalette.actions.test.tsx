@@ -16,7 +16,7 @@ const wrap = (ui: React.ReactNode) => {
   )
 }
 
-it('offers a "Go to Review" quick command', () => {
+it('offers a "Go to Inbox" quick command', () => {
   wrap(<CommandPalette open onOpenChange={vi.fn()} onViewChange={vi.fn()} onRefresh={vi.fn()} />)
-  expect(screen.getByText('Go to Review')).toBeInTheDocument()
+  expect(screen.getByText('Go to Inbox')).toBeInTheDocument()
 })

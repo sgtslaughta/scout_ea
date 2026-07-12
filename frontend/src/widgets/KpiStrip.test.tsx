@@ -46,7 +46,7 @@ describe('KpiStrip', () => {
   it('clickable tiles are links to filtered views', async () => {
     wrap(<KpiStrip />)
     const tile = await screen.findByRole('link', { name: /proactive/i })
-    expect(tile).toHaveAttribute('href', '/inbox?type=proactive')
+    expect(tile).toHaveAttribute('href', '/feed?view=inbox&type=proactive')
   })
 })
 

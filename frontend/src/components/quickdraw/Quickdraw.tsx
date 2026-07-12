@@ -41,7 +41,7 @@ export function Quickdraw() {
             <Button
               size="small"
               variant="outlined"
-              onClick={() => navigate('/actions')}
+              onClick={() => navigate('/feed?view=actions')}
               fullWidth
             >
               Review in Actions

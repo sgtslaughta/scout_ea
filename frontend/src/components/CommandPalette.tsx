@@ -22,7 +22,7 @@ const KIND_LABEL: Record<string, string> = {
   person: 'People', topic: 'Topics', trend: 'Trends',
 }
 const KIND_VIEW: Record<string, string> = {
-  task: '/tasks', signal: '/review', deadline: '/schedule', event: '/schedule?tab=calendar',
+  task: '/tasks', signal: '/feed?view=inbox', deadline: '/schedule', event: '/schedule?tab=calendar',
   person: '/people', topic: '/feed?view=topics', trend: '/feed?view=trending',
 }
 
@@ -143,9 +143,9 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
                 onSelect={() => { onViewChange('/schedule'); close() }}>
                 Add deadline
               </Command.Item>
-              <Command.Item value="go-to-review" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onSelect={() => { onViewChange('/review?tab=actions'); close() }}>
-                Go to Review
+              <Command.Item value="go-to-inbox" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                onSelect={() => { onViewChange('/feed?view=inbox'); close() }}>
+                Go to Inbox
               </Command.Item>
               <Command.Item value="refresh" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                 onSelect={() => { onRefresh(); close() }}>

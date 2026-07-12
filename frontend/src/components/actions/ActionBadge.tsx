@@ -13,6 +13,6 @@ export function ActionBadge({ entityType, entityId }: { entityType: string; enti
   if (!a) return null
   return (
     <Chip size="small" variant="outlined" color={a.status === 'executing' ? 'warning' : 'primary'}
-      label={LABEL[a.status] ?? a.status} onClick={() => navigate('/actions')} />
+      label={LABEL[a.status] ?? a.status} onClick={() => navigate('/feed?view=actions')} />
   )
 }

@@ -18,18 +18,12 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
   })
 
-  it('shows the 8 registry labels and group headers when expanded', () => {
+  it('shows the 7 registry labels and group headers when expanded', () => {
     wrap(false)
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Review')).toBeInTheDocument()
     expect(screen.getByText('Schedule')).toBeInTheDocument()
     expect(screen.getByText('Automations')).toBeInTheDocument()
     expect(screen.getByText('Knowledge')).toBeInTheDocument()
-  })
-
-  it('renders review link pointing at /review', () => {
-    wrap(false)
-    expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('href', '/review')
   })
 
   it('toggle button calls onToggle with negated value', () => {

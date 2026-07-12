@@ -33,7 +33,7 @@ describe('CommandPalette', () => {
     renderPalette()
     expect(screen.getByPlaceholderText(/search everything/i)).toBeInTheDocument()
     expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Review')).toBeInTheDocument()
+    expect(screen.getByText('Data Feed')).toBeInTheDocument()
     expect(screen.getByText('Add deadline')).toBeInTheDocument()
     expect(screen.getByText('Refresh data')).toBeInTheDocument()
   })
@@ -53,8 +53,8 @@ describe('CommandPalette', () => {
 
   it('navigates to a registry path when a nav item is chosen', () => {
     renderPalette()
-    fireEvent.click(screen.getByText('Review'))
-    expect(onViewChange).toHaveBeenCalledWith('/review')
+    fireEvent.click(screen.getByText('Data Feed'))
+    expect(onViewChange).toHaveBeenCalledWith('/feed')
   })
 
   it('calls onRefresh from the refresh action', () => {
@@ -65,8 +65,8 @@ describe('CommandPalette', () => {
 
   it('filters nav items by typed text', () => {
     renderPalette()
-    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'review' } })
-    expect(screen.getByText('Review')).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'feed' } })
+    expect(screen.getByText('Data Feed')).toBeInTheDocument()
     expect(screen.queryByText('People')).not.toBeInTheDocument()
   })
 

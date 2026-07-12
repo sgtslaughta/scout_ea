@@ -59,11 +59,11 @@ export default function KpiStrip() {
 
   const now = new Date()
   const tiles: Tile[] = [
-    { label: 'Proactive', value: outlook?.proactive?.length ?? 0, to: '/inbox?type=proactive' },
+    { label: 'Proactive', value: outlook?.proactive?.length ?? 0, to: '/feed?view=inbox&type=proactive' },
     { label: 'Due Today', value: outlook?.tasks_due_today?.length ?? 0, to: '/tasks?due=today' },
     { label: 'Urgent (<24h)', value: deadlines.filter((d) => d.countdown_seconds < 86400).length, to: '/deadlines?due=24h' },
     { label: 'Rising', value: trends.filter((t) => (t.delta ?? 0) > 0).length, to: '/trending?dir=rising' },
-    { label: 'Signals', value: signals.filter((s) => s.type !== 'proactive').length, to: '/inbox?status=new', spark: dailyCounts(signals.map((s) => s.created_at), 7, now) },
+    { label: 'Signals', value: signals.filter((s) => s.type !== 'proactive').length, to: '/feed?view=inbox&status=new', spark: dailyCounts(signals.map((s) => s.created_at), 7, now) },
     { label: 'Skill Runs', value: activity.length, spark: [...activity].reverse().map((a) => a.items_created) },
   ]
 
