@@ -5,6 +5,7 @@ import { BellOff, Trash2, ExternalLink } from 'lucide-react'
 import type { Signal, Alert } from '@/api'
 import { ActionMenu } from '@/components/actions/ActionMenu'
 import { formatFriendly, DEFAULT_TIME_PREFS } from '@/lib/datetime'
+import { safeHttpUrl } from '@/lib/url'
 
 const DASH = '—'
 
@@ -36,7 +37,7 @@ export function ResponseDetailModal({ open, kind, item, onClose, onStatus }: {
   const isSignal = kind === 'signal'
   const s = item as Signal
   const a = item as Alert
-  const url = item.url
+  const url = safeHttpUrl(item.url)
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

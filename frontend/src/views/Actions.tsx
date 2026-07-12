@@ -2,15 +2,7 @@ import { Box, Typography, Button, Stack, Chip, Link } from '@mui/material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { listActions, approveAction, dismissAction, type Action } from '../api'
-
-const safeHttpUrl = (u: unknown): string | null => {
-  try {
-    const p = new URL(String(u))
-    return p.protocol === 'http:' || p.protocol === 'https:' ? p.toString() : null
-  } catch {
-    return null
-  }
-}
+import { safeHttpUrl } from '@/lib/url'
 
 const preview = (a: Action) =>
   a.rationale || (a.payload?.subject as string) || (a.payload?.message as string) || a.action_type
