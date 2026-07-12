@@ -16,13 +16,15 @@ def build_server(db_path) -> FastMCP:
     @mcp.tool()
     def add_signal(type: str, source: str, title: str, external_ref: str,
                    status: str = "new", source_skill: str | None = None,
-                   summary: str | None = None, priority: int = 3) -> int:
+                   summary: str | None = None, priority: int = 3,
+                   reasoning: str | None = None) -> int:
         """Add an inbound signal (email/teams/etc). Returns rowcount (1 new, 0 duplicate)."""
         conn = _conn()
         try:
             return tools.add_signal(conn, type=type, source=source, title=title,
                                     external_ref=external_ref, status=status,
-                                    source_skill=source_skill, summary=summary, priority=priority)
+                                    source_skill=source_skill, summary=summary, priority=priority,
+                                    reasoning=reasoning)
         finally:
             conn.close()
 

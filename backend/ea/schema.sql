@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS signals (
     title         TEXT NOT NULL,
     summary       TEXT,
     who TEXT, what TEXT, when_rel TEXT, why TEXT,
+    reasoning     TEXT,                         -- AI rationale for surfacing (F1)
     url           TEXT,
     person_id     INTEGER REFERENCES people(id),
     topic_id      INTEGER REFERENCES topics(id),

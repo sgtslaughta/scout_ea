@@ -97,13 +97,19 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE alerts ADD COLUMN repeat_count INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
+    # Add signals.reasoning for pre-existing DBs (fresh DBs get it from schema.sql).
+    signals_pragma = conn.execute("PRAGMA table_info(signals)").fetchall()
+    if not any(r[1] == "reasoning" for r in signals_pragma):
+        conn.execute("ALTER TABLE signals ADD COLUMN reasoning TEXT")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
 _STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning", "news_items"}
 
 _SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summary",
-                "who", "what", "when_rel", "why", "url", "person_id", "topic_id",
+                "who", "what", "when_rel", "why", "reasoning", "url", "person_id", "topic_id",
                 "priority", "triage_rank", "status", "occurred_at"}
 
 
