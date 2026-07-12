@@ -4,6 +4,7 @@ import { ThemeProvider } from '@mui/material/styles'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
 import { TimePrefsProvider } from '@/lib/timePrefs'
+import { TimersProvider } from '@/lib/useTimers'
 import { theme } from '../../theme'
 import { Quickdraw } from './Quickdraw'
 import * as api from '@/api'
@@ -13,7 +14,7 @@ function wrap() {
   return render(
     <QueryClientProvider client={qc}>
       <ThemeProvider theme={theme} defaultMode="dark" modeStorageKey="ea-theme">
-        <TimePrefsProvider><MemoryRouter><Quickdraw /></MemoryRouter></TimePrefsProvider>
+        <TimePrefsProvider><TimersProvider><MemoryRouter><Quickdraw /></MemoryRouter></TimersProvider></TimePrefsProvider>
       </ThemeProvider>
     </QueryClientProvider>,
   )

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Box, Typography, IconButton, Tooltip, Button, Chip } from '@mui/material'
@@ -7,11 +8,13 @@ import { useQuickdrawPrefs } from './useQuickdrawPrefs'
 import { NeedsResponseSection } from './NeedsResponseSection'
 import { ApproachingSection } from './ApproachingSection'
 import { RecentActivitySection } from './RecentActivitySection'
-import { TimersSection } from './TimersSection'
+import { TimerPills } from './TimerPills'
+import { TimersDrawer } from './TimersDrawer'
 
 export function Quickdraw() {
   const navigate = useNavigate()
   const { expanded, toggleExpanded, isCollapsed, toggleSection } = useQuickdrawPrefs()
+  const [timersOpen, setTimersOpen] = useState(false)
   const { data: actions = [] } = useQuery({
     queryKey: ['actions'],
     queryFn: () => listActions(),
@@ -32,6 +35,7 @@ export function Quickdraw() {
         </Tooltip>
       </Box>
       <Box sx={{ flex: 1, overflowY: 'auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <TimerPills onOpen={() => setTimersOpen(true)} />
         {pendingCount > 0 && (
           <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider', bgcolor: 'action.hover' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
@@ -51,8 +55,8 @@ export function Quickdraw() {
         <NeedsResponseSection expanded={expanded} collapsed={isCollapsed('needs')} onToggle={toggleSection} />
         <ApproachingSection expanded={expanded} collapsed={isCollapsed('approaching')} onToggle={toggleSection} />
         <RecentActivitySection collapsed={isCollapsed('recent')} onToggle={toggleSection} />
-        <TimersSection collapsed={isCollapsed('timers')} onToggle={toggleSection} />
       </Box>
+      <TimersDrawer open={timersOpen} onClose={() => setTimersOpen(false)} />
     </Box>
   )
 }
