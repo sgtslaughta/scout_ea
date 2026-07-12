@@ -110,4 +110,26 @@ describe('Settings view', () => {
       ),
     )
   })
+
+  it('alert urgency: changing threshold calls setConfig', async () => {
+    const fetchMock = vi.fn((url: string, opts?: RequestInit) => {
+      if (url.includes('/api/config') && (!opts || opts.method !== 'POST')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'x', value: 'y' }) } as Response)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderSettings()
+
+    const sel = await screen.findByLabelText('Loud alert threshold')
+    fireEvent.change(sel, { target: { value: 'warning' } })
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/config/alert_loud_threshold',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    )
+  })
 })

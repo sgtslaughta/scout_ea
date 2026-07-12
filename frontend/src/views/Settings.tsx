@@ -45,6 +45,8 @@ export function SettingsView() {
   })
   const reminderOn = cfg.reminder_enabled !== '0'
   const leadMin = cfg.reminder_lead_minutes ?? '15'
+  const loudThreshold = cfg.alert_loud_threshold ?? 'critical'
+  const soundOn = cfg.alert_sound_enabled !== '0'
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -355,6 +357,41 @@ export function SettingsView() {
               </Box>
               <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
                 Notify this many minutes before deadlines, tasks, events, and news items come due.
+              </Typography>
+            </Box>
+
+            {/* Alert urgency */}
+            <Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Alert urgency
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <TextField
+                  select
+                  size="small"
+                  label="Loud for"
+                  value={loudThreshold}
+                  onChange={(e) => saveCfg.mutate({ key: 'alert_loud_threshold', value: e.target.value })}
+                  slotProps={{ select: { native: true }, htmlInput: { 'aria-label': 'Loud alert threshold' } }}
+                  sx={{ minWidth: 180 }}
+                >
+                  <option value="off">Off</option>
+                  <option value="critical">Critical</option>
+                  <option value="warning">Critical + Warning</option>
+                </TextField>
+                <ToggleButtonGroup
+                  value={soundOn ? 'on' : 'off'}
+                  exclusive
+                  onChange={(_e, v) => {
+                    if (v !== null) saveCfg.mutate({ key: 'alert_sound_enabled', value: v === 'on' ? '1' : '0' })
+                  }}
+                >
+                  <ToggleButton value="on" aria-label="alert sound on" disabled={loudThreshold === 'off'}>Sound</ToggleButton>
+                  <ToggleButton value="off" aria-label="alert sound off" disabled={loudThreshold === 'off'}>Muted</ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
+                Loud alerts repeat every 5 minutes (up to 3 times) until you silence or dismiss them.
               </Typography>
             </Box>
           </Box>
