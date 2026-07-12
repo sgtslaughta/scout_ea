@@ -32,8 +32,8 @@ describe('CommandPalette', () => {
   it('renders input, nav and quick actions when open', () => {
     renderPalette()
     expect(screen.getByPlaceholderText(/search everything/i)).toBeInTheDocument()
-    expect(screen.getByText('Today')).toBeInTheDocument()
-    expect(screen.getByText('Inbox')).toBeInTheDocument()
+    expect(screen.getByText('Home')).toBeInTheDocument()
+    expect(screen.getByText('Review')).toBeInTheDocument()
     expect(screen.getByText('Add deadline')).toBeInTheDocument()
     expect(screen.getByText('Refresh data')).toBeInTheDocument()
   })
@@ -46,9 +46,15 @@ describe('CommandPalette', () => {
 
   it('navigates when selecting a view', () => {
     renderPalette()
-    fireEvent.click(screen.getByText('Today'))
-    expect(onViewChange).toHaveBeenCalledWith('today')
+    fireEvent.click(screen.getByText('Home'))
+    expect(onViewChange).toHaveBeenCalledWith('/')
     expect(onOpenChange).toHaveBeenCalledWith(false)
+  })
+
+  it('navigates to a registry path when a nav item is chosen', () => {
+    renderPalette()
+    fireEvent.click(screen.getByText('Review'))
+    expect(onViewChange).toHaveBeenCalledWith('/review')
   })
 
   it('calls onRefresh from the refresh action', () => {
@@ -59,9 +65,9 @@ describe('CommandPalette', () => {
 
   it('filters nav items by typed text', () => {
     renderPalette()
-    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'inbox' } })
-    expect(screen.getByText('Inbox')).toBeInTheDocument()
-    expect(screen.queryByText('Calendar')).not.toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'review' } })
+    expect(screen.getByText('Review')).toBeInTheDocument()
+    expect(screen.queryByText('People')).not.toBeInTheDocument()
   })
 
   it('shows live search results and navigates to the mapped view', async () => {
@@ -72,6 +78,6 @@ describe('CommandPalette', () => {
     fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'budget' } })
     const result = await screen.findByText('Budget review')
     fireEvent.click(result)
-    expect(onViewChange).toHaveBeenCalledWith('tasks') // task -> /tasks
+    expect(onViewChange).toHaveBeenCalledWith('/tasks') // task -> /tasks
   })
 })

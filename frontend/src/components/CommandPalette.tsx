@@ -3,6 +3,7 @@ import { Command } from 'cmdk'
 import { Box } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { search } from '@/api'
+import { NAV } from '@/nav'
 
 interface CommandPaletteProps {
   open: boolean
@@ -11,26 +12,18 @@ interface CommandPaletteProps {
   onRefresh: () => void
 }
 
-const VIEWS = [
-  { id: 'today', label: 'Today' },
-  { id: 'inbox', label: 'Inbox' },
-  { id: 'tasks', label: 'Tasks' },
-  { id: 'calendar', label: 'Calendar' },
-  { id: 'trending', label: 'Trending' },
-  { id: 'deadlines', label: 'Deadlines' },
-  { id: 'skills', label: 'Skills' },
-  { id: 'settings', label: 'Settings' },
-]
+// nav destinations, derived from the single route registry
+const VIEWS = NAV.map((n) => ({ path: n.path, label: n.label }))
 
-// Result entity kind -> section heading + the view id to navigate to.
+// Result entity kind -> section heading + the PATH to navigate to.
 const KIND_ORDER = ['task', 'signal', 'deadline', 'event', 'person', 'topic', 'trend'] as const
 const KIND_LABEL: Record<string, string> = {
   task: 'Tasks', signal: 'Signals', deadline: 'Deadlines', event: 'Events',
   person: 'People', topic: 'Topics', trend: 'Trends',
 }
 const KIND_VIEW: Record<string, string> = {
-  task: 'tasks', signal: 'inbox', deadline: 'deadlines', event: 'calendar',
-  person: 'people', topic: 'feed?view=topics', trend: 'feed?view=trending',
+  task: '/tasks', signal: '/review', deadline: '/schedule', event: '/schedule?tab=calendar',
+  person: '/people', topic: '/feed?view=topics', trend: '/feed?view=trending',
 }
 
 const itemStyle: React.CSSProperties = {
@@ -130,12 +123,12 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
             <Command.Group heading="Navigation" style={{ padding: '8px 16px' }}>
               {filteredViews.map((view) => (
                 <Command.Item
-                  key={view.id}
-                  value={`nav-${view.id}`}
+                  key={view.path}
+                  value={`nav-${view.path}`}
                   style={itemStyle}
                   onMouseEnter={hoverOn}
                   onMouseLeave={hoverOff}
-                  onSelect={() => { onViewChange(view.id); close() }}
+                  onSelect={() => { onViewChange(view.path); close() }}
                 >
                   {view.label}
                 </Command.Item>
@@ -147,12 +140,12 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
           {q === '' && (
             <Command.Group heading="Quick Actions" style={{ padding: '8px 16px' }}>
               <Command.Item value="add-deadline" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onSelect={() => { onViewChange('deadlines'); close() }}>
+                onSelect={() => { onViewChange('/schedule'); close() }}>
                 Add deadline
               </Command.Item>
-              <Command.Item value="go-to-actions" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onSelect={() => { onViewChange('actions'); close() }}>
-                Go to Actions
+              <Command.Item value="go-to-review" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                onSelect={() => { onViewChange('/review?tab=actions'); close() }}>
+                Go to Review
               </Command.Item>
               <Command.Item value="refresh" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                 onSelect={() => { onRefresh(); close() }}>
