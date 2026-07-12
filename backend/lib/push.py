@@ -68,7 +68,22 @@ def valid_push_endpoint(endpoint: str) -> bool:
                 or ip.is_reserved or ip.is_multicast or ip.is_unspecified)
 
 
-def send_push(conn, title, body, claims_email="mailto:admin@scout-ea.local"):
+LOUD_REPEAT_MINUTES = 5
+LOUD_REPEAT_MAX = 2   # initial send + 2 repeats = 3 notifications total
+
+
+def _loud_severities(conn) -> set[str]:
+    """Severity names that qualify for loud (repeat + sound) treatment. Empty set when 'off'."""
+    cfg = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM config")}
+    thr = cfg.get("alert_loud_threshold", "critical")
+    if thr == "off":
+        return set()
+    if thr == "warning":
+        return {"warning", "critical"}
+    return {"critical"}   # 'critical' or any unrecognized value
+
+
+def send_push(conn, title, body, loud=False, tag=None, claims_email="mailto:admin@scout-ea.local"):
     """Send a push to every subscription. Returns count sent. Deletes dead subs (404/410)."""
     if not _vapid_available():
         return 0
@@ -77,7 +92,7 @@ def send_push(conn, title, body, claims_email="mailto:admin@scout-ea.local"):
     from ea import db
 
     pub, priv = ensure_vapid(conn)
-    payload = json.dumps({"title": title, "body": body})
+    payload = json.dumps({"title": title, "body": body, "loud": bool(loud), "tag": tag})
     sent = 0
 
     for s in db.list_subscriptions(conn):
@@ -106,16 +121,46 @@ def push_pending_alerts(conn, limit=20) -> int:
     """
     if not _vapid_available():
         return 0
+    loud = _loud_severities(conn)
     rows = conn.execute(
-        "SELECT id, title, body FROM alerts "
+        "SELECT id, title, body, severity FROM alerts "
         "WHERE notified_push=0 AND severity IN ('critical','warning') "
         "ORDER BY created_at DESC LIMIT ?", (int(limit),)).fetchall()
     sent = 0
     for a in rows:
-        send_push(conn, a["title"], a["body"] or "")
+        send_push(conn, a["title"], a["body"] or "",
+                  loud=a["severity"] in loud, tag=f"alert-{a['id']}")
         conn.execute("UPDATE alerts SET notified_push=1 WHERE id=?", (a["id"],))
         sent += 1
     conn.commit()
+    return sent
+
+
+def repush_loud_alerts(conn, limit=20) -> int:
+    """Re-push unacknowledged loud alerts, up to LOUD_REPEAT_MAX times, LOUD_REPEAT_MINUTES apart.
+    Ack = status leaving 'unread' (repeats stop). Cadence anchored on updated_at (touch trigger
+    re-anchors it each repeat). Returns count resent. No-op when threshold is 'off'."""
+    if not _vapid_available():
+        return 0
+    loud = _loud_severities(conn)
+    if not loud:
+        return 0
+    placeholders = ",".join("?" * len(loud))
+    rows = conn.execute(
+        f"SELECT id, title, body FROM alerts "
+        f"WHERE status='unread' AND notified_push=1 AND severity IN ({placeholders}) "
+        f"AND repeat_count < ? "
+        f"AND datetime('now') >= datetime(updated_at, ?) "
+        f"ORDER BY created_at DESC LIMIT ?",
+        (*sorted(loud), LOUD_REPEAT_MAX, f"+{LOUD_REPEAT_MINUTES} minutes", int(limit))
+    ).fetchall()
+    sent = 0
+    for a in rows:
+        send_push(conn, a["title"], a["body"] or "", loud=True, tag=f"alert-{a['id']}")
+        conn.execute("UPDATE alerts SET repeat_count = repeat_count + 1 WHERE id=?", (a["id"],))
+        sent += 1
+    if sent:
+        conn.commit()
     return sent
 
 
