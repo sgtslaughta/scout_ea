@@ -414,7 +414,8 @@ def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
 
 # NOTE: WRITABLE_CONFIG is a deliberate security allowlist; only specific config keys
 # can be modified by end users. Add new keys here explicitly after schema migration.
-WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days"}
+WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days",
+                   "reminder_enabled", "reminder_lead_minutes"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:
