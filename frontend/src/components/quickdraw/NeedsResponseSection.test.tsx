@@ -29,4 +29,18 @@ describe('NeedsResponseSection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Silence' }))
     await waitFor(() => expect(setStatus).toHaveBeenCalledWith('signals', 1, 'read'))
   })
+
+  it('opens the detail modal on item click with the full signal', async () => {
+    vi.restoreAllMocks()
+    vi.spyOn(api, 'getSignals').mockResolvedValue([
+      { id: 7, type: 'email', source: 'inbox', title: 'Budget review', status: 'new',
+        priority: 1, created_at: '2026-07-12T09:00:00Z', who: 'Mike', why: 'exec ask' },
+    ])
+    vi.spyOn(api, 'getAlerts').mockResolvedValue([])
+    wrap(<NeedsResponseSection expanded collapsed={false} onToggle={vi.fn()} />)
+    const item = await screen.findByRole('button', { name: 'Budget review' })
+    fireEvent.click(item)
+    // "AI Reasoning" heading is rendered ONLY by the modal, never by the list row
+    await waitFor(() => expect(screen.getByText('AI Reasoning')).toBeInTheDocument())
+  })
 })
