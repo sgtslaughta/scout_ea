@@ -10,10 +10,12 @@ import { FeedOverview } from '@/components/feed/FeedOverview'
 import { FeedList } from '@/components/feed/FeedList'
 import { FeedTrending } from '@/components/feed/FeedTrending'
 import { FeedTopics } from '@/components/feed/FeedTopics'
+import { FeedInboxSection } from '@/components/feed/FeedInboxSection'
+import { FeedActionsSection } from '@/components/feed/FeedActionsSection'
 import { FeedDetail } from '@/components/feed/FeedDetail'
 import type { FeedView, FeedItem, FeedSelection } from '@/components/feed/types'
 
-const VIEWS: FeedView[] = ['overview', 'trending', 'news', 'learning', 'topics']
+const VIEWS: FeedView[] = ['overview', 'inbox', 'actions', 'trending', 'news', 'learning', 'topics']
 
 export function DataFeedView() {
   const [params] = useSearchParams()
@@ -41,6 +43,8 @@ export function DataFeedView() {
         <FeedRail view={view} onView={(v) => { setView(v); setSelection(null) }} />
         <Box sx={{ flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden' }}>
           {view === 'overview' && <FeedOverview onSelect={(it) => setSelection({ category: it.category, id: it.id, item: it })} />}
+          {view === 'inbox' && <FeedInboxSection />}
+          {view === 'actions' && <FeedActionsSection />}
           {view === 'news' && <FeedList kind="news" onSelect={select('news')} />}
           {view === 'learning' && <FeedList kind="learning" onSelect={select('learning')} />}
           {view === 'trending' && <FeedTrending />}

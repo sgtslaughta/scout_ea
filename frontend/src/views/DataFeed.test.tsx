@@ -52,4 +52,11 @@ describe('DataFeed shell', () => {
     fireEvent.click(await screen.findByText('Trend X'))
     expect(screen.queryByRole('button', { name: /mark read/i })).toBeNull()
   })
+  it('renders the Inbox section when view=inbox', async () => {
+    vi.spyOn(api, 'getSignals').mockResolvedValue([
+      { id: 1, type: 'email', source: 'inbox', title: 'A signal', status: 'new', priority: 1, created_at: '2026-07-12T09:00:00Z' },
+    ] as never)
+    wrap('/feed?view=inbox')
+    expect(await screen.findByText('A signal')).toBeInTheDocument()
+  })
 })
