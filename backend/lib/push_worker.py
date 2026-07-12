@@ -1,4 +1,4 @@
-"""Background thread: periodically push new critical alerts."""
+"""Background thread: generate due-item reminders, then push new critical + warning alerts."""
 from __future__ import annotations
 import threading
 import time
@@ -7,7 +7,8 @@ from lib import push
 
 
 def start_push_worker(db_path, interval=30):
-    """Start a daemon thread that pushes pending critical alerts every `interval` seconds."""
+    """Start a daemon thread that generates due reminders and pushes pending
+    critical + warning alerts every `interval` seconds."""
     def loop():
         while True:
             try:

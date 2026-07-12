@@ -163,7 +163,8 @@ def generate_due_reminders(conn) -> int:
             conn.execute(
                 "INSERT INTO alerts (severity, title, body, source_table, source_id, status) "
                 "VALUES ('warning', ?, ?, ?, ?, 'unread')",
-                (f"Due soon: {r['title']}", f"Due at {r['t']}", tag, r["id"]))
+                # ponytail: relative phrasing avoids UTC-vs-local tz mismatch in the notification
+                (f"Due soon: {r['title']}", f"Due within {lead} minutes", tag, r["id"]))
             inserted += 1
     if inserted:
         conn.commit()
