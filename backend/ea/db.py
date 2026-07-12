@@ -91,6 +91,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("DROP TABLE IF EXISTS deadline_links")
         conn.commit()
 
+    # Add alerts.repeat_count for pre-existing DBs (fresh DBs get it from schema.sql).
+    alerts_pragma = conn.execute("PRAGMA table_info(alerts)").fetchall()
+    if not any(r[1] == "repeat_count" for r in alerts_pragma):
+        conn.execute("ALTER TABLE alerts ADD COLUMN repeat_count INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
@@ -415,7 +421,8 @@ def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
 # NOTE: WRITABLE_CONFIG is a deliberate security allowlist; only specific config keys
 # can be modified by end users. Add new keys here explicitly after schema migration.
 WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days",
-                   "reminder_enabled", "reminder_lead_minutes"}
+                   "reminder_enabled", "reminder_lead_minutes",
+                   "alert_loud_threshold", "alert_sound_enabled"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:

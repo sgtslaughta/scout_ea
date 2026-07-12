@@ -83,6 +83,7 @@ CREATE TABLE IF NOT EXISTS alerts (
     status         TEXT NOT NULL DEFAULT 'unread',
     notified_toast INTEGER NOT NULL DEFAULT 0,
     notified_push  INTEGER NOT NULL DEFAULT 0,  -- web push (container, tab-closed)
+    repeat_count   INTEGER NOT NULL DEFAULT 0,  -- loud-alert repeat tracking
     created_at     TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
