@@ -11,10 +11,11 @@ interface QuickdrawSectionProps {
   loading?: boolean
   error?: boolean
   empty: string
+  alwaysShowChildren?: boolean
   children: ReactNode
 }
 
-export function QuickdrawSection({ id, label, count, collapsed, onToggle, loading, error, empty, children }: QuickdrawSectionProps) {
+export function QuickdrawSection({ id, label, count, collapsed, onToggle, loading, error, empty, alwaysShowChildren, children }: QuickdrawSectionProps) {
   return (
     <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
       <Box
@@ -32,7 +33,7 @@ export function QuickdrawSection({ id, label, count, collapsed, onToggle, loadin
           <Box sx={{ pb: 1 }}>
             {loading ? <Typography variant="caption" color="text.secondary" sx={{ px: 1.5 }}>Loading…</Typography>
               : error ? <Typography variant="caption" color="error" sx={{ px: 1.5 }}>Couldn't load</Typography>
-              : count === 0 ? <Typography variant="caption" color="text.secondary" sx={{ px: 1.5, fontStyle: 'italic' }}>{empty}</Typography>
+              : (count === 0 && !alwaysShowChildren) ? <Typography variant="caption" color="text.secondary" sx={{ px: 1.5, fontStyle: 'italic' }}>{empty}</Typography>
               : children}
           </Box>
         </Collapse>

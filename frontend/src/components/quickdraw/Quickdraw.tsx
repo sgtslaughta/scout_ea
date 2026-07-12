@@ -7,6 +7,7 @@ import { useQuickdrawPrefs } from './useQuickdrawPrefs'
 import { NeedsResponseSection } from './NeedsResponseSection'
 import { ApproachingSection } from './ApproachingSection'
 import { RecentActivitySection } from './RecentActivitySection'
+import { TimersSection } from './TimersSection'
 
 export function Quickdraw() {
   const navigate = useNavigate()
@@ -50,6 +51,7 @@ export function Quickdraw() {
         <NeedsResponseSection expanded={expanded} collapsed={isCollapsed('needs')} onToggle={toggleSection} />
         <ApproachingSection expanded={expanded} collapsed={isCollapsed('approaching')} onToggle={toggleSection} />
         <RecentActivitySection collapsed={isCollapsed('recent')} onToggle={toggleSection} />
+        <TimersSection collapsed={isCollapsed('timers')} onToggle={toggleSection} />
       </Box>
     </Box>
   )

@@ -38,4 +38,10 @@ describe('QuickdrawSection', () => {
     renderSection({ collapsed: true, count: 2 })
     expect(screen.queryByText('child-row')).toBeNull()
   })
+
+  it('alwaysShowChildren renders children even when count is 0', () => {
+    renderSection({ count: 0, alwaysShowChildren: true })
+    expect(screen.getByText('child-row')).toBeInTheDocument()
+    expect(screen.queryByText('Holstered — nothing to draw.')).not.toBeInTheDocument()
+  })
 })
