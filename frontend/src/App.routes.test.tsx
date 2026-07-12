@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
@@ -23,15 +23,27 @@ function renderAt(path: string) {
 }
 
 describe('routing', () => {
-  it('renders sidebar nav links as router links', async () => {
+  it('renders grouped sidebar nav links from the registry', async () => {
     renderAt('/')
-    const link = await screen.findByRole('link', { name: /inbox/i })
-    expect(link).toHaveAttribute('href', '/inbox')
+    const link = await screen.findByRole('link', { name: /review/i })
+    expect(link).toHaveAttribute('href', '/review')
   })
 
   it('marks the active route with aria-current', async () => {
     renderAt('/settings')
     const link = await screen.findByRole('link', { name: /settings/i })
     expect(link).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('redirects legacy /inbox to /review', async () => {
+    renderAt('/inbox')
+    const link = await screen.findByRole('link', { name: /review/i })
+    await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
+  })
+
+  it('redirects legacy /deadlines to /schedule', async () => {
+    renderAt('/deadlines')
+    const link = await screen.findByRole('link', { name: /schedule/i })
+    await waitFor(() => expect(link).toHaveAttribute('aria-current', 'page'))
   })
 })

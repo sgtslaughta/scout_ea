@@ -4,25 +4,9 @@ import Box from '@mui/material/Box'
 import IconButton from '@mui/material/IconButton'
 import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
-import {
-  Calendar, CheckSquare, Cog, Inbox, Menu, Newspaper,
-  AlertCircle, FileText, Grid3x3, Users, Activity, Zap,
-} from 'lucide-react'
+import { Menu } from 'lucide-react'
+import { NAV, NAV_GROUPS } from '@/nav'
 import { HelpDialog } from './HelpDialog'
-
-const SIDEBAR_ITEMS = [
-  { id: 'dashboard', route: '/', icon: Grid3x3, label: 'Dashboard' },
-  { id: 'inbox', route: '/inbox', icon: Inbox, label: 'Inbox' },
-  { id: 'tasks', route: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { id: 'actions', route: '/actions', icon: Zap, label: 'Actions' },
-  { id: 'calendar', route: '/calendar', icon: Calendar, label: 'Calendar' },
-  { id: 'feed', route: '/feed', icon: Newspaper, label: 'Data Feed' },
-  { id: 'deadlines', route: '/deadlines', icon: AlertCircle, label: 'Deadlines' },
-  { id: 'people', route: '/people', icon: Users, label: 'People' },
-  { id: 'skills', route: '/skills', icon: FileText, label: 'Skills' },
-  { id: 'activity', route: '/activity', icon: Activity, label: 'Activity' },
-  { id: 'settings', route: '/settings', icon: Cog, label: 'Settings' },
-]
 
 interface SidebarProps {
   collapsed: boolean
@@ -54,41 +38,54 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         </IconButton>
       </Box>
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: 0.5, py: 1.5, px: collapsed ? 0 : 1 }}>
-        {SIDEBAR_ITEMS.map((item) => {
-          const content = (
-            <NavLink
-              to={item.route}
-              end={item.route === '/'}
-              aria-label={item.label}
-              style={{ position: 'relative', textDecoration: 'none' }}
-            >
-              {({ isActive }) => (
-                <Box
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 1.5,
-                    justifyContent: collapsed ? 'center' : 'flex-start',
-                    borderRadius: 1, px: collapsed ? 0 : 1, py: 0.5,
-                    color: isActive ? 'primary.main' : 'text.secondary',
-                    '&:hover': { bgcolor: 'action.hover' },
-                  }}
-                >
-                  <IconButton component="span" color={isActive ? 'primary' : 'default'} aria-hidden sx={{ p: collapsed ? 1 : 0.5 }}>
-                    <item.icon size={20} />
-                  </IconButton>
-                  {!collapsed && (
-                    <Typography variant="body2" sx={{ fontWeight: isActive ? 600 : 400 }}>{item.label}</Typography>
-                  )}
-                  {isActive && (
-                    <Box sx={{ position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', width: 3, height: 24, bgcolor: 'primary.main', borderRadius: '0 3px 3px 0' }} />
-                  )}
-                </Box>
+        {NAV_GROUPS.map((group) => {
+          const items = NAV.filter((n) => n.group === group.id)
+          if (items.length === 0) return null
+          return (
+            <Box key={group.id} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mb: 1 }}>
+              {!collapsed && (
+                <Typography variant="caption" color="text.disabled" sx={{ px: 1, pt: 1, textTransform: 'uppercase', letterSpacing: 0.6, fontSize: 10 }}>
+                  {group.label}
+                </Typography>
               )}
-            </NavLink>
-          )
-          return collapsed ? (
-            <Tooltip key={item.id} title={item.label} placement="right">{content}</Tooltip>
-          ) : (
-            <Box key={item.id}>{content}</Box>
+              {items.map((item) => {
+                const content = (
+                  <NavLink
+                    to={item.path}
+                    end={item.path === '/'}
+                    aria-label={item.label}
+                    style={{ position: 'relative', textDecoration: 'none' }}
+                  >
+                    {({ isActive }) => (
+                      <Box
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: 1.5,
+                          justifyContent: collapsed ? 'center' : 'flex-start',
+                          borderRadius: 1, px: collapsed ? 0 : 1, py: 0.5,
+                          color: isActive ? 'primary.main' : 'text.secondary',
+                          '&:hover': { bgcolor: 'action.hover' },
+                        }}
+                      >
+                        <IconButton component="span" color={isActive ? 'primary' : 'default'} aria-hidden sx={{ p: collapsed ? 1 : 0.5 }}>
+                          <item.icon size={20} />
+                        </IconButton>
+                        {!collapsed && (
+                          <Typography variant="body2" sx={{ fontWeight: isActive ? 600 : 400 }}>{item.label}</Typography>
+                        )}
+                        {isActive && (
+                          <Box sx={{ position: 'absolute', left: -8, top: '50%', transform: 'translateY(-50%)', width: 3, height: 24, bgcolor: 'primary.main', borderRadius: '0 3px 3px 0' }} />
+                        )}
+                      </Box>
+                    )}
+                  </NavLink>
+                )
+                return collapsed ? (
+                  <Tooltip key={item.id} title={item.label} placement="right">{content}</Tooltip>
+                ) : (
+                  <Box key={item.id}>{content}</Box>
+                )
+              })}
+            </Box>
           )
         })}
       </Box>

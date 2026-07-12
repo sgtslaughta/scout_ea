@@ -12,17 +12,24 @@ function wrap(collapsed: boolean, onToggle = vi.fn()) {
 }
 
 describe('Sidebar', () => {
-  it('hides text labels when collapsed', () => {
+  it('hides text labels when collapsed but keeps accessible links', () => {
     wrap(true)
-    // icons present as accessible links, but the visible "Dashboard" text label is not rendered
-    expect(screen.queryByText('Dashboard')).toBeNull()
-    expect(screen.getByRole('link', { name: /dashboard/i })).toBeInTheDocument()
+    expect(screen.queryByText('Home')).toBeNull()
+    expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
   })
 
-  it('shows text labels when expanded', () => {
+  it('shows the 8 registry labels and group headers when expanded', () => {
     wrap(false)
-    expect(screen.getByText('Dashboard')).toBeInTheDocument()
-    expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByText('Home')).toBeInTheDocument()
+    expect(screen.getByText('Review')).toBeInTheDocument()
+    expect(screen.getByText('Schedule')).toBeInTheDocument()
+    expect(screen.getByText('Automations')).toBeInTheDocument()
+    expect(screen.getByText('Knowledge')).toBeInTheDocument()
+  })
+
+  it('renders review link pointing at /review', () => {
+    wrap(false)
+    expect(screen.getByRole('link', { name: /review/i })).toHaveAttribute('href', '/review')
   })
 
   it('toggle button calls onToggle with negated value', () => {

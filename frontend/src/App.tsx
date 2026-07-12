@@ -12,16 +12,13 @@ import { useAlertChime } from '@/lib/useAlertChime'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
-const DeadlinesView = lazy(() => import('@/views/Deadlines').then(m => ({ default: m.DeadlinesView })))
 const DataFeedView = lazy(() => import('@/views/DataFeed').then(m => ({ default: m.DataFeedView })))
-const SkillsView = lazy(() => import('@/views/Skills').then(m => ({ default: m.SkillsView })))
 const SettingsView = lazy(() => import('@/views/Settings').then(m => ({ default: m.SettingsView })))
-const InboxView = lazy(() => import('@/views/Inbox').then(m => ({ default: m.InboxView })))
 const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.TasksView })))
-const CalendarView = lazy(() => import('@/views/Calendar').then(m => ({ default: m.CalendarView })))
 const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
-const ActivityView = lazy(() => import('@/views/Activity').then(m => ({ default: m.ActivityView })))
-const ActionsView = lazy(() => import('@/views/Actions').then(m => ({ default: m.ActionsView })))
+const ReviewView = lazy(() => import('@/views/Review').then(m => ({ default: m.ReviewView })))
+const ScheduleView = lazy(() => import('@/views/Schedule').then(m => ({ default: m.ScheduleView })))
+const AutomationsView = lazy(() => import('@/views/Automations').then(m => ({ default: m.AutomationsView })))
 
 export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(
@@ -64,7 +61,7 @@ export function App() {
       <CommandPalette
         open={commandOpen}
         onOpenChange={setCommandOpen}
-        onViewChange={(id) => navigate(id === 'dashboard' ? '/' : '/' + id)}
+        onViewChange={(path) => navigate(path)}
         onRefresh={handleRefresh}
       />
 
@@ -92,19 +89,24 @@ export function App() {
                 <RouteErrorBoundary key={location.pathname}>
                   <Routes>
                     <Route path="/" element={<DashboardView />} />
-                    <Route path="/inbox" element={<InboxView />} />
+                    <Route path="/review" element={<ReviewView />} />
                     <Route path="/tasks" element={<TasksView />} />
-                    <Route path="/actions" element={<ActionsView />} />
-                    <Route path="/calendar" element={<CalendarView />} />
+                    <Route path="/schedule" element={<ScheduleView />} />
                     <Route path="/feed" element={<DataFeedView />} />
-                    <Route path="/trending" element={<Navigate to="/feed?view=trending" replace />} />
-                    <Route path="/deadlines" element={<DeadlinesView />} />
                     <Route path="/people" element={<PeopleView />} />
-                    <Route path="/topics" element={<Navigate to="/feed?view=topics" replace />} />
-                    <Route path="/skills" element={<SkillsView />} />
-                    <Route path="/docs" element={<Navigate to="/skills" replace />} />
-                    <Route path="/activity" element={<ActivityView />} />
+                    <Route path="/automations" element={<AutomationsView />} />
                     <Route path="/settings" element={<SettingsView />} />
+
+                    {/* legacy redirects — preserve bookmarks + ⌘K deep links */}
+                    <Route path="/inbox" element={<Navigate to="/review" replace />} />
+                    <Route path="/actions" element={<Navigate to="/review?tab=actions" replace />} />
+                    <Route path="/deadlines" element={<Navigate to="/schedule" replace />} />
+                    <Route path="/calendar" element={<Navigate to="/schedule?tab=calendar" replace />} />
+                    <Route path="/skills" element={<Navigate to="/automations" replace />} />
+                    <Route path="/activity" element={<Navigate to="/automations?tab=activity" replace />} />
+                    <Route path="/trending" element={<Navigate to="/feed?view=trending" replace />} />
+                    <Route path="/topics" element={<Navigate to="/feed?view=topics" replace />} />
+                    <Route path="/docs" element={<Navigate to="/automations" replace />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </RouteErrorBoundary>
