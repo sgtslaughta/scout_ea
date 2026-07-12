@@ -51,4 +51,29 @@ describe('FeedInboxSection', () => {
     fireEvent.click(title)
     await waitFor(() => expect(screen.getByText('AI Reasoning')).toBeInTheDocument())
   })
+
+  it('proactive toggle shows only proactive-type signals', async () => {
+    wrap()
+    await screen.findByText('New one')
+    fireEvent.click(screen.getByRole('button', { name: 'proactive' }))
+    expect(screen.queryByText('New one')).toBeNull() // email type hidden
+    expect(screen.getByText('Triaged one')).toBeInTheDocument() // proactive type shown
+  })
+
+  it('re-clicking an active status chip clears the filter', async () => {
+    wrap()
+    await screen.findByText('New one')
+    const chip = screen.getByRole('button', { name: 'triaged' })
+    fireEvent.click(chip) // filter to triaged
+    expect(screen.queryByText('New one')).toBeNull()
+    fireEvent.click(chip) // clear → all shown
+    expect(screen.getByText('New one')).toBeInTheDocument()
+    expect(screen.getByText('Triaged one')).toBeInTheDocument()
+  })
+
+  it('preselects proactive from ?type=proactive', async () => {
+    wrap('/feed?view=inbox&type=proactive')
+    await screen.findByText('Triaged one')
+    expect(screen.queryByText('New one')).toBeNull()
+  })
 })
