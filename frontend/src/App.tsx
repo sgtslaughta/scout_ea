@@ -8,6 +8,7 @@ import { SignatureBar } from '@/components/SignatureBar'
 import { TodayBriefing } from '@/components/TodayBriefing'
 import { CommandPalette } from '@/components/CommandPalette'
 import { Quickdraw } from '@/components/quickdraw/Quickdraw'
+import { useAlertChime } from '@/lib/useAlertChime'
 
 // Lazy-loaded views with named export conversion to default
 const DashboardView = lazy(() => import('@/views/Dashboard').then(m => ({ default: m.DashboardView })))
@@ -31,6 +32,7 @@ export function App() {
   const navigate = useNavigate()
   const location = useLocation()
   const queryClient = useQueryClient()
+  useAlertChime()
 
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
