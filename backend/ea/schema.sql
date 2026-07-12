@@ -160,3 +160,30 @@ CREATE TRIGGER IF NOT EXISTS trg_learning_touch AFTER UPDATE ON learning
 BEGIN UPDATE learning SET updated_at = datetime('now') WHERE id = NEW.id; END;
 CREATE TRIGGER IF NOT EXISTS trg_config_touch AFTER UPDATE ON config
 BEGIN UPDATE config SET updated_at = datetime('now') WHERE key = NEW.key; END;
+
+-- 11. ACTIONS ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS actions (
+    id           INTEGER PRIMARY KEY,
+    entity_type  TEXT,
+    entity_id    INTEGER,
+    action_type  TEXT NOT NULL,
+    mode         TEXT NOT NULL DEFAULT 'review',
+    status       TEXT NOT NULL DEFAULT 'drafted',
+    payload      TEXT,
+    rationale    TEXT,
+    created_by   TEXT NOT NULL DEFAULT 'skill',
+    approved_at  TEXT,
+    executed_at  TEXT,
+    result       TEXT,
+    error        TEXT,
+    created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- 12. GUIDANCE ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS guidance (
+    id          INTEGER PRIMARY KEY,
+    scope       TEXT NOT NULL,
+    text        TEXT NOT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);

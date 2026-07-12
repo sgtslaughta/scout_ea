@@ -322,3 +322,44 @@ export const updateTopic = (id: number, body: Partial<Topic>) =>
 
 export const deleteTopic = (id: number) =>
   del<{ deactivated: number }>(`/api/topics/${id}`)
+
+export interface Action {
+  id: number
+  entity_type?: string
+  entity_id?: number
+  action_type: string
+  mode: string
+  status: string
+  payload?: Record<string, unknown>
+  rationale?: string
+  result?: Record<string, unknown>
+  error?: string
+  created_at: string
+}
+export interface Guidance { id: number; scope: string; text: string; created_at: string }
+
+export interface ActionCreate {
+  action_type: string
+  entity_type?: string
+  entity_id?: number
+  mode?: string
+  payload?: Record<string, unknown>
+  rationale?: string
+  approve?: boolean
+}
+
+export const listActions = (status?: string) =>
+  fetchJson<Action[]>(`/api/actions${status ? `?status=${encodeURIComponent(status)}` : ''}`)
+export const createAction = (body: ActionCreate) =>
+  postJson<{ id: number }>('/api/actions', body as unknown as Record<string, unknown>)
+export const approveAction = (id: number) =>
+  postJson<{ updated: number }>(`/api/actions/${id}/approve`, {})
+export const dismissAction = (id: number) =>
+  postJson<{ updated: number }>(`/api/actions/${id}/dismiss`, {})
+
+export const getGuidance = (scope?: string) =>
+  fetchJson<Guidance[]>(`/api/guidance${scope ? `?scope=${encodeURIComponent(scope)}` : ''}`)
+export const addGuidance = (scope: string, text: string) =>
+  postJson<{ id: number }>('/api/guidance', { scope, text })
+export const deleteGuidance = (id: number) =>
+  del<{ deleted: number }>(`/api/guidance/${id}`)

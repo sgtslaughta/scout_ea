@@ -20,6 +20,7 @@ const TasksView = lazy(() => import('@/views/Tasks').then(m => ({ default: m.Tas
 const CalendarView = lazy(() => import('@/views/Calendar').then(m => ({ default: m.CalendarView })))
 const PeopleView = lazy(() => import('@/views/People').then(m => ({ default: m.PeopleView })))
 const ActivityView = lazy(() => import('@/views/Activity').then(m => ({ default: m.ActivityView })))
+const ActionsView = lazy(() => import('@/views/Actions').then(m => ({ default: m.ActionsView })))
 
 export function App() {
   const [collapsedSidebar, setCollapsedSidebar] = useState(
@@ -91,6 +92,7 @@ export function App() {
                     <Route path="/" element={<DashboardView />} />
                     <Route path="/inbox" element={<InboxView />} />
                     <Route path="/tasks" element={<TasksView />} />
+                    <Route path="/actions" element={<ActionsView />} />
                     <Route path="/calendar" element={<CalendarView />} />
                     <Route path="/feed" element={<DataFeedView />} />
                     <Route path="/trending" element={<Navigate to="/feed?view=trending" replace />} />

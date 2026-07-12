@@ -121,6 +121,21 @@ class TaskCreate(BaseModel):
     board_column_id: int | None = None
 
 
+class ActionCreate(BaseModel):
+    action_type: str
+    entity_type: str | None = None
+    entity_id: int | None = None
+    mode: str = "review"
+    payload: dict | None = None
+    rationale: str | None = None
+    approve: bool = False
+
+
+class GuidanceBody(BaseModel):
+    scope: str
+    text: str
+
+
 class BoardColumnPatch(BaseModel):
     name: str | None = None
     position: int | None = None
@@ -192,6 +207,47 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="task not found")
         return {"updated": n}
+
+    @app.get("/api/actions")
+    def list_actions_ep(status: str | None = None, conn=Depends(get_db)):
+        return db.list_actions(conn, status=status)
+
+    @app.post("/api/actions")
+    def create_action_ep(body: ActionCreate, conn=Depends(get_db)):
+        status = "approved" if body.approve else "drafted"
+        aid = db.add_action(conn, action_type=body.action_type,
+                            entity_type=body.entity_type, entity_id=body.entity_id,
+                            mode=body.mode, status=status, payload=body.payload,
+                            rationale=body.rationale, created_by="user")
+        if body.approve:
+            db.update_action(conn, aid, status="approved")  # stamps approved_at
+        return {"id": aid}
+
+    @app.post("/api/actions/{action_id}/approve")
+    def approve_action_ep(action_id: int, conn=Depends(get_db)):
+        n = db.update_action(conn, action_id, status="approved")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="action not found")
+        return {"updated": n}
+
+    @app.post("/api/actions/{action_id}/dismiss")
+    def dismiss_action_ep(action_id: int, conn=Depends(get_db)):
+        n = db.update_action(conn, action_id, status="dismissed")
+        if n == 0:
+            raise HTTPException(status_code=404, detail="action not found")
+        return {"updated": n}
+
+    @app.get("/api/guidance")
+    def list_guidance_ep(scope: str | None = None, conn=Depends(get_db)):
+        return db.list_guidance(conn, scope=scope)
+
+    @app.post("/api/guidance")
+    def create_guidance_ep(body: GuidanceBody, conn=Depends(get_db)):
+        return {"id": db.add_guidance(conn, body.scope, body.text)}
+
+    @app.delete("/api/guidance/{guidance_id}")
+    def delete_guidance_ep(guidance_id: int, conn=Depends(get_db)):
+        return {"deleted": db.delete_guidance(conn, guidance_id)}
 
     @app.get("/api/alerts")
     def list_alerts(conn=Depends(get_db)):

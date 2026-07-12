@@ -1,20 +1,25 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { toast } from 'sonner'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ThemeSelectionProvider from '../themes/ThemeSelectionProvider'
 import { TimePrefsProvider } from '@/lib/timePrefs'
 import { SettingsView } from './Settings'
 import * as push from '@/lib/push'
+import * as api from '@/api'
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
 
 function renderSettings() {
+  vi.spyOn(api, 'getGuidance').mockResolvedValue([])
   return render(
-    <ThemeSelectionProvider>
-      <TimePrefsProvider>
-        <SettingsView />
-      </TimePrefsProvider>
-    </ThemeSelectionProvider>,
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeSelectionProvider>
+        <TimePrefsProvider>
+          <SettingsView />
+        </TimePrefsProvider>
+      </ThemeSelectionProvider>
+    </QueryClientProvider>,
   )
 }
 

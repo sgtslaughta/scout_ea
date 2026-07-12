@@ -1,5 +1,6 @@
 """EA_DB access layer — stdlib sqlite3 only. Shared by web API, MCP, skills."""
 from __future__ import annotations
+import json
 import sqlite3
 from pathlib import Path
 
@@ -704,5 +705,113 @@ def delete_board_column(conn: sqlite3.Connection, col_id: int) -> int:
 
     # Delete the column
     cur = conn.execute("DELETE FROM board_columns WHERE id=?", (col_id,))
+    conn.commit()
+    return cur.rowcount
+
+
+# --- action helpers --------------------------------------------------------
+
+_ACTION_COLS = {"entity_type", "entity_id", "action_type", "mode", "status",
+                "payload", "rationale", "created_by"}
+
+
+def _decode_action(row: sqlite3.Row) -> dict:
+    d = dict(row)
+    for k in ("payload", "result"):
+        d[k] = json.loads(d[k]) if d.get(k) else None
+    return d
+
+
+def add_action(conn, *, action_type, entity_type=None, entity_id=None,
+               mode="review", status="drafted", payload=None, rationale=None,
+               created_by="skill") -> int:
+    fields = {"action_type": action_type, "entity_type": entity_type,
+              "entity_id": entity_id, "mode": mode, "status": status,
+              "payload": json.dumps(payload) if payload is not None else None,
+              "rationale": rationale, "created_by": created_by}
+    fields = {k: v for k, v in fields.items() if v is not None}
+    bad = set(fields) - _ACTION_COLS
+    if bad:
+        raise ValueError(f"unknown action columns: {bad}")
+    cols = ", ".join(fields)
+    ph = ", ".join("?" for _ in fields)
+    cur = conn.execute(f"INSERT INTO actions ({cols}) VALUES ({ph})",
+                       list(fields.values()))
+    conn.commit()
+    return cur.lastrowid
+
+
+def list_actions(conn, status=None, mode=None) -> list:
+    sql = "SELECT * FROM actions"
+    clauses, params = [], []
+    if status is not None:
+        clauses.append("status=?"); params.append(status)
+    if mode is not None:
+        clauses.append("mode=?"); params.append(mode)
+    if clauses:
+        sql += " WHERE " + " AND ".join(clauses)
+    sql += " ORDER BY created_at DESC, id DESC"
+    return [_decode_action(r) for r in conn.execute(sql, params).fetchall()]
+
+
+def update_action(conn, action_id, *, status=None, result=None, error=None) -> int:
+    sets, params = ["updated_at=datetime('now')"], []
+    if status is not None:
+        sets.append("status=?"); params.append(status)
+        if status == "approved":
+            sets.append("approved_at=datetime('now')")
+        if status in ("completed", "failed"):
+            sets.append("executed_at=datetime('now')")
+    if result is not None:
+        sets.append("result=?"); params.append(json.dumps(result))
+    if error is not None:
+        sets.append("error=?"); params.append(error)
+    params.append(action_id)
+    cur = conn.execute(f"UPDATE actions SET {', '.join(sets)} WHERE id=?", params)
+    conn.commit()
+    return cur.rowcount
+
+
+def claim_action(conn, action_id) -> bool:
+    cur = conn.execute(
+        "UPDATE actions SET status='executing', updated_at=datetime('now') "
+        "WHERE id=? AND (status='approved' OR (status='drafted' AND mode='auto'))",
+        (action_id,))
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def has_open_action(conn, entity_type, entity_id, action_type) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM actions WHERE entity_type=? AND entity_id=? AND action_type=? "
+        "AND (status IN ('drafted','approved','executing') "
+        "     OR (status='completed' AND executed_at > datetime('now','-1 day'))) "
+        "LIMIT 1", (entity_type, entity_id, action_type)).fetchone()
+    return row is not None
+
+
+# --- guidance primitives ---------------------------------------------------
+
+def add_guidance(conn, scope, text) -> int:
+    """Insert a guidance entry. Returns the new id."""
+    cur = conn.execute("INSERT INTO guidance (scope, text) VALUES (?, ?)", (scope, text))
+    conn.commit()
+    return cur.lastrowid
+
+
+def list_guidance(conn, scope=None) -> list:
+    """List guidance entries, newest first. If scope given, matches that scope OR 'global'."""
+    if scope is None:
+        rows = conn.execute("SELECT * FROM guidance ORDER BY created_at DESC, id DESC")
+    else:
+        rows = conn.execute(
+            "SELECT * FROM guidance WHERE scope=? OR scope='global' "
+            "ORDER BY created_at DESC, id DESC", (scope,))
+    return [dict(r) for r in rows.fetchall()]
+
+
+def delete_guidance(conn, guidance_id) -> int:
+    """Delete a guidance entry by id. Returns rows affected."""
+    cur = conn.execute("DELETE FROM guidance WHERE id=?", (guidance_id,))
     conn.commit()
     return cur.rowcount
