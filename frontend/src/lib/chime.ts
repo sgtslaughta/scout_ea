@@ -17,3 +17,18 @@ export function playChime(): void {
     /* autoplay blocked or Web Audio unavailable — chime is best-effort */
   }
 }
+
+let alarmHandle: ReturnType<typeof setInterval> | null = null
+
+/** Repeat a beep every intervalMs until stopAlarm(). Idempotent while running. */
+export function startAlarm(intervalMs = 2000, beep: () => void = playChime): void {
+  if (alarmHandle !== null) return
+  beep()
+  alarmHandle = setInterval(beep, intervalMs)
+}
+export function stopAlarm(): void {
+  if (alarmHandle !== null) { clearInterval(alarmHandle); alarmHandle = null }
+}
+export function isAlarmRunning(): boolean {
+  return alarmHandle !== null
+}
