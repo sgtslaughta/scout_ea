@@ -87,4 +87,27 @@ describe('Settings view', () => {
     fireEvent.change(screen.getByRole('combobox', { name: /timezone/i }), { target: { value: 'UTC' } })
     expect(localStorage.getItem('ea-timezone')).toBe('UTC')
   })
+
+  it('reminders: changing lead minutes calls setConfig', async () => {
+    const fetchMock = vi.fn((url: string, opts?: RequestInit) => {
+      if (url.includes('/api/config') && (!opts || opts.method !== 'POST')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as Response)
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({ key: 'x', value: 'y' }) } as Response)
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderSettings()
+
+    const lead = await screen.findByLabelText('Reminder lead minutes')
+    fireEvent.change(lead, { target: { value: '30' } })
+    fireEvent.blur(lead)
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/config/reminder_lead_minutes',
+        expect.objectContaining({ method: 'POST' }),
+      ),
+    )
+  })
 })

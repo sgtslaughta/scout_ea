@@ -205,7 +205,7 @@ def test_push_test_endpoint(tmp_path, monkeypatch):
 
 
 def test_push_pending_alerts_marks_and_counts(tmp_path, monkeypatch):
-    """push_pending_alerts sends critical alerts and marks notified_push=1."""
+    """push_pending_alerts sends critical and warning alerts and marks notified_push=1."""
     import pywebpush
     from lib import push
 
@@ -220,8 +220,8 @@ def test_push_pending_alerts_marks_and_counts(tmp_path, monkeypatch):
     conn.commit()
 
     n = push.push_pending_alerts(conn)
-    assert n == 1                                  # only the critical one
-    assert len(calls) == 1                          # one sub
+    assert n == 2                                  # both critical and warning
+    assert len(calls) == 2                          # one sub, two alerts
     row = conn.execute("SELECT notified_push FROM alerts WHERE severity='critical'").fetchone()
     assert row["notified_push"] == 1
     # second run: already marked -> nothing new

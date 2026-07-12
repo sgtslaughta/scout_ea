@@ -99,7 +99,7 @@ def send_push(conn, title, body, claims_email="mailto:admin@scout-ea.local"):
 
 
 def push_pending_alerts(conn, limit=20) -> int:
-    """Send Web Push for unpushed critical alerts; mark them notified_push=1. Returns count sent.
+    """Send Web Push for unpushed critical/warning alerts; mark them notified_push=1. Returns count sent.
 
     The web server is the single owner of push (no double-fire). No-op (returns 0) when
     pywebpush is unavailable or there are no subscriptions.
@@ -108,7 +108,7 @@ def push_pending_alerts(conn, limit=20) -> int:
         return 0
     rows = conn.execute(
         "SELECT id, title, body FROM alerts "
-        "WHERE notified_push=0 AND severity='critical' "
+        "WHERE notified_push=0 AND severity IN ('critical','warning') "
         "ORDER BY created_at DESC LIMIT ?", (int(limit),)).fetchall()
     sent = 0
     for a in rows:
@@ -117,3 +117,54 @@ def push_pending_alerts(conn, limit=20) -> int:
         sent += 1
     conn.commit()
     return sent
+
+
+# ponytail: table-driven scan; each entry = (tag, SQL with one ? for the lead offset).
+# Add a row here to cover another time-anchored table. Signals excluded — occurred_at is past.
+_REMINDER_SOURCES = [
+    ("deadline", "SELECT id, title, due_at AS t FROM critical_deadlines "
+                 "WHERE status='active' AND visible=1 "
+                 "AND due_at BETWEEN datetime('now') AND datetime('now', ?)"),
+    ("task", "SELECT id, title, due_at AS t FROM tasks "
+             "WHERE status != 'done' AND due_at IS NOT NULL "
+             "AND due_at BETWEEN datetime('now') AND datetime('now', ?)"),
+    ("event", "SELECT id, title, chosen_time AS t FROM events "
+              "WHERE status NOT IN ('cancelled','declined') AND chosen_time IS NOT NULL "
+              "AND chosen_time BETWEEN datetime('now') AND datetime('now', ?)"),
+    ("news", "SELECT id, title, event_at AS t FROM news_items "
+             "WHERE status != 'dismissed' AND event_at IS NOT NULL "
+             "AND event_at BETWEEN datetime('now') AND datetime('now', ?)"),
+]
+
+
+def generate_due_reminders(conn) -> int:
+    """Insert a 'warning' alert for each item whose due time falls within the reminder
+    lead window and that has no alert yet. Deduped on alerts.source_table+source_id.
+    Returns the number of alerts inserted. No-op when reminder_enabled != '1'."""
+    cfg = {r["key"]: r["value"] for r in conn.execute("SELECT key, value FROM config")}
+    if cfg.get("reminder_enabled", "1") != "1":
+        return 0
+    try:
+        lead = int(cfg.get("reminder_lead_minutes", "15"))
+    except (TypeError, ValueError):
+        lead = 15
+    if lead < 1:
+        lead = 15
+    offset = f"+{lead} minutes"
+
+    inserted = 0
+    for tag, sql in _REMINDER_SOURCES:
+        for r in conn.execute(sql, (offset,)).fetchall():
+            dup = conn.execute(
+                "SELECT 1 FROM alerts WHERE source_table=? AND source_id=?",
+                (tag, r["id"])).fetchone()
+            if dup:
+                continue
+            conn.execute(
+                "INSERT INTO alerts (severity, title, body, source_table, source_id, status) "
+                "VALUES ('warning', ?, ?, ?, ?, 'unread')",
+                (f"Due soon: {r['title']}", f"Due at {r['t']}", tag, r["id"]))
+            inserted += 1
+    if inserted:
+        conn.commit()
+    return inserted

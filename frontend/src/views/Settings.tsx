@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
 import { useTimePrefs } from '@/lib/timePrefs'
 import { COMMON_ZONES, effectiveZone, formatFriendly } from '@/lib/datetime'
-import { getGuidance, deleteGuidance } from '@/api'
+import { getGuidance, deleteGuidance, setConfig } from '@/api'
 
 const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`
 import {
@@ -33,6 +33,18 @@ export function SettingsView() {
   const { timeZone, hour24, setTimeZone, setHour24, workdayStart, workdayEnd, setWorkday } = useTimePrefs()
   const [pushState, setPushState] = useState<SubscriptionState>('unsupported')
   const [loadingPush, setLoadingPush] = useState(false)
+
+  const qc = useQueryClient()
+  const { data: cfg = {} as Record<string, string> } = useQuery({
+    queryKey: ['config'],
+    queryFn: () => fetch('/api/config').then((r) => r.json()),
+  })
+  const saveCfg = useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) => setConfig(key, value),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['config'] }),
+  })
+  const reminderOn = cfg.reminder_enabled !== '0'
+  const leadMin = cfg.reminder_lead_minutes ?? '15'
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -308,6 +320,42 @@ export function SettingsView() {
                   variant="outlined"
                 />
               </Box>
+            </Box>
+
+            {/* Reminders */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Reminders
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <ToggleButtonGroup
+                  value={reminderOn ? 'on' : 'off'}
+                  exclusive
+                  onChange={(_e, v) => {
+                    if (v !== null) saveCfg.mutate({ key: 'reminder_enabled', value: v === 'on' ? '1' : '0' })
+                  }}
+                >
+                  <ToggleButton value="on" aria-label="reminders on">On</ToggleButton>
+                  <ToggleButton value="off" aria-label="reminders off">Off</ToggleButton>
+                </ToggleButtonGroup>
+                <TextField
+                  type="number"
+                  size="small"
+                  label="Lead (min)"
+                  defaultValue={leadMin}
+                  key={leadMin}
+                  disabled={!reminderOn}
+                  onBlur={(e) => {
+                    const n = Math.max(1, Number(e.target.value) || 15)
+                    saveCfg.mutate({ key: 'reminder_lead_minutes', value: String(n) })
+                  }}
+                  slotProps={{ htmlInput: { min: 1, 'aria-label': 'Reminder lead minutes' } }}
+                  sx={{ width: 130 }}
+                />
+              </Box>
+              <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
+                Notify this many minutes before deadlines, tasks, events, and news items come due.
+              </Typography>
             </Box>
           </Box>
         </Box>
