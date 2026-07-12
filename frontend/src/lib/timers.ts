@@ -1,31 +1,45 @@
-export interface CountdownState {
-  endsAt: number | null   // epoch ms it will reach zero; null when paused/idle
-  remainingMs: number     // authoritative when paused; also the last-set duration
+export interface Timer {
+  id: string
+  label: string
+  durationMs: number      // configured length; reset restores to this
+  endsAt: number | null   // epoch ms it reaches zero; null when paused/idle/ringing
+  remainingMs: number     // authoritative when paused
   running: boolean
+  ringing: boolean        // reached zero, alarm active until dismissed
 }
+
 export interface StopwatchState {
   startedAt: number | null   // epoch ms of the current run segment; null when paused
   accumulatedMs: number      // banked from prior segments
   running: boolean
 }
 
-export function remainingMs(s: CountdownState, now: number): number {
-  return s.running && s.endsAt !== null ? Math.max(0, s.endsAt - now) : s.remainingMs
-}
-export function elapsedMs(s: StopwatchState, now: number): number {
-  return s.running && s.startedAt !== null ? s.accumulatedMs + (now - s.startedAt) : s.accumulatedMs
+let _seq = 0
+function newId(): string {
+  try { if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID() } catch { /* fall through */ }
+  return `t_${_seq++}_${Date.now()}`
 }
 
-export function startCountdown(s: CountdownState, now: number): CountdownState {
-  if (s.running || s.remainingMs <= 0) return s
-  return { endsAt: now + s.remainingMs, remainingMs: s.remainingMs, running: true }
+export function makeTimer(label: string, durationMs: number): Timer {
+  return { id: newId(), label, durationMs, endsAt: null, remainingMs: durationMs, running: false, ringing: false }
 }
-export function pauseCountdown(s: CountdownState, now: number): CountdownState {
-  if (!s.running) return s
-  return { endsAt: null, remainingMs: remainingMs(s, now), running: false }
+export function remainingMs(t: Timer, now: number): number {
+  return t.running && t.endsAt !== null ? Math.max(0, t.endsAt - now) : t.remainingMs
 }
-export function resetCountdown(durationMs: number): CountdownState {
-  return { endsAt: null, remainingMs: durationMs, running: false }
+export function startTimer(t: Timer, now: number): Timer {
+  if (t.running || t.remainingMs <= 0) return t
+  return { ...t, endsAt: now + t.remainingMs, running: true, ringing: false }
+}
+export function pauseTimer(t: Timer, now: number): Timer {
+  if (!t.running) return t
+  return { ...t, endsAt: null, remainingMs: remainingMs(t, now), running: false }
+}
+export function resetTimer(t: Timer): Timer {
+  return { ...t, endsAt: null, remainingMs: t.durationMs, running: false, ringing: false }
+}
+
+export function elapsedMs(s: StopwatchState, now: number): number {
+  return s.running && s.startedAt !== null ? s.accumulatedMs + (now - s.startedAt) : s.accumulatedMs
 }
 
 export function startStopwatch(s: StopwatchState, now: number): StopwatchState {
