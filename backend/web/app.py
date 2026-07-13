@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+import urllib.request
+import urllib.parse
 from pathlib import Path
 from datetime import datetime, timezone
 from fastapi import FastAPI, Depends, HTTPException
@@ -19,6 +21,7 @@ from lib import skills as _skills
 from lib import skill_health as _skill_health
 from lib import search as _search
 from lib import feed as _feed
+from lib import weather as _weather
 
 
 class SPAStaticFiles(StaticFiles):
@@ -144,6 +147,10 @@ class BoardColumnPatch(BaseModel):
 
 
 _VALID_TASK_STATUSES = {"open", "in_progress", "done", "dismissed"}
+
+# ponytail: process-local weather cache, fine for single-process; revisit if multi-worker
+_WEATHER_CACHE: dict = {}
+_WEATHER_TTL = 900  # seconds (15 min)
 
 
 class SubscribeBody(BaseModel):
@@ -489,6 +496,36 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
                 summary = None
         return _briefing.assemble(now, deadlines, tasks, signals, news, learning,
                                   topics, people, people_signals, summary)
+
+    @app.get("/api/weather")
+    def get_weather(lat: float, lon: float, conn=Depends(get_db)):
+        if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+            raise HTTPException(status_code=400, detail="lat/lon out of range")
+        key = (round(lat, 2), round(lon, 2))
+        row = conn.execute("SELECT value FROM config WHERE key='weather_label'").fetchone()
+        label = row["value"] if row else None
+
+        now = datetime.now(timezone.utc).timestamp()
+        cached = _WEATHER_CACHE.get(key)
+        if cached and (now - cached[0]) < _WEATHER_TTL:
+            return {**cached[1], "label": label, "stale": False}
+
+        qs = urllib.parse.urlencode({
+            "latitude": key[0], "longitude": key[1],
+            "current": "temperature_2m,weather_code,is_day",
+            "daily": "sunrise,sunset", "timezone": "auto",
+        })
+        url = f"https://api.open-meteo.com/v1/forecast?{qs}"
+        try:
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                raw = json.loads(resp.read().decode())
+            payload = _weather.normalize(raw)
+            _WEATHER_CACHE[key] = (now, payload)
+            return {**payload, "label": label, "stale": False}
+        except Exception:
+            if cached:
+                return {**cached[1], "label": label, "stale": True}
+            return {"error": "unavailable", "label": label}
 
     @app.get("/api/skills")
     def get_skills(conn=Depends(get_db)):
