@@ -59,3 +59,14 @@ def test_add_learning_and_news_tools(tmp_path):
     news = tools.list_table(conn, "news_items")
     assert learning[0]["title"] == "K8s"
     assert news[0]["title"] == "AI"
+
+
+def test_add_signal_full_fields(tmp_path):
+    conn = _conn(tmp_path)
+    assert tools.add_signal(
+        conn, type="email", source="outlook", external_ref="mX", title="Budget",
+        who="CFO", what="approve budget", when_rel="today", why="deadline",
+        polarity="risk", impact=88, person_id=1, topic_id=1,
+        url="http://x", occurred_at="2026-07-13T09:00:00+00:00", triage_rank=1) == 1
+    row = tools.list_table(conn, "signals")[0]
+    assert row["who"] == "CFO" and row["impact"] == 88 and row["polarity"] == "risk"

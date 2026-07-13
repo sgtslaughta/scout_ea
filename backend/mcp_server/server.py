@@ -17,14 +17,30 @@ def build_server(db_path) -> FastMCP:
     def add_signal(type: str, source: str, title: str, external_ref: str,
                    status: str = "new", source_skill: str | None = None,
                    summary: str | None = None, priority: int = 3,
-                   reasoning: str | None = None) -> int:
-        """Add an inbound signal (email/teams/etc). Returns rowcount (1 new, 0 duplicate)."""
+                   reasoning: str | None = None, who: str | None = None,
+                   what: str | None = None, when_rel: str | None = None,
+                   why: str | None = None, polarity: str | None = None,
+                   impact: int | None = None, person_id: int | None = None,
+                   topic_id: int | None = None, url: str | None = None,
+                   occurred_at: str | None = None,
+                   triage_rank: int | None = None) -> int:
+        """Add an inbound signal (email/teams/etc), dedup on external_ref. Returns
+        rowcount (1 new, 0 duplicate). polarity in risk|opportunity|neutral;
+        impact is a 0-100 briefing score; who/what/when_rel/why are the structured
+        summary; occurred_at is UTC ISO-8601."""
         conn = _conn()
         try:
-            return tools.add_signal(conn, type=type, source=source, title=title,
-                                    external_ref=external_ref, status=status,
-                                    source_skill=source_skill, summary=summary, priority=priority,
-                                    reasoning=reasoning)
+            fields = {"type": type, "source": source, "title": title,
+                      "external_ref": external_ref, "status": status, "priority": priority}
+            for k, v in (("source_skill", source_skill), ("summary", summary),
+                         ("reasoning", reasoning), ("who", who), ("what", what),
+                         ("when_rel", when_rel), ("why", why), ("polarity", polarity),
+                         ("impact", impact), ("person_id", person_id),
+                         ("topic_id", topic_id), ("url", url),
+                         ("occurred_at", occurred_at), ("triage_rank", triage_rank)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_signal(conn, **fields)
         finally:
             conn.close()
 
