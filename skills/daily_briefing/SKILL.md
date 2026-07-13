@@ -8,8 +8,9 @@ schedule: automation, daily at config.outlook_send_time (default 07:00), workday
 Fixed 24h window `[now - 1 day, now]` for gathering recent context.
 
 ## Gather context
-Assemble (LLM context only; do NOT store): today's events; tasks due today;
-critical deadlines due today; top trends; recent learning headlines (last 7d).
+Call `list_rows` to fetch (LLM context only; do NOT store): today's events;
+tasks due today; critical deadlines due today; top trends; recent learning
+headlines (last 7d).
 
 ## Generate proactive suggestions with polarity
 LLM pass over last ~24h of `signals` (`type='email' OR type='teams'`) and manual
