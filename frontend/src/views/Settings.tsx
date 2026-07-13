@@ -47,6 +47,9 @@ export function SettingsView() {
   const leadMin = cfg.reminder_lead_minutes ?? '15'
   const loudThreshold = cfg.alert_loud_threshold ?? 'critical'
   const soundOn = cfg.alert_sound_enabled !== '0'
+  const weatherLat = cfg.weather_lat ?? ''
+  const weatherLon = cfg.weather_lon ?? ''
+  const weatherLabel = cfg.weather_label ?? ''
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -394,6 +397,25 @@ export function SettingsView() {
                 Loud alerts repeat every 5 minutes (up to 3 times) until you silence or dismiss them.
               </Typography>
             </Box>
+          </Box>
+        </Box>
+
+        {/* Weather location section */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>Weather Location</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField label="Label" size="small" value={weatherLabel} placeholder="e.g., NYC" sx={{ minWidth: 240 }}
+              onChange={(e) => saveCfg.mutate({ key: 'weather_label', value: e.target.value })}
+              slotProps={{ htmlInput: { 'aria-label': 'Weather location label' } }} />
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <TextField label="Latitude" type="number" size="small" value={weatherLat} placeholder="-90 to 90" sx={{ minWidth: 120 }}
+                onBlur={(e) => { const v = e.target.value; if (v && Number(v) >= -90 && Number(v) <= 90) saveCfg.mutate({ key: 'weather_lat', value: v }) }}
+                slotProps={{ htmlInput: { min: -90, max: 90, step: 'any', 'aria-label': 'Weather latitude' } }} />
+              <TextField label="Longitude" type="number" size="small" value={weatherLon} placeholder="-180 to 180" sx={{ minWidth: 120 }}
+                onBlur={(e) => { const v = e.target.value; if (v && Number(v) >= -180 && Number(v) <= 180) saveCfg.mutate({ key: 'weather_lon', value: v }) }}
+                slotProps={{ htmlInput: { min: -180, max: 180, step: 'any', 'aria-label': 'Weather longitude' } }} />
+            </Box>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Used as fallback when browser geolocation is unavailable.</Typography>
           </Box>
         </Box>
 

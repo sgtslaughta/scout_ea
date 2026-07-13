@@ -59,4 +59,14 @@ describe('TodayBriefing', () => {
     expect(navigateMock).toHaveBeenCalledWith('/tasks')
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('renders the weather band region', async () => {
+    vi.spyOn(api, 'getConfig').mockResolvedValue(
+      { weather_lat: '40.71', weather_lon: '-74.01', weather_label: 'NYC' } as never)
+    vi.spyOn(api, 'getWeather').mockResolvedValue(
+      { condition: 'clear', temp: 20, is_day: true,
+        sunrise: '2026-06-21T06:00:00Z', sunset: '2026-06-21T20:00:00Z', label: 'NYC' } as never)
+    renderModal()
+    expect(await screen.findByLabelText(/NYC/i)).toBeInTheDocument()
+  })
 })
