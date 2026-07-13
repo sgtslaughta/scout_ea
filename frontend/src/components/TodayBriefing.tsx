@@ -7,11 +7,10 @@ import {
   Stack,
   Paper,
   IconButton,
-  Button,
   Skeleton,
 } from '@mui/material'
-import { X, AlertCircle } from 'lucide-react'
-import { getOutlook, getSignals } from '@/api'
+import { X } from 'lucide-react'
+import { getBriefing } from '@/api'
 
 interface TodayBriefingProps {
   open: boolean
@@ -21,21 +20,11 @@ interface TodayBriefingProps {
 export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
-  const { data: outlook, isLoading: outlookLoading } = useQuery({
-    queryKey: ['outlook'],
-    queryFn: getOutlook,
+  const { data: briefing, isLoading } = useQuery({
+    queryKey: ['briefing'],
+    queryFn: getBriefing,
     enabled: open,
   })
-
-  const { data: triageSignals = [] } = useQuery({
-    queryKey: ['signals', 'new'],
-    queryFn: () => getSignals('new'),
-    enabled: open && !outlookLoading,
-  })
-
-  const regularSignals = triageSignals.filter(s => s.type !== 'proactive')
-  const proactiveSignals = outlook?.proactive || []
-  const tasksToday = outlook?.tasks_due_today || []
 
   // Focus close button when modal opens
   useEffect(() => {
@@ -47,137 +36,139 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   if (!open) return null
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: { position: 'relative' } } }}>
-      <Box sx={{ p: 3 }}>
+    <Dialog open={open} onClose={onClose} fullScreen slotProps={{ paper: { sx: { position: 'relative' } } }}>
+      <Box sx={{ p: 3, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         {/* Close button */}
         <IconButton
           ref={closeButtonRef}
           onClick={onClose}
-          sx={{ position: 'absolute', top: 16, right: 16 }}
+          sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}
           aria-label="Close briefing"
         >
           <X size={20} />
         </IconButton>
 
-        {/* Header */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h5" sx={{ fontWeight: 600, mb: 0.5 }}>
-            TODAY'S BRIEFING
-          </Typography>
-          <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
-            {new Date().toLocaleDateString('en-US', {
-              weekday: 'long',
-              month: 'long',
-              day: 'numeric',
-            })}
+        {/* Weather band placeholder */}
+        <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+            Weather — coming soon
           </Typography>
         </Box>
 
-        {outlookLoading ? (
+        {isLoading ? (
           <Stack spacing={2}>
-            <Skeleton variant="rounded" height={40} />
-            <Skeleton variant="rounded" height={40} />
-            <Skeleton variant="rounded" height={40} />
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="rounded" height={200} />
+            <Skeleton variant="rounded" height={200} />
           </Stack>
         ) : (
-          <Stack spacing={3}>
-            {/* Stats */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                  MEETINGS
+          <>
+            {/* Summary headline */}
+            {briefing?.summary && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                  {briefing.summary}
                 </Typography>
-                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'primary.main' }}>
-                  {outlook?.deadlines.length || 0}
+              </Box>
+            )}
+
+            {/* Grid of 4 section cards */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+              {/* Critical Section */}
+              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                  CRITICAL
                 </Typography>
+                {briefing?.critical && briefing.critical.length > 0 ? (
+                  <Stack spacing={1}>
+                    {briefing.critical.map((item) => (
+                      <Typography key={item.id} variant="body2">
+                        {item.title}
+                      </Typography>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    No critical items — clear morning
+                  </Typography>
+                )}
               </Paper>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                  DUE TODAY
+
+              {/* Risks & Opportunities Section */}
+              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                  RISKS & OPPORTUNITIES
                 </Typography>
-                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'success.main' }}>
-                  {tasksToday.length}
-                </Typography>
+                {(briefing?.risks && briefing.risks.length > 0) || (briefing?.opportunities && briefing.opportunities.length > 0) ? (
+                  <Stack spacing={1}>
+                    {briefing?.risks?.map((item) => (
+                      <Typography key={item.id} variant="body2">
+                        {item.title}
+                      </Typography>
+                    ))}
+                    {briefing?.opportunities?.map((item) => (
+                      <Typography key={item.id} variant="body2">
+                        {item.title}
+                      </Typography>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Nothing flagged
+                  </Typography>
+                )}
               </Paper>
-              <Paper sx={{ p: 1.5, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 0.5 }}>
-                  ACTIVE
+
+              {/* Topics News Section */}
+              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                  TOPICS NEWS
                 </Typography>
-                <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 600, color: 'warning.main' }}>
-                  {outlook?.deadlines.filter(d => d.countdown_seconds < 86400).length || 0}
+                {briefing?.news_by_topic && briefing.news_by_topic.length > 0 ? (
+                  <Stack spacing={1}>
+                    {briefing.news_by_topic.map((topic) =>
+                      topic.items?.map((item) => (
+                        <Typography key={item.id} variant="body2">
+                          {item.title}
+                        </Typography>
+                      ))
+                    )}
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    No topics today
+                  </Typography>
+                )}
+              </Paper>
+
+              {/* Key People Section */}
+              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
+                  KEY PEOPLE
                 </Typography>
+                {briefing?.people && briefing.people.length > 0 ? (
+                  <Stack spacing={1}>
+                    {briefing.people.map((person) => (
+                      <Typography key={person.id} variant="body2">
+                        {person.name}
+                      </Typography>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    No key people
+                  </Typography>
+                )}
               </Paper>
             </Box>
 
-            {/* Triaged Signals */}
-            {regularSignals.length > 0 && (
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                  SIGNALS
-                </Typography>
-                <Stack spacing={0.5}>
-                  {regularSignals.slice(0, 5).map((sig) => (
-                    <Box
-                      key={sig.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        p: 0.5,
-                        borderRadius: 1,
-                        '&:hover': { bgcolor: 'action.selected' },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          flexShrink: 0,
-                          bgcolor:
-                            sig.priority <= 1
-                              ? '#E5484D'
-                              : sig.priority === 2
-                                ? '#F2A65A'
-                                : '#6C8FE5',
-                        }}
-                      />
-                      <Typography variant="caption" sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {sig.title}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Paper>
-            )}
-
-            {/* Proactive */}
-            {proactiveSignals.length > 0 && (
-              <Paper sx={{ p: 2, bgcolor: 'primary.light', borderColor: 'primary.light', borderWidth: 1, borderStyle: 'solid' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1, color: 'primary.main' }}>
-                  PROACTIVE
-                </Typography>
-                <Stack spacing={0.5}>
-                  {proactiveSignals.slice(0, 3).map((item) => (
-                    <Box key={item.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 2, color: 'var(--color-accent)' }} />
-                      <Typography variant="caption">{item.title}</Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Paper>
-            )}
-
-            {/* CTA */}
-            <Button
-              onClick={onClose}
-              fullWidth
-              variant="contained"
-              sx={{ py: 1, fontSize: '0.875rem' }}
-            >
-              Start my day
-            </Button>
-          </Stack>
+            {/* Finance strip placeholder */}
+            <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
+                Markets — coming soon
+              </Typography>
+            </Box>
+          </>
         )}
       </Box>
     </Dialog>
