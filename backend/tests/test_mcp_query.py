@@ -47,3 +47,16 @@ def test_tools_query_passthrough(tmp_path):
     db.upsert_signal(conn, type="email", source="o", external_ref="m1", title="A")
     rows = mcp_tools.query(conn, "signals", filters={"external_ref": "m1"})
     assert rows[0]["title"] == "A"
+
+
+def test_tools_search_finds_signal(tmp_path):
+    conn = _conn(tmp_path)
+    db.upsert_signal(conn, type="email", source="o", external_ref="m1",
+                     title="Quarterly budget review")
+    hits = mcp_tools.search(conn, "budget")
+    assert any(h["kind"] == "signal" and h["title"].startswith("Quarterly") for h in hits)
+
+
+def test_tools_search_blank_returns_empty(tmp_path):
+    conn = _conn(tmp_path)
+    assert mcp_tools.search(conn, "   ") == []

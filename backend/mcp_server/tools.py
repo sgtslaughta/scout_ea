@@ -1,6 +1,7 @@
 """Agent-facing tool functions over EA_DB — thin wrappers around ea.db. No MCP SDK here."""
 from __future__ import annotations
 from ea import db
+from lib import search as _search
 
 # Tables an agent may read via the generic list tool.
 _READABLE = {
@@ -108,3 +109,8 @@ def add_guidance(conn, scope, text) -> int:
 
 def list_guidance(conn, scope=None):
     return db.list_guidance(conn, scope=scope)
+
+
+def search(conn, q, limit=20):
+    """Full-text search across core entities. See lib.search.search."""
+    return _search.search(conn, q, limit=min(int(limit), 50))

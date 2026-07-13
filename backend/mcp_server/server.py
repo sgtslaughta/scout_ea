@@ -56,6 +56,17 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def search(q: str, limit: int = 20) -> list[dict]:
+        """Full-text search across signals, tasks, deadlines, events, people,
+        topics, trends. Returns [{kind, ref_id, title, snippet}] ranked by
+        relevance. Use get_entity(kind, ref_id) to expand a hit. limit capped 50."""
+        conn = _conn()
+        try:
+            return tools.search(conn, q, limit=limit)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def update_status(table: str, row_id: int, status: str) -> int:
         """Set status on a whitelisted table row. Returns rows affected."""
         conn = _conn()
