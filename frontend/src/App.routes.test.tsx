@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
 import { theme } from './theme'
+import { TimersProvider } from './lib/useTimers'
 import { App } from './App'
 
 function renderAt(path: string) {
@@ -15,7 +16,9 @@ function renderAt(path: string) {
     <QueryClientProvider client={qc}>
       <ThemeProvider theme={theme}>
         <MemoryRouter initialEntries={[path]}>
-          <App />
+          <TimersProvider>
+            <App />
+          </TimersProvider>
         </MemoryRouter>
       </ThemeProvider>
     </QueryClientProvider>,

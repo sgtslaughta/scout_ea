@@ -31,7 +31,7 @@ export function TimersPanel({ showPopout = true }: { showPopout?: boolean }) {
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <TextField size="small" label="Name" value={label} onChange={(e) => setLabel(e.target.value)} sx={{ flex: 1 }} />
           <TextField size="small" label="custom minutes" value={mins} onChange={(e) => setMins(e.target.value)}
-            inputProps={{ inputMode: 'numeric' }} sx={{ width: 72 }} />
+            slotProps={{ input: { inputMode: 'numeric' } }} sx={{ width: 72 }} />
           <Button size="small" variant="outlined" startIcon={<Plus size={14} />} onClick={addCustom} aria-label="add timer">Add</Button>
         </Box>
       </Box>
@@ -68,7 +68,7 @@ export function TimersPanel({ showPopout = true }: { showPopout?: boolean }) {
       {/* Settings + popout */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <FormControlLabel
-          control={<Checkbox size="small" inputProps={{ 'aria-label': 'continuous alarm' }} checked={t.continuousAlarm} onChange={(e) => t.setContinuousAlarm(e.target.checked)} />}
+          control={<Checkbox size="small" slotProps={{ input: { 'aria-label': 'continuous alarm' } }} checked={t.continuousAlarm} onChange={(e) => t.setContinuousAlarm(e.target.checked)} />}
           label="Continuous alarm"
         />
         {showPopout && (
