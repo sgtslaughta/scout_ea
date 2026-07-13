@@ -114,3 +114,8 @@ def list_guidance(conn, scope=None):
 def search(conn, q, limit=20):
     """Full-text search across core entities. See lib.search.search."""
     return _search.search(conn, q, limit=min(int(limit), 50))
+
+
+def get_entity(conn, ref_type, ref_id):
+    """Full context for one entity. See db.get_entity."""
+    return db.get_entity(conn, ref_type, ref_id)

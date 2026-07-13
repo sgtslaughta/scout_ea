@@ -419,6 +419,33 @@ def list_all_tags(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT id, name, color FROM tags ORDER BY name").fetchall()
 
 
+# ref_type -> physical table for get_entity (mirrors _TAGGABLE_TYPES naming).
+_ENTITY_TABLE = {
+    "signal": "signals", "task": "tasks", "deadline": "critical_deadlines",
+    "event": "events", "trend": "trends", "trend_finding": "trend_findings",
+    "learning": "learning", "news": "news_items", "person": "people", "topic": "topics",
+}
+
+
+def get_entity(conn: sqlite3.Connection, ref_type: str, ref_id: int) -> dict | None:
+    """Full context for one entity: {ref_type, ref_id, row, tags, links,
+    related_actions}. Returns None if the row does not exist."""
+    if ref_type not in _ENTITY_TABLE:
+        raise ValueError(f"unknown ref_type: {ref_type!r}")
+    table = _ENTITY_TABLE[ref_type]
+    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (ref_id,)).fetchone()
+    if row is None:
+        return None
+    acts = [a for a in list_actions(conn)
+            if a.get("entity_type") == ref_type and a.get("entity_id") == ref_id]
+    return {
+        "ref_type": ref_type, "ref_id": ref_id, "row": dict(row),
+        "tags": list_tags_for(conn, ref_type, ref_id),
+        "links": list_links_for(conn, ref_type, ref_id),
+        "related_actions": acts,
+    }
+
+
 def content_ids_by_tag(conn: sqlite3.Connection, tag_id: int, ref_type: str | None = None) -> list[dict]:
     """[{ref_type, ref_id}] for everything carrying `tag_id` (optionally one ref_type)."""
     if ref_type is not None:

@@ -67,6 +67,18 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def get_entity(ref_type: str, ref_id: int) -> dict | None:
+        """Full context for one entity in a single call: the row plus its tags,
+        links (person/topic with resolved labels), and related open/recent actions.
+        ref_type in signal|task|deadline|event|trend|trend_finding|learning|news|
+        person|topic. Returns null if not found."""
+        conn = _conn()
+        try:
+            return tools.get_entity(conn, ref_type, ref_id)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def update_status(table: str, row_id: int, status: str) -> int:
         """Set status on a whitelisted table row. Returns rows affected."""
         conn = _conn()

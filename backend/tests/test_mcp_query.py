@@ -60,3 +60,26 @@ def test_tools_search_finds_signal(tmp_path):
 def test_tools_search_blank_returns_empty(tmp_path):
     conn = _conn(tmp_path)
     assert mcp_tools.search(conn, "   ") == []
+
+
+def test_get_entity_full_context(tmp_path):
+    conn = _conn(tmp_path)
+    db.upsert_signal(conn, type="email", source="o", external_ref="m1", title="A")
+    db.tag_content(conn, "signal", 1, "urgent", "red")
+    db.link_content(conn, "signal", 1, "topic", 1)
+    ent = db.get_entity(conn, "signal", 1)
+    assert ent["row"]["title"] == "A"
+    assert [t["name"] for t in ent["tags"]] == ["urgent"]
+    assert ent["links"][0]["target_type"] == "topic"
+    assert ent["related_actions"] == []
+
+
+def test_get_entity_missing_returns_none(tmp_path):
+    conn = _conn(tmp_path)
+    assert db.get_entity(conn, "signal", 999) is None
+
+
+def test_get_entity_rejects_bad_type(tmp_path):
+    conn = _conn(tmp_path)
+    with pytest.raises(ValueError):
+        db.get_entity(conn, "nope", 1)
