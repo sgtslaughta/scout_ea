@@ -69,6 +69,7 @@ export interface Signal {
   reasoning?: string
   url?: string
   person_id?: number
+  polarity?: 'risk' | 'opportunity' | null
 }
 
 export interface Task {

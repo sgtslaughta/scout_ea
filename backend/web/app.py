@@ -483,7 +483,6 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         row = conn.execute("SELECT value FROM config WHERE key='daily_summary'").fetchone()
         summary = None
         if row:
-            import json
             try:
                 summary = json.loads(row["value"]).get("text")
             except (ValueError, TypeError):
