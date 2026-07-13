@@ -1,5 +1,5 @@
 import { Box, Typography, Tooltip, useTheme } from '@mui/material'
-import { FinanceResponse } from '@/api'
+import { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 
 export interface FinanceStripProps {
@@ -34,7 +34,7 @@ export function FinanceStrip({ finance }: FinanceStripProps) {
     }
   }
 
-  const renderQuote = (q: any) => {
+  const renderQuote = (q: Quote) => {
     const dir = q.change_pct == null ? 'flat' : q.change_pct > 0 ? 'up' : q.change_pct < 0 ? 'down' : 'flat'
     const isUp = dir === 'up'
     const isDown = dir === 'down'
