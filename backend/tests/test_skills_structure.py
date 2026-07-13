@@ -16,7 +16,7 @@ EXPECTED = {
     "research_topics",
     "compile_learning_email",
     "parse_deadlines",
-    "daily_outlook",
+    "daily_briefing",
     "compute_trends",
     "trending_search",
 }

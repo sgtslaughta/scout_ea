@@ -46,8 +46,8 @@ This directory contains the 11 Scout automation skills that orchestrate the Exec
 **Schedule:** Heartbeat 30 min, workdays 07:00–18:00 EST  
 **MCP Tools:** `add_deadline`, `log_skill_run`
 
-### 9. `daily_outlook`
-**Description:** Daily morning snapshot of today's events, deadlines, trends; generate proactive suggestions  
+### 9. `daily_briefing`
+**Description:** Morning briefing curator — proactive risk/opportunity signals + one-line day summary; supersedes daily_outlook  
 **Schedule:** Automation, daily at config.outlook_send_time (default 07:00), workdays only  
 **MCP Tools:** `list_rows`, `add_signal`, `log_skill_run`
 

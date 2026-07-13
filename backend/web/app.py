@@ -14,6 +14,7 @@ from ea import db
 from web import changes
 from lib import deadlines as _deadlines
 from lib import outlook as _outlook
+from lib import briefing as _briefing
 from lib import skills as _skills
 from lib import skill_health as _skill_health
 from lib import search as _search
@@ -461,6 +462,33 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         tasks = [dict(r) for r in conn.execute(
             "SELECT * FROM tasks WHERE status IN ('open','in_progress')")]
         return _outlook.assemble(now, deadlines, trends, proactive, tasks)
+
+    @app.get("/api/briefing")
+    def get_briefing(conn=Depends(get_db)):
+        now = datetime.now(timezone.utc).isoformat()
+        deadlines = [dict(r) for r in db.list_deadlines(conn)]
+        tasks = [dict(r) for r in conn.execute(
+            "SELECT * FROM tasks WHERE status IN ('open','in_progress')")]
+        signals = [dict(r) for r in conn.execute(
+            "SELECT * FROM signals WHERE status='new' ORDER BY created_at DESC")]
+        news = [dict(r) for r in db.list_news(conn)]
+        learning = [dict(r) for r in db.list_learning(conn)]
+        topics = [dict(r) for r in db.list_topics(conn)]
+        people = [dict(r) for r in db.list_people(conn)]
+        people_signals = {}
+        for s in signals:
+            pid = s.get("person_id")
+            if pid:
+                people_signals.setdefault(pid, []).append(s)
+        row = conn.execute("SELECT value FROM config WHERE key='daily_summary'").fetchone()
+        summary = None
+        if row:
+            try:
+                summary = json.loads(row["value"]).get("text")
+            except (ValueError, TypeError):
+                summary = None
+        return _briefing.assemble(now, deadlines, tasks, signals, news, learning,
+                                  topics, people, people_signals, summary)
 
     @app.get("/api/skills")
     def get_skills(conn=Depends(get_db)):
