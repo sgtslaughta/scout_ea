@@ -122,3 +122,8 @@ def test_list_skills_roster_and_health(tmp_path):
 def test_list_skills_no_dir(tmp_path):
     conn = _conn(tmp_path)
     assert tools.list_skills(conn, None) == []
+
+
+def test_list_action_types(tmp_path):
+    types = tools.list_action_types()
+    assert "email_reply" in types and "calendar_invite" in types and "status_set" in types

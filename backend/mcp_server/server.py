@@ -306,6 +306,12 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def list_action_types() -> list[str]:
+        """Valid action_type values for add_action, e.g. email_reply, teams_dm,
+        calendar_invite, status_set, cowork_doc. Call before drafting an action."""
+        return tools.list_action_types()
+
+    @mcp.tool()
     def list_actions(status: str | None = None, mode: str | None = None) -> list[dict]:
         """List actions (optionally by status/mode), newest first."""
         conn = _conn()

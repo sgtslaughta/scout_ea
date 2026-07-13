@@ -13,6 +13,13 @@ _READABLE = {
     "people", "topics", "config",
 }
 
+# The outgoing action types the executor skills (run_comms/run_teams/run_calendar/
+# run_cowork) know how to run. Keep in sync with those SKILL.md files.
+ACTION_TYPES = (
+    "email_reply", "email_forward", "email_new", "teams_dm", "teams_group",
+    "teams_post", "calendar_invite", "status_set", "cowork_doc", "cowork_gather",
+)
+
 
 def add_signal(conn, **fields) -> int:
     return db.upsert_signal(conn, **fields)
@@ -143,3 +150,8 @@ def list_skills(conn, skills_dir) -> list[dict]:
         s["last_run"] = lr
         s["active"] = _skill_health.is_active(s.get("schedule"), lr, now)
     return skills
+
+
+def list_action_types() -> list[str]:
+    """The valid action_type values for add_action."""
+    return list(ACTION_TYPES)

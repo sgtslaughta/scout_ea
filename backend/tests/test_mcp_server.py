@@ -53,6 +53,6 @@ def test_tools_registered(tmp_path):
         tool_names = {t.name for t in loop.run_until_complete(s.list_tools())}
         assert {"add_signal", "list_rows", "query", "search", "get_entity", "update_status", "add_deadline",
                 "add_task", "log_skill_run", "add_alert", "upsert_trend", "add_trend_finding",
-                "m365_status", "m365_send_mail", "m365_create_event", "list_skills"} <= tool_names
+                "m365_status", "m365_send_mail", "m365_create_event", "list_skills", "list_action_types"} <= tool_names
     finally:
         loop.close()
