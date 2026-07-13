@@ -1,16 +1,17 @@
-"""Finance helpers — pure: Stooq symbols + light-quote CSV parsing."""
+"""Finance helpers — pure: Yahoo symbols + chart-JSON quote parsing."""
 from __future__ import annotations
-import csv
-import io
+
+# Old Stooq index tickers → Yahoo equivalents (back-compat for stored watchlists).
+_INDEX_ALIASES = {"^SPX": "^GSPC", "^NDQ": "^IXIC"}
 
 
-def to_stooq_symbol(ticker: str) -> str:
-    t = (ticker or "").strip().lower()
+def to_yahoo_symbol(ticker: str) -> str:
+    t = (ticker or "").strip().upper()
     if not t:
         return ""
-    if t.startswith("^") or "." in t:
-        return t
-    return f"{t}.us"
+    if t.endswith(".US"):  # legacy Stooq suffix
+        t = t[:-3]
+    return _INDEX_ALIASES.get(t, t)
 
 
 def _num(v):
@@ -20,35 +21,25 @@ def _num(v):
         return None
 
 
-def _display_symbol(raw: str) -> str:
-    s = (raw or "").strip().upper()
-    if s.endswith(".US"):
-        s = s[:-3]
-    return s
-
-
-def parse_quotes(csv_text: str) -> list[dict]:
-    out: list[dict] = []
-    reader = csv.reader(io.StringIO(csv_text or ""))
-    rows = list(reader)
-    if not rows:
-        return out
-    for row in rows[1:]:  # skip header
-        if len(row) < 8:
-            continue
-        sym, date, time, o, h, l, c, vol = row[:8]
-        op, cl = _num(o), _num(c)
-        change = round((cl - op) / op * 100, 2) if (op and op > 0 and cl is not None) else None
-        vnum = _num(vol)
-        out.append({
-            "symbol": _display_symbol(sym),
-            "price": cl,
-            "open": op,
-            "high": _num(h),
-            "low": _num(l),
-            "volume": int(vnum) if vnum is not None else None,
-            "change_pct": change,
-            "date": date,
-            "time": time,
-        })
-    return out
+def parse_quote(result: dict) -> dict | None:
+    """One Yahoo v8 chart `result[0]` dict → quote dict (None if unusable)."""
+    m = (result or {}).get("meta") or {}
+    sym = (m.get("symbol") or "").upper()
+    if not sym:
+        return None
+    price = _num(m.get("regularMarketPrice"))
+    prev = _num(m.get("chartPreviousClose"))
+    change = round((price - prev) / prev * 100, 2) if (price is not None and prev) else None
+    q = ((result.get("indicators") or {}).get("quote") or [{}])[0]
+    opens = [x for x in (q.get("open") or []) if x is not None]
+    vol = _num(m.get("regularMarketVolume"))
+    return {
+        "symbol": sym,
+        "name": m.get("shortName") or sym,
+        "price": price,
+        "open": _num(opens[-1]) if opens else None,
+        "high": _num(m.get("regularMarketDayHigh")),
+        "low": _num(m.get("regularMarketDayLow")),
+        "volume": int(vol) if vol is not None else None,
+        "change_pct": change,
+    }

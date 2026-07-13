@@ -108,6 +108,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE signals ADD COLUMN polarity TEXT")
         conn.commit()
 
+    # Add signals.impact (0-100 briefing score) for pre-existing DBs.
+    if not any(r[1] == "impact" for r in signals_pragma):
+        conn.execute("ALTER TABLE signals ADD COLUMN impact INTEGER")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
@@ -115,7 +120,7 @@ _STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning", "news_item
 
 _SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summary",
                 "who", "what", "when_rel", "why", "reasoning", "url", "person_id", "topic_id",
-                "priority", "triage_rank", "status", "occurred_at", "polarity"}
+                "priority", "triage_rank", "status", "occurred_at", "polarity", "impact"}
 
 
 def upsert_signal(conn: sqlite3.Connection, **fields) -> int:
@@ -434,7 +439,8 @@ def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
 WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days",
                    "reminder_enabled", "reminder_lead_minutes",
                    "alert_loud_threshold", "alert_sound_enabled", "daily_summary",
-                   "weather_lat", "weather_lon", "weather_label", "finance_watchlist"}
+                   "weather_lat", "weather_lon", "weather_label", "weather_unit",
+                   "finance_watchlist"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:

@@ -28,10 +28,17 @@ For each suggestion, call `add_signal`:
 - `type`: 'proactive'
 - `source`: 'briefing'
 - `external_ref`: hash of suggestion text + date (dedup)
-- `title`: 2-3 word summary; `summary`: full text
+- `title`: 2-4 word headline (scannable in a ranked list)
+- `summary`: 1-2 full sentences of CONTEXT — what it is, why it matters, what to
+  do. This is the only detail the user sees under the title, so make it carry
+  weight (not a restatement of the title).
 - `who`, `what`, `why`: extracted; `when_rel`: 'today'
 - `polarity`: 'risk' or 'opportunity'
-- `priority`: 3 (normal) or 4 (low) by confidence
+- `priority`: 1-4 by urgency
+- `impact`: **0-100 criticality/impact score** — how much this moves the needle
+  (deadline pressure, revenue/relationship at stake, reach). The briefing ranks
+  risks/opportunities by this, so score honestly and spread the range (a routine
+  FYI ~30, a slipping renewal ~85+). Reserve 90+ for genuinely urgent items.
 
 ## Write the day summary
 LLM produces ONE natural line summarizing the day (e.g. "3 deadlines — watch the

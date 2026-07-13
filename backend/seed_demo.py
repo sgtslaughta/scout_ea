@@ -29,8 +29,10 @@ def seed(db_path):
             "type": "triage_email",
             "source": "triage_email",
             "title": "Julie birthday coming up in 3 days",
+            "summary": "Julie Park's birthday is Thursday. She mentioned wanting the team offsite moved — a card + quick note lands well before the planning meeting.",
             "status": "new",
             "priority": 1,
+            "impact": 84,
         },
         # Triaged signal, P2
         {
@@ -38,8 +40,10 @@ def seed(db_path):
             "type": "email",
             "source": "email",
             "title": "Q3 roadmap review required by EOD",
+            "summary": "Finance is blocked on the headcount line until you sign off the Q3 roadmap. Slips the whole planning cycle a week if it misses today.",
             "status": "new",
             "priority": 2,
+            "impact": 91,
         },
         # Triaged signal, P3
         {
@@ -47,17 +51,40 @@ def seed(db_path):
             "type": "email",
             "source": "email",
             "title": "New feature request from beta testers",
+            "summary": "Three beta accounts asked for bulk-export this week. Low urgency but a recurring theme worth logging for the backlog.",
             "status": "new",
             "priority": 3,
+            "impact": 38,
         },
-        # Proactive signal
+        # Proactive — risk
         {
             "external_ref": "demo:signal:proactive:1",
             "type": "proactive",
-            "source": "skill:relationships",
-            "title": "Julie mentioned her anniversary — send a card?",
+            "source": "briefing",
+            "source_skill": "daily_briefing",
+            "title": "Acme renewal at risk",
+            "summary": "No reply from Dr. Vance on the renewal thread for 4 days; contract lapses end of month. Nudge today or loop in the account lead.",
+            "who": "Dr. Vance", "what": "contract renewal", "when_rel": "today",
+            "why": "4 days silent, expires this month",
+            "status": "new",
+            "priority": 1,
+            "polarity": "risk",
+            "impact": 88,
+        },
+        # Proactive — opportunity
+        {
+            "external_ref": "demo:signal:proactive:2",
+            "type": "proactive",
+            "source": "briefing",
+            "source_skill": "daily_briefing",
+            "title": "Julie opened door to expansion",
+            "summary": "Julie hinted the platform team wants agentic workflows next quarter — a warm intro to their lead could seed a second contract.",
+            "who": "Julie Park", "what": "expansion opening", "when_rel": "this week",
+            "why": "expressed interest, budget cycle open",
             "status": "new",
             "priority": 2,
+            "polarity": "opportunity",
+            "impact": 72,
         },
     ]
 
@@ -69,26 +96,32 @@ def seed(db_path):
         {
             "external_ref": "demo:deadline:1",
             "title": "Q3 roadmap review",
+            "detail": "Sign-off unblocks Finance's headcount line. Deck is ready in the shared drive.",
             "due_at": (NOW + timedelta(hours=6, minutes=23)).isoformat(),
             "source": "email",
             "status": "active",
             "visible": 1,
+            "priority": 1,
         },
         {
             "external_ref": "demo:deadline:2",
             "title": "Budget approval",
+            "detail": "Q3 budget needs your approval before the finance close on Friday.",
             "due_at": (NOW + timedelta(days=1, hours=4)).isoformat(),
             "source": "email",
             "status": "active",
             "visible": 1,
+            "priority": 2,
         },
         {
             "external_ref": "demo:deadline:3",
             "title": "Team sync prep",
+            "detail": "Pull the three blockers from the board and draft talking points for standup.",
             "due_at": (NOW + timedelta(minutes=28)).isoformat(),
             "source": "email",
             "status": "active",
             "visible": 1,
+            "priority": 3,
         },
     ]
 
@@ -115,12 +148,14 @@ def seed(db_path):
     tasks = [
         {
             "title": "Review Q3 metrics",
+            "detail": "Check the funnel + retention deltas before the roadmap sign-off; flag anything off-trend.",
             "due_at": f"{today_str}T17:00:00Z",
             "priority": 2,
             "status": "open",
         },
         {
             "title": "Prep team standup",
+            "detail": "Draft the three-blocker summary and confirm the demo slot with Mike.",
             "due_at": f"{today_str}T15:30:00Z",
             "priority": 3,
             "status": "open",
@@ -189,15 +224,16 @@ def seed(db_path):
         )
 
     # Key personnel + research topics (for People/Topics, and to resolve attendees)
+    # importance: higher = more important (matches briefing ranking)
     people = [
-        (1, "Dr. Vance", "Regional VP", "Acme Corp", 1),
-        (2, "Mike Chen", "Engineering Lead", "Acme Corp", 2),
-        (3, "Julie Park", "Product Manager", "Acme Corp", 2),
+        (1, "Dr. Vance", "Regional VP", "Acme Corp", 5, "Owns the renewal decision; silent 4 days — top of the follow-up list."),
+        (2, "Mike Chen", "Engineering Lead", "Acme Corp", 4, "Driving the launch review; wants RVP in the room."),
+        (3, "Julie Park", "Product Manager", "Acme Corp", 3, "Birthday Thursday; hinted at a Q4 expansion opening."),
     ]
-    for pid, name, role, org, importance in people:
+    for pid, name, role, org, importance, notes in people:
         conn.execute(
-            "INSERT INTO people (id, name, role, org, importance) VALUES (?,?,?,?,?) "
-            "ON CONFLICT(id) DO NOTHING", (pid, name, role, org, importance))
+            "INSERT INTO people (id, name, role, org, importance, notes) VALUES (?,?,?,?,?,?) "
+            "ON CONFLICT(id) DO NOTHING", (pid, name, role, org, importance, notes))
     for tid, name, desc, prio in [
         (1, "AI agents", "Autonomous agent frameworks and tooling", 2),
         (2, "Cloud security", "Posture, IAM, and zero-trust developments", 2),

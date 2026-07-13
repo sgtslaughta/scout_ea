@@ -1,3 +1,4 @@
+import json
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 from ea import db
@@ -13,18 +14,31 @@ def _client(tmp_path, watchlist="AAPL"):
     return TestClient(create_app(p))
 
 
-_CSV = (
-    "Symbol,Date,Time,Open,High,Low,Close,Volume\n"
-    "AAPL.US,2026-07-13,22:00,100.0,105.0,99.0,102.0,5000\n"
-    "^SPX,2026-07-13,22:00,5000.0,5050.0,4990.0,5010.0,0\n"
-    "^DJI,2026-07-13,22:00,40000,40100,39900,40050,0\n"
-    "^NDQ,2026-07-13,22:00,18000,18100,17900,18050,0\n"
-)
+# price, prev-close, shortName per Yahoo symbol
+_QUOTES = {
+    "AAPL": (102.0, 100.0, "Apple Inc."),
+    "^GSPC": (5010.0, 5000.0, "S&P 500"),
+    "^DJI": (40050.0, 40000.0, "Dow Jones"),
+    "^IXIC": (18050.0, 18000.0, "Nasdaq"),
+}
 
 
-def _fake_urlopen(*a, **k):
+def _chart(sym):
+    price, prev, name = _QUOTES[sym]
+    return {"chart": {"result": [{
+        "meta": {"symbol": sym, "shortName": name, "regularMarketPrice": price,
+                 "chartPreviousClose": prev, "regularMarketDayHigh": price + 5,
+                 "regularMarketDayLow": price - 5, "regularMarketVolume": 5000},
+        "indicators": {"quote": [{"open": [prev]}]},
+    }]}}
+
+
+def _fake_urlopen(req, *a, **k):
+    from urllib.parse import unquote
+    url = getattr(req, "full_url", req)
+    sym = unquote(url.split("/chart/")[1].split("?")[0])
     m = MagicMock()
-    m.read.return_value = _CSV.encode()
+    m.read.return_value = json.dumps(_chart(sym)).encode()
     m.__enter__.return_value = m
     m.__exit__.return_value = False
     return m
@@ -38,17 +52,19 @@ def test_finance_splits_watchlist_and_indices(tmp_path):
     with patch("web.app.urllib.request.urlopen", _fake_urlopen):
         body = _client(tmp_path).get("/api/finance").json()
     assert [q["symbol"] for q in body["watchlist"]] == ["AAPL"]
-    assert {q["symbol"] for q in body["indices"]} == {"^SPX", "^DJI", "^NDQ"}
+    assert {q["symbol"] for q in body["indices"]} == {"^GSPC", "^DJI", "^IXIC"}
     assert body["watchlist"][0]["change_pct"] == 2.0
+    assert body["watchlist"][0]["name"] == "Apple Inc."
     assert body["stale"] is False
 
 
 def test_finance_index_in_watchlist_appears_only_in_indices(tmp_path):
     # A symbol that is both user-added and a fixed index must not double-count.
+    # ^SPX aliases to ^GSPC, which is a fixed index.
     with patch("web.app.urllib.request.urlopen", side_effect=_fake_urlopen):
         body = _client(tmp_path, watchlist="AAPL,^SPX").get("/api/finance").json()
     assert {q["symbol"] for q in body["watchlist"]} == {"AAPL"}
-    assert "^SPX" in {q["symbol"] for q in body["indices"]}
+    assert "^GSPC" in {q["symbol"] for q in body["indices"]}
 
 
 def test_finance_upstream_failure_degrades(tmp_path):
@@ -61,11 +77,12 @@ def test_finance_upstream_failure_degrades(tmp_path):
 
 
 def test_finance_cache_hit_skips_fetch(tmp_path):
+    # One Yahoo request per unique symbol: AAPL + 3 indices = 4; second call cached.
     c = _client(tmp_path)
     with patch("web.app.urllib.request.urlopen", side_effect=_fake_urlopen) as mock:
         c.get("/api/finance")
         c.get("/api/finance")
-        assert mock.call_count == 1
+        assert mock.call_count == 4
 
 
 def test_finance_empty_watchlist_indices_only(tmp_path):

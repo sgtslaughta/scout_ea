@@ -156,7 +156,7 @@ _WEATHER_TTL = 900  # seconds (15 min)
 # ponytail: process-local finance cache, fine for single-process; revisit if multi-worker
 _FINANCE_CACHE: dict = {}
 _FINANCE_TTL = 300  # seconds (5 min)
-_FINANCE_INDICES = ["^spx", "^dji", "^ndq"]
+_FINANCE_INDICES = ["^GSPC", "^DJI", "^IXIC"]
 
 
 class SubscribeBody(BaseModel):
@@ -507,9 +507,11 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     def get_weather(lat: float, lon: float, conn=Depends(get_db)):
         if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             raise HTTPException(status_code=400, detail="lat/lon out of range")
-        key = (round(lat, 2), round(lon, 2))
         row = conn.execute("SELECT value FROM config WHERE key='weather_label'").fetchone()
         label = row["value"] if row else None
+        row_u = conn.execute("SELECT value FROM config WHERE key='weather_unit'").fetchone()
+        unit = "F" if (row_u and str(row_u["value"]).upper().startswith("F")) else "C"
+        key = (round(lat, 2), round(lon, 2), unit)
 
         now = datetime.now(timezone.utc).timestamp()
         cached = _WEATHER_CACHE.get(key)
@@ -519,13 +521,15 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         qs = urllib.parse.urlencode({
             "latitude": key[0], "longitude": key[1],
             "current": "temperature_2m,weather_code,is_day",
-            "daily": "sunrise,sunset", "timezone": "auto",
+            "daily": "sunrise,sunset,temperature_2m_max,temperature_2m_min,weather_code",
+            "timezone": "auto",
+            "temperature_unit": "fahrenheit" if unit == "F" else "celsius",
         })
         url = f"https://api.open-meteo.com/v1/forecast?{qs}"
         try:
             with urllib.request.urlopen(url, timeout=5) as resp:
                 raw = json.loads(resp.read().decode())
-            payload = _weather.normalize(raw)
+            payload = _weather.normalize(raw, unit=unit)
             _WEATHER_CACHE[key] = (now, payload)
             return {**payload, "label": label, "stale": False}
         except Exception:
@@ -547,18 +551,24 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if cached and (now - cached[0]) < _FINANCE_TTL:
             return {**cached[1], "stale": False}
 
-        stooq = ",".join(_finance.to_stooq_symbol(s) for s in symbols)
-        qs = urllib.parse.urlencode({"s": stooq, "f": "sd2t2ohlcv", "h": "", "e": "csv"})
-        url = f"https://stooq.com/q/l/?{qs}"
         idx_set = {i.upper() for i in _FINANCE_INDICES}
-        watch_set = {s.upper() for s in watch}
+        # dedup watch -> yahoo symbols, order-preserving
+        watch_y = list(dict.fromkeys(_finance.to_yahoo_symbol(s) for s in watch if s))
+        # ponytail: one Yahoo request per unique symbol, cached 5min; batch quote API needs a crumb+cookie, not worth it
+        quotes: dict = {}
         try:
-            with urllib.request.urlopen(url, timeout=5) as resp:
-                quotes = _finance.parse_quotes(resp.read().decode())
+            for y in dict.fromkeys(_finance.to_yahoo_symbol(s) for s in symbols if s):
+                cu = f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(y)}?interval=1d&range=1d"
+                req = urllib.request.Request(cu, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=5) as resp:
+                    raw = json.loads(resp.read().decode())
+                res = ((raw.get("chart") or {}).get("result") or [None])[0]
+                q = _finance.parse_quote(res) if res else None
+                if q:
+                    quotes[q["symbol"].upper()] = q
             payload = {
-                "watchlist": [q for q in quotes
-                              if q["symbol"].upper() in watch_set and q["symbol"].upper() not in idx_set],
-                "indices": [q for q in quotes if q["symbol"].upper() in idx_set],
+                "watchlist": [quotes[y] for y in watch_y if y in quotes and y not in idx_set],
+                "indices": [quotes[y] for y in _FINANCE_INDICES if y in quotes],
             }
             _FINANCE_CACHE[key] = (now, payload)
             return {**payload, "stale": False}

@@ -1,45 +1,46 @@
 from lib import finance
 
 
-def test_to_stooq_symbol():
-    assert finance.to_stooq_symbol("AAPL") == "aapl.us"
-    assert finance.to_stooq_symbol("^spx") == "^spx"
-    assert finance.to_stooq_symbol("^SPX") == "^spx"
-    assert finance.to_stooq_symbol("aapl.us") == "aapl.us"  # already qualified
-    assert finance.to_stooq_symbol("  msft ") == "msft.us"
-    assert finance.to_stooq_symbol("") == ""
+def test_to_yahoo_symbol():
+    assert finance.to_yahoo_symbol("aapl") == "AAPL"
+    assert finance.to_yahoo_symbol("AAPL.US") == "AAPL"   # legacy Stooq suffix stripped
+    assert finance.to_yahoo_symbol("^spx") == "^GSPC"     # alias
+    assert finance.to_yahoo_symbol("^ndq") == "^IXIC"     # alias
+    assert finance.to_yahoo_symbol("^GSPC") == "^GSPC"    # passthrough
+    assert finance.to_yahoo_symbol("  msft ") == "MSFT"
+    assert finance.to_yahoo_symbol("") == ""
 
 
-_CSV = (
-    "Symbol,Date,Time,Open,High,Low,Close,Volume\n"
-    "AAPL.US,2026-07-13,22:00:05,100.0,105.0,99.0,102.0,50000000\n"
-    "^SPX,2026-07-13,22:00:05,5000.0,5050.0,4990.0,4950.0,0\n"
-)
+_RESULT = {
+    "meta": {
+        "symbol": "AAPL", "shortName": "Apple Inc.",
+        "regularMarketPrice": 102.0, "chartPreviousClose": 100.0,
+        "regularMarketDayHigh": 105.0, "regularMarketDayLow": 99.0,
+        "regularMarketVolume": 50000000,
+    },
+    "indicators": {"quote": [{"open": [None, 100.0]}]},
+}
 
 
-def test_parse_quotes_maps_and_computes_change():
-    rows = finance.parse_quotes(_CSV)
-    assert len(rows) == 2
-    aapl = rows[0]
-    assert aapl["symbol"] == "AAPL"          # .US stripped, upper
-    assert aapl["price"] == 102.0
-    assert aapl["open"] == 100.0
-    assert aapl["volume"] == 50000000
-    assert aapl["change_pct"] == 2.0          # (102-100)/100*100
-    spx = rows[1]
-    assert spx["symbol"] == "^SPX"
-    assert spx["change_pct"] == -1.0          # (4950-5000)/5000*100
+def test_parse_quote_maps_and_computes_change():
+    q = finance.parse_quote(_RESULT)
+    assert q["symbol"] == "AAPL"
+    assert q["name"] == "Apple Inc."
+    assert q["price"] == 102.0
+    assert q["open"] == 100.0        # last non-null open
+    assert q["high"] == 105.0 and q["low"] == 99.0
+    assert q["volume"] == 50000000
+    assert q["change_pct"] == 2.0    # (102-100)/100*100 vs prev close
 
 
-def test_parse_quotes_defensive():
-    assert finance.parse_quotes("") == []
-    assert finance.parse_quotes("Symbol,Date,Time,Open,High,Low,Close,Volume\n") == []
-    # N/D fields -> None, no raise; zero open -> change_pct None
-    nd = ("Symbol,Date,Time,Open,High,Low,Close,Volume\n"
-          "FOO.US,2026-07-13,22:00,N/D,N/D,N/D,N/D,N/D\n"
-          "BAR.US,2026-07-13,22:00,0,1,0,1,10\n")
-    rows = finance.parse_quotes(nd)
-    assert rows[0]["price"] is None and rows[0]["change_pct"] is None
-    assert rows[1]["change_pct"] is None      # open==0 guarded
-    # short row skipped
-    assert finance.parse_quotes("Symbol,Date\nX,Y\n") == []
+def test_parse_quote_defensive():
+    assert finance.parse_quote({}) is None
+    assert finance.parse_quote({"meta": {}}) is None            # no symbol
+    # missing price/prev -> change None, no raise
+    q = finance.parse_quote({"meta": {"symbol": "FOO", "regularMarketPrice": None,
+                                      "chartPreviousClose": None}})
+    assert q["price"] is None and q["change_pct"] is None
+    # zero prev close guarded
+    q2 = finance.parse_quote({"meta": {"symbol": "BAR", "regularMarketPrice": 1,
+                                       "chartPreviousClose": 0}})
+    assert q2["change_pct"] is None

@@ -23,7 +23,7 @@ def classify_code(code) -> str:
         return "clouds"
 
 
-def normalize(raw: dict) -> dict:
+def normalize(raw: dict, unit: str = "C") -> dict:
     cur = (raw or {}).get("current") or {}
     daily = (raw or {}).get("daily") or {}
     code = cur.get("weather_code")
@@ -32,6 +32,20 @@ def normalize(raw: dict) -> dict:
     def _first(seq):
         return seq[0] if isinstance(seq, list) and seq else None
 
+    times = daily.get("time") or []
+    his = daily.get("temperature_2m_max") or []
+    los = daily.get("temperature_2m_min") or []
+    codes = daily.get("weather_code") or []
+    forecast = [
+        {
+            "date": times[i],
+            "hi": his[i] if i < len(his) else None,
+            "lo": los[i] if i < len(los) else None,
+            "condition": classify_code(codes[i]) if i < len(codes) and codes[i] is not None else "clouds",
+        }
+        for i in range(min(len(times), len(his), len(los)))
+    ]
+
     return {
         "temp": cur.get("temperature_2m"),
         "code": code,
@@ -39,4 +53,6 @@ def normalize(raw: dict) -> dict:
         "is_day": bool(is_day) if is_day is not None else None,
         "sunrise": _first(daily.get("sunrise")),
         "sunset": _first(daily.get("sunset")),
+        "unit": unit,
+        "forecast": forecast[:5],
     }
