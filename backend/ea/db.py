@@ -167,6 +167,72 @@ def update_status(conn: sqlite3.Connection, table: str, row_id: int, status: str
     return cur.rowcount
 
 
+# Tables the read-only query() primitive may SELECT from. Excludes push_subscriptions
+# (holds push secrets) and search_index (FTS virtual table).
+_QUERYABLE = {
+    "signals", "tasks", "alerts", "events", "learning", "news_items",
+    "critical_deadlines", "trends", "trend_findings", "people", "person_handles",
+    "topics", "config", "actions", "guidance", "content_tags", "content_links",
+    "skill_runs", "board_columns",
+}
+_QUERY_OPS = {"=", "!=", "<", "<=", ">", ">=", "in"}
+# Per-table column used for since/until range; default 'created_at'.
+_QUERY_DATE_COL = {"skill_runs": "ran_at", "trends": "window_start"}
+
+
+def query(conn: sqlite3.Connection, table: str, filters: dict | None = None,
+          since: str | None = None, until: str | None = None,
+          order: str | None = None, limit: int = 50) -> list[dict]:
+    """Read-only SELECT over a whitelisted table. Identifiers whitelisted, values bound.
+
+    filters: {col: value} for equality, or {col: {"op": OP, "value": v}} where OP in
+    _QUERY_OPS ('in' takes a non-empty list). since/until bound-range a date column.
+    order: "col" or "col desc". limit capped at 200. Returns list[dict].
+    """
+    if table not in _QUERYABLE:
+        raise ValueError(f"table not queryable: {table!r}")
+    cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    where, params = [], []
+    for col, val in (filters or {}).items():
+        if col not in cols:
+            raise ValueError(f"unknown column {col!r} on {table}")
+        if isinstance(val, dict):
+            op = val.get("op", "=")
+            if op not in _QUERY_OPS:
+                raise ValueError(f"unknown op {op!r}")
+            v = val.get("value")
+            if op == "in":
+                if not isinstance(v, (list, tuple)) or not v:
+                    raise ValueError("'in' requires a non-empty list")
+                where.append(f"{col} IN ({', '.join('?' for _ in v)})")
+                params.extend(v)
+            else:
+                where.append(f"{col} {op} ?")
+                params.append(v)
+        else:
+            where.append(f"{col} = ?")
+            params.append(val)
+    date_col = _QUERY_DATE_COL.get(table, "created_at")
+    if date_col in cols:
+        if since is not None:
+            where.append(f"{date_col} >= ?"); params.append(since)
+        if until is not None:
+            where.append(f"{date_col} <= ?"); params.append(until)
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    if order:
+        parts = order.split()
+        ocol = parts[0]
+        if ocol not in cols:
+            raise ValueError(f"unknown order column {ocol!r}")
+        direction = "DESC" if len(parts) > 1 and parts[1].lower() == "desc" else "ASC"
+        order_sql = f"{ocol} {direction}"
+    else:
+        order_sql = "created_at DESC, id DESC" if "created_at" in cols else "id DESC"
+    lim = max(1, min(int(limit), 200))
+    sql = f"SELECT * FROM {table}{clause} ORDER BY {order_sql} LIMIT {lim}"
+    return [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+
 def data_version(conn: sqlite3.Connection) -> int:
     """PRAGMA data_version — changes when another connection commits a write."""
     return conn.execute("PRAGMA data_version").fetchone()[0]
