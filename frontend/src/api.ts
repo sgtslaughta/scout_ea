@@ -180,6 +180,11 @@ export const getOutlook = () => fetchJson<OutlookResponse>('/api/outlook')
 
 export const getBriefing = () => fetchJson<BriefingResponse>('/api/briefing')
 
+export const getWeather = (lat: number, lon: number) =>
+  fetchJson<WeatherResponse>(`/api/weather?lat=${lat}&lon=${lon}`)
+
+export const getConfig = () => fetchJson<Record<string, string>>('/api/config')
+
 export const getDeadlines = (includeHidden?: boolean) =>
   fetchJson<Deadline[]>(`/api/deadlines${includeHidden ? '?include_hidden=true' : ''}`)
 
@@ -363,6 +368,18 @@ export interface Action {
   created_at: string
 }
 export interface Guidance { id: number; scope: string; text: string; created_at: string }
+
+export interface WeatherResponse {
+  temp?: number
+  code?: number
+  condition?: 'clear' | 'clouds' | 'rain' | 'snow' | 'fog' | 'storm'
+  is_day?: boolean
+  sunrise?: string
+  sunset?: string
+  label?: string
+  stale?: boolean
+  error?: string
+}
 
 export interface ActionCreate {
   action_type: string
