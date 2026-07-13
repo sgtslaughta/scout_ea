@@ -66,7 +66,7 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
         </IconButton>
 
         {/* Weather band */}
-        {weather ? <WeatherBand weather={weather} /> : <Box sx={{ height: 120, mb: 3 }} />}
+        {weather ? <Box sx={{ mb: 3 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 3 }} />}
 
         {isLoading ? (
           <Stack spacing={2}>
