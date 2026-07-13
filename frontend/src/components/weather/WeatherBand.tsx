@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Box, Typography } from '@mui/material'
-import { WeatherResponse } from '@/api'
+import type { WeatherResponse } from '@/api'
 import { skyPhase, arcFraction } from './sky'
 
 export interface WeatherBandProps {

@@ -1,5 +1,5 @@
 import { Box, Typography, Tooltip, useTheme } from '@mui/material'
-import { FinanceResponse, Quote } from '@/api'
+import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 
 export interface FinanceStripProps {
