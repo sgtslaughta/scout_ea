@@ -15,13 +15,16 @@ vi.mock('react-router-dom', async (orig) => ({
 const payload = {
   date: '2026-07-12', summary: 'busy day',
   critical: [{ id: 5, title: 'Ship it', kind: 'deadline', nav: { view: '/tasks', id: 5 },
-    countdown_seconds: 3600 }],
+    countdown_seconds: 3600, rank: 1, score: 92, detail: 'Blocks the release train' }],
   risks: [{ id: 1, type: 'proactive', source: 'briefing', title: 'Renewal risk',
-    status: 'new', priority: 3, created_at: '', polarity: 'risk' }],
+    status: 'new', priority: 3, created_at: '', polarity: 'risk', rank: 1, score: 88,
+    summary: 'No reply from Vance in 4 days' }],
   opportunities: [],
   news_by_topic: [{ topic_id: 10, topic_name: 'AI', topic_priority: 1,
-    items: [{ id: 2, title: 'Big model', status: 'new', category: 'news' }] }],
-  people: [{ id: 3, name: 'Jane', importance: 5, active: 1, signals: [] }],
+    items: [{ id: 2, title: 'Big model', status: 'new', category: 'news', rank: 1, score: 85,
+      synopsis: 'A frontier model shipped today' }] }],
+  people: [{ id: 3, name: 'Jane', importance: 5, active: 1, signals: [],
+    rank: 1, score: 92, role: 'VP', org: 'Acme', notes: 'Owns the renewal' }],
   weather: null, finance: null,
 }
 
@@ -38,14 +41,19 @@ describe('TodayBriefing', () => {
   beforeEach(() => vi.spyOn(api, 'getBriefing').mockResolvedValue(payload as never))
   afterEach(() => vi.restoreAllMocks())
 
-  it('renders summary + all section headers + items', async () => {
+  it('renders summary + section headers + ranked items with scores + context', async () => {
     renderModal()
     expect(await screen.findByText('busy day')).toBeInTheDocument()
-    expect(screen.getByText(/CRITICAL/i)).toBeInTheDocument()
-    expect(screen.getByText(/RISKS/i)).toBeInTheDocument()
+    expect(screen.getByText('Critical')).toBeInTheDocument()
+    expect(screen.getByText('Risks & Opportunities')).toBeInTheDocument()
     expect(screen.getByText('Ship it')).toBeInTheDocument()
     expect(screen.getByText('Renewal risk')).toBeInTheDocument()
     expect(screen.getByText('Jane')).toBeInTheDocument()
+    // depth: impact scores + summary/synopsis context, not just titles
+    expect(screen.getAllByText('92').length).toBeGreaterThan(0)      // impact badge
+    expect(screen.getByText('No reply from Vance in 4 days')).toBeInTheDocument()
+    expect(screen.getByText('A frontier model shipped today')).toBeInTheDocument()
+    expect(screen.getByText('due in 1h 0m')).toBeInTheDocument()      // deadline countdown
   })
 
   it('click-to-nav closes modal and routes', async () => {

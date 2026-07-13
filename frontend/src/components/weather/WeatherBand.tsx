@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { WeatherResponse } from '@/api'
 import { skyPhase, arcFraction } from './sky'
@@ -16,7 +16,26 @@ const skyGradients: Record<string, string> = {
   night: 'linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0d0a1a 100%)',
 }
 
-export function WeatherBand({ weather, now = new Date() }: WeatherBandProps) {
+export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
+  // Live clock so the sun/moon advances across the arc in real time.
+  // A fixed `now` prop (tests / controlled render) freezes it; otherwise tick each minute.
+  const [clock, setClock] = useState<Date>(() => nowProp ?? new Date())
+  useEffect(() => {
+    if (nowProp) return
+    const id = setInterval(() => setClock(new Date()), 60_000)
+    return () => clearInterval(id)
+  }, [nowProp])
+  const now = nowProp ?? clock
+
+  const phase = useMemo(
+    () => skyPhase(now, weather.sunrise || new Date(), weather.sunset || new Date()),
+    [now, weather.sunrise, weather.sunset],
+  )
+  const arcPos = useMemo(
+    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), weather.is_day ?? true),
+    [now, weather.sunrise, weather.sunset, weather.is_day],
+  )
+
   // Early return if error or missing condition
   if (weather.error || !weather.condition) {
     return (
@@ -44,31 +63,13 @@ export function WeatherBand({ weather, now = new Date() }: WeatherBandProps) {
     )
   }
 
-  const phase = useMemo(
-    () =>
-      skyPhase(
-        now,
-        weather.sunrise || new Date(),
-        weather.sunset || new Date(),
-      ),
-    [now, weather.sunrise, weather.sunset],
-  )
-
-  const arcPos = useMemo(
-    () =>
-      arcFraction(
-        now,
-        weather.sunrise || new Date(),
-        weather.sunset || new Date(),
-        weather.is_day ?? true,
-      ),
-    [now, weather.sunrise, weather.sunset, weather.is_day],
-  )
-
   const celestialX = arcPos * 100
   const celestialY = 40 - Math.sin(arcPos * Math.PI) * 34
 
-  const ariaLabel = `${weather.label}: ${weather.condition}, ${Math.round(weather.temp || 0)} degrees`
+  const unit = weather.unit || 'C'
+  const ariaLabel = `${weather.label}: ${weather.condition}, ${Math.round(weather.temp || 0)} degrees ${unit}`
+  // forecast[0] is today; show the next few days
+  const upcoming = (weather.forecast || []).slice(1, 4)
 
   return (
     <Box
@@ -159,9 +160,40 @@ export function WeatherBand({ weather, now = new Date() }: WeatherBandProps) {
             fontFamily: 'monospace',
           }}
         >
-          {Math.round(weather.temp || 0)}°
+          {Math.round(weather.temp || 0)}°{unit}
         </Typography>
       </Box>
+
+      {/* Forecast strip (next few days) */}
+      {upcoming.length > 0 && (
+        <Box
+          data-testid="weather-forecast"
+          sx={{
+            position: 'absolute',
+            bottom: 12,
+            right: 12,
+            zIndex: 10,
+            display: 'flex',
+            gap: 1.5,
+            color: '#fff',
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+          }}
+        >
+          {upcoming.map((d) => (
+            <Box key={d.date} sx={{ textAlign: 'center', minWidth: 34 }}>
+              <Typography sx={{ fontSize: '0.7rem', opacity: 0.9 }}>
+                {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' })}
+              </Typography>
+              <Typography sx={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>
+                {d.hi != null ? Math.round(d.hi) : '–'}°
+              </Typography>
+              <Typography sx={{ fontSize: '0.7rem', fontFamily: 'monospace', opacity: 0.75 }}>
+                {d.lo != null ? Math.round(d.lo) : '–'}°
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
 
       {/* Global animation keyframes */}
       <style>{`
