@@ -147,6 +147,28 @@ export interface OutlookResponse {
   tasks_due_today: Task[]
 }
 
+export interface CriticalItem {
+  id: number; title: string; kind: 'deadline' | 'task' | 'signal'
+  nav: { view: string; id: number }
+  countdown_seconds?: number; due_at?: string; priority?: number; summary?: string; why?: string
+}
+export interface BriefingTopicGroup {
+  topic_id: number; topic_name: string; topic_priority: number
+  items: (NewsItem | LearningItem)[] & { category: 'news' | 'learning' }[]
+}
+export interface BriefingPerson extends Person { signals: Signal[] }
+export interface BriefingResponse {
+  date: string
+  summary: string | null
+  critical: CriticalItem[]
+  risks: Signal[]
+  opportunities: Signal[]
+  news_by_topic: BriefingTopicGroup[]
+  people: BriefingPerson[]
+  weather: null
+  finance: null
+}
+
 async function fetchJson<T>(url: string): Promise<T> {
   const res = await fetch(url)
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`)
@@ -154,6 +176,8 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export const getOutlook = () => fetchJson<OutlookResponse>('/api/outlook')
+
+export const getBriefing = () => fetchJson<BriefingResponse>('/api/briefing')
 
 export const getDeadlines = (includeHidden?: boolean) =>
   fetchJson<Deadline[]>(`/api/deadlines${includeHidden ? '?include_hidden=true' : ''}`)
