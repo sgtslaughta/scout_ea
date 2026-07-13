@@ -12,7 +12,9 @@ import {
   Tooltip,
 } from '@mui/material'
 import { X } from 'lucide-react'
-import { getBriefing } from '@/api'
+import { getBriefing, getWeather } from '@/api'
+import { WeatherBand } from './weather/WeatherBand'
+import { useWeatherLocation } from '@/lib/useWeatherLocation'
 
 interface TodayBriefingProps {
   open: boolean
@@ -27,6 +29,13 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
     queryKey: ['briefing'],
     queryFn: getBriefing,
     enabled: open,
+  })
+
+  const loc = useWeatherLocation(open)
+  const { data: weather } = useQuery({
+    queryKey: ['weather', loc?.lat, loc?.lon],
+    queryFn: () => getWeather(loc!.lat, loc!.lon),
+    enabled: open && !!loc,
   })
 
   const go = (view: string) => {
@@ -44,8 +53,8 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   if (!open) return null
 
   return (
-    <Dialog open={open} onClose={onClose} fullScreen slotProps={{ paper: { sx: { position: 'relative' } } }}>
-      <Box sx={{ p: 3, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { position: 'relative', height: '92vh', m: 'auto' } } }}>
+      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
         {/* Close button */}
         <IconButton
           ref={closeButtonRef}
@@ -56,12 +65,8 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
           <X size={20} />
         </IconButton>
 
-        {/* Weather band placeholder */}
-        <Box sx={{ mb: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-          <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-            Weather — coming soon
-          </Typography>
-        </Box>
+        {/* Weather band */}
+        {weather ? <Box sx={{ mb: 3 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 3 }} />}
 
         {isLoading ? (
           <Stack spacing={2}>
