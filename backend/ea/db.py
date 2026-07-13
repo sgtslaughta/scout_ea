@@ -167,6 +167,27 @@ def update_status(conn: sqlite3.Connection, table: str, row_id: int, status: str
     return cur.rowcount
 
 
+_ALERT_COLS = {"severity", "title", "body", "url", "source_table", "source_id", "status"}
+
+
+def add_alert(conn: sqlite3.Connection, **fields) -> int:
+    """Insert an alert (toast/push). Requires severity, title, body. Returns new id.
+    Columns validated against _ALERT_COLS."""
+    for req in ("severity", "title", "body"):
+        if req not in fields:
+            raise ValueError(f"add_alert requires {req!r}")
+    bad = set(fields) - _ALERT_COLS
+    if bad:
+        raise ValueError(f"unknown alert columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO alerts ({cols}) VALUES ({placeholders})", list(fields.values())
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
 # Tables the read-only query() primitive may SELECT from. Excludes push_subscriptions
 # (holds push secrets) and search_index (FTS virtual table).
 _QUERYABLE = {

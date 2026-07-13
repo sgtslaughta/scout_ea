@@ -31,6 +31,10 @@ def log_skill_run(conn, skill, **kw) -> int:
     return db.add_skill_run(conn, skill, **kw)
 
 
+def add_alert(conn, **fields) -> int:
+    return db.add_alert(conn, **fields)
+
+
 def list_table(conn, table, status=None):
     """Read rows from a whitelisted table (optionally filtered by status). Newest first."""
     if table not in _READABLE:

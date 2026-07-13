@@ -86,3 +86,19 @@ def test_writers_extra_fields(tmp_path):
     assert rid >= 1
     tr = tools.list_table(conn, "trends")[0]
     assert tr["sources"] == "signal:1,signal:2"
+
+
+def test_add_alert(tmp_path):
+    conn = _conn(tmp_path)
+    aid = tools.add_alert(conn, severity="critical", title="Deadline in 1h",
+                          body="Q3 filing due", url="/deadlines",
+                          source_table="critical_deadlines", source_id=1)
+    assert aid >= 1
+    alerts = tools.list_table(conn, "alerts")
+    assert alerts[0]["title"] == "Deadline in 1h" and alerts[0]["severity"] == "critical"
+
+
+def test_add_alert_rejects_bad_column(tmp_path):
+    conn = _conn(tmp_path)
+    with pytest.raises(ValueError):
+        tools.add_alert(conn, severity="info", title="t", body="b", bogus=1)

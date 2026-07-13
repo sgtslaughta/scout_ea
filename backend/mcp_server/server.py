@@ -154,6 +154,23 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def add_alert(severity: str, title: str, body: str, url: str | None = None,
+                  source_table: str | None = None, source_id: int | None = None) -> int:
+        """Raise a user-facing alert (drives toast + web push). severity in
+        info|warning|critical. url is an optional in-app deep link. source_table/
+        source_id point back at the originating row. Returns the new alert id."""
+        conn = _conn()
+        try:
+            fields = {"severity": severity, "title": title, "body": body}
+            for k, v in (("url", url), ("source_table", source_table),
+                         ("source_id", source_id)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_alert(conn, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
                      score: float = 0, count: int = 0, delta: str | None = None,
                      sources: str | None = None) -> int:
