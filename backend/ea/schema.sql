@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS signals (
     summary       TEXT,
     who TEXT, what TEXT, when_rel TEXT, why TEXT,
     reasoning     TEXT,                         -- AI rationale for surfacing (F1)
+    polarity      TEXT,                         -- 'risk' | 'opportunity' | NULL (briefing)
     url           TEXT,
     person_id     INTEGER REFERENCES people(id),
     topic_id      INTEGER REFERENCES topics(id),
