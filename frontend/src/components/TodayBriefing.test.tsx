@@ -69,4 +69,12 @@ describe('TodayBriefing', () => {
     renderModal()
     expect(await screen.findByLabelText(/NYC/i)).toBeInTheDocument()
   })
+
+  it('renders the finance strip region', async () => {
+    vi.spyOn(api, 'getBriefing').mockResolvedValue(payload as never)
+    vi.spyOn(api, 'getFinance').mockResolvedValue(
+      { watchlist: [{ symbol: 'AAPL', price: 102, change_pct: 2 }], indices: [], stale: false } as never)
+    renderModal()
+    expect(await screen.findByText('AAPL')).toBeInTheDocument()
+  })
 })
