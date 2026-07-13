@@ -2,8 +2,15 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
 import { TodayBriefing } from './TodayBriefing'
 import * as api from '@/api'
+
+const navigateMock = vi.fn()
+vi.mock('react-router-dom', async (orig) => ({
+  ...(await orig<typeof import('react-router-dom')>()),
+  useNavigate: () => navigateMock,
+}))
 
 const payload = {
   date: '2026-07-12', summary: 'busy day',
@@ -38,5 +45,18 @@ describe('TodayBriefing', () => {
     expect(screen.getByText('Ship it')).toBeInTheDocument()
     expect(screen.getByText('Renewal risk')).toBeInTheDocument()
     expect(screen.getByText('Jane')).toBeInTheDocument()
+  })
+
+  it('click-to-nav closes modal and routes', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await userEvent.click(await screen.findByText('Ship it'))
+    expect(navigateMock).toHaveBeenCalledWith('/tasks')
+    expect(onClose).toHaveBeenCalled()
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   Box,
@@ -8,6 +9,7 @@ import {
   Paper,
   IconButton,
   Skeleton,
+  Tooltip,
 } from '@mui/material'
 import { X } from 'lucide-react'
 import { getBriefing } from '@/api'
@@ -19,12 +21,18 @@ interface TodayBriefingProps {
 
 export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null)
+  const navigate = useNavigate()
 
   const { data: briefing, isLoading } = useQuery({
     queryKey: ['briefing'],
     queryFn: getBriefing,
     enabled: open,
   })
+
+  const go = (view: string) => {
+    onClose()
+    navigate(view)
+  }
 
   // Focus close button when modal opens
   useEffect(() => {
@@ -82,9 +90,22 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
                 {briefing?.critical && briefing.critical.length > 0 ? (
                   <Stack spacing={1}>
                     {briefing.critical.map((item) => (
-                      <Typography key={item.id} variant="body2">
-                        {item.title}
-                      </Typography>
+                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
+                        <Box
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => item.nav && go(item.nav.view)}
+                          onKeyDown={(e) => e.key === 'Enter' && item.nav && go(item.nav.view)}
+                          sx={{
+                            p: 1,
+                            borderRadius: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }}
+                        >
+                          <Typography variant="body2">{item.title}</Typography>
+                        </Box>
+                      </Tooltip>
                     ))}
                   </Stack>
                 ) : (
@@ -102,14 +123,40 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
                 {(briefing?.risks && briefing.risks.length > 0) || (briefing?.opportunities && briefing.opportunities.length > 0) ? (
                   <Stack spacing={1}>
                     {briefing?.risks?.map((item) => (
-                      <Typography key={item.id} variant="body2">
-                        {item.title}
-                      </Typography>
+                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
+                        <Box
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => go('/feed')}
+                          onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
+                          sx={{
+                            p: 1,
+                            borderRadius: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }}
+                        >
+                          <Typography variant="body2">{item.title}</Typography>
+                        </Box>
+                      </Tooltip>
                     ))}
                     {briefing?.opportunities?.map((item) => (
-                      <Typography key={item.id} variant="body2">
-                        {item.title}
-                      </Typography>
+                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
+                        <Box
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => go('/feed')}
+                          onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
+                          sx={{
+                            p: 1,
+                            borderRadius: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }}
+                        >
+                          <Typography variant="body2">{item.title}</Typography>
+                        </Box>
+                      </Tooltip>
                     ))}
                   </Stack>
                 ) : (
@@ -128,9 +175,22 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
                   <Stack spacing={1}>
                     {briefing.news_by_topic.map((topic) =>
                       topic.items?.map((item) => (
-                        <Typography key={item.id} variant="body2">
-                          {item.title}
-                        </Typography>
+                        <Tooltip key={item.id} title={item.title} placement="right" arrow>
+                          <Box
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => go('/feed')}
+                            onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
+                            sx={{
+                              p: 1,
+                              borderRadius: 0.5,
+                              cursor: 'pointer',
+                              '&:hover': { bgcolor: 'action.selected' },
+                            }}
+                          >
+                            <Typography variant="body2">{item.title}</Typography>
+                          </Box>
+                        </Tooltip>
                       ))
                     )}
                   </Stack>
@@ -149,9 +209,22 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
                 {briefing?.people && briefing.people.length > 0 ? (
                   <Stack spacing={1}>
                     {briefing.people.map((person) => (
-                      <Typography key={person.id} variant="body2">
-                        {person.name}
-                      </Typography>
+                      <Tooltip key={person.id} title={person.name} placement="right" arrow>
+                        <Box
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => go('/people')}
+                          onKeyDown={(e) => e.key === 'Enter' && go('/people')}
+                          sx={{
+                            p: 1,
+                            borderRadius: 0.5,
+                            cursor: 'pointer',
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }}
+                        >
+                          <Typography variant="body2">{person.name}</Typography>
+                        </Box>
+                      </Tooltip>
                     ))}
                   </Stack>
                 ) : (
