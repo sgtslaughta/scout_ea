@@ -50,6 +50,7 @@ export function SettingsView() {
   const weatherLat = cfg.weather_lat ?? ''
   const weatherLon = cfg.weather_lon ?? ''
   const weatherLabel = cfg.weather_label ?? ''
+  const financeWatchlist = cfg.finance_watchlist ?? ''
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -416,6 +417,23 @@ export function SettingsView() {
                 slotProps={{ htmlInput: { min: -180, max: 180, step: 'any', 'aria-label': 'Weather longitude' } }} />
             </Box>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>Used as fallback when browser geolocation is unavailable.</Typography>
+          </Box>
+        </Box>
+
+        {/* Finance section */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>Finance</Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Watchlist"
+              size="small"
+              value={financeWatchlist}
+              placeholder="e.g., AAPL,MSFT,GOOGL"
+              sx={{ minWidth: 240 }}
+              onBlur={(e) => saveCfg.mutate({ key: 'finance_watchlist', value: e.target.value })}
+              slotProps={{ htmlInput: { 'aria-label': 'Finance watchlist' } }}
+            />
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Comma-separated tickers shown in the daily briefing.</Typography>
           </Box>
         </Box>
 

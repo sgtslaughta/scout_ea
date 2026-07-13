@@ -12,8 +12,9 @@ import {
   Tooltip,
 } from '@mui/material'
 import { X } from 'lucide-react'
-import { getBriefing, getWeather } from '@/api'
+import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
+import { FinanceStrip } from './finance/FinanceStrip'
 import { useWeatherLocation } from '@/lib/useWeatherLocation'
 
 interface TodayBriefingProps {
@@ -36,6 +37,12 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
     queryKey: ['weather', loc?.lat, loc?.lon],
     queryFn: () => getWeather(loc!.lat, loc!.lon),
     enabled: open && !!loc,
+  })
+
+  const { data: finance } = useQuery({
+    queryKey: ['finance'],
+    queryFn: getFinance,
+    enabled: open,
   })
 
   const go = (view: string) => {
@@ -240,12 +247,8 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
               </Paper>
             </Box>
 
-            {/* Finance strip placeholder */}
-            <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontStyle: 'italic' }}>
-                Markets — coming soon
-              </Typography>
-            </Box>
+            {/* Finance strip */}
+            {finance ? <FinanceStrip finance={finance} /> : <Box sx={{ minHeight: 60 }} />}
           </>
         )}
       </Box>

@@ -183,6 +183,8 @@ export const getBriefing = () => fetchJson<BriefingResponse>('/api/briefing')
 export const getWeather = (lat: number, lon: number) =>
   fetchJson<WeatherResponse>(`/api/weather?lat=${lat}&lon=${lon}`)
 
+export const getFinance = () => fetchJson<FinanceResponse>('/api/finance')
+
 export const getConfig = () => fetchJson<Record<string, string>>('/api/config')
 
 export const getDeadlines = (includeHidden?: boolean) =>
@@ -377,6 +379,20 @@ export interface WeatherResponse {
   sunrise?: string
   sunset?: string
   label?: string
+  stale?: boolean
+  error?: string
+}
+
+export interface Quote {
+  symbol: string
+  price?: number
+  open?: number; high?: number; low?: number; volume?: number
+  change_pct?: number | null
+  date?: string; time?: string
+}
+export interface FinanceResponse {
+  watchlist: Quote[]
+  indices: Quote[]
   stale?: boolean
   error?: string
 }

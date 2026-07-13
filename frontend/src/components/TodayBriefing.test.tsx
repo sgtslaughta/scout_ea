@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -36,6 +36,7 @@ function renderModal() {
 
 describe('TodayBriefing', () => {
   beforeEach(() => vi.spyOn(api, 'getBriefing').mockResolvedValue(payload as never))
+  afterEach(() => vi.restoreAllMocks())
 
   it('renders summary + all section headers + items', async () => {
     renderModal()
@@ -68,5 +69,13 @@ describe('TodayBriefing', () => {
         sunrise: '2026-06-21T06:00:00Z', sunset: '2026-06-21T20:00:00Z', label: 'NYC' } as never)
     renderModal()
     expect(await screen.findByLabelText(/NYC/i)).toBeInTheDocument()
+  })
+
+  it('renders the finance strip region', async () => {
+    vi.spyOn(api, 'getBriefing').mockResolvedValue(payload as never)
+    vi.spyOn(api, 'getFinance').mockResolvedValue(
+      { watchlist: [{ symbol: 'AAPL', price: 102, change_pct: 2 }], indices: [], stale: false } as never)
+    renderModal()
+    expect(await screen.findByText('AAPL')).toBeInTheDocument()
   })
 })

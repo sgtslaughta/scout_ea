@@ -10,7 +10,8 @@ INSERT OR IGNORE INTO config(key, value) VALUES
   ('mcp_port',          '8766'),
   ('weather_lat',       '40.71'),
   ('weather_lon',       '-74.01'),
-  ('weather_label',     'New York');
+  ('weather_label',     'New York'),
+  ('finance_watchlist', 'AAPL,MSFT,GOOGL,NVDA');
 
 INSERT OR IGNORE INTO people(id, name, role, org, importance) VALUES
   (1, 'Dr. Vance', 'Regional VP', 'Acme', 1);

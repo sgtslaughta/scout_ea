@@ -22,6 +22,7 @@ from lib import skill_health as _skill_health
 from lib import search as _search
 from lib import feed as _feed
 from lib import weather as _weather
+from lib import finance as _finance
 
 
 class SPAStaticFiles(StaticFiles):
@@ -151,6 +152,11 @@ _VALID_TASK_STATUSES = {"open", "in_progress", "done", "dismissed"}
 # ponytail: process-local weather cache, fine for single-process; revisit if multi-worker
 _WEATHER_CACHE: dict = {}
 _WEATHER_TTL = 900  # seconds (15 min)
+
+# ponytail: process-local finance cache, fine for single-process; revisit if multi-worker
+_FINANCE_CACHE: dict = {}
+_FINANCE_TTL = 300  # seconds (5 min)
+_FINANCE_INDICES = ["^spx", "^dji", "^ndq"]
 
 
 class SubscribeBody(BaseModel):
@@ -526,6 +532,40 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
             if cached:
                 return {**cached[1], "label": label, "stale": True}
             return {"error": "unavailable", "label": label}
+
+    @app.get("/api/finance")
+    def get_finance(conn=Depends(get_db)):
+        row = conn.execute("SELECT value FROM config WHERE key='finance_watchlist'").fetchone()
+        watch = [t.strip() for t in (row["value"] if row else "").split(",") if t.strip()]
+        symbols = watch + _FINANCE_INDICES
+        if not symbols:
+            return {"watchlist": [], "indices": [], "stale": False}
+
+        key = ",".join(symbols).upper()
+        now = datetime.now(timezone.utc).timestamp()
+        cached = _FINANCE_CACHE.get(key)
+        if cached and (now - cached[0]) < _FINANCE_TTL:
+            return {**cached[1], "stale": False}
+
+        stooq = ",".join(_finance.to_stooq_symbol(s) for s in symbols)
+        qs = urllib.parse.urlencode({"s": stooq, "f": "sd2t2ohlcv", "h": "", "e": "csv"})
+        url = f"https://stooq.com/q/l/?{qs}"
+        idx_set = {i.upper() for i in _FINANCE_INDICES}
+        watch_set = {s.upper() for s in watch}
+        try:
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                quotes = _finance.parse_quotes(resp.read().decode())
+            payload = {
+                "watchlist": [q for q in quotes
+                              if q["symbol"].upper() in watch_set and q["symbol"].upper() not in idx_set],
+                "indices": [q for q in quotes if q["symbol"].upper() in idx_set],
+            }
+            _FINANCE_CACHE[key] = (now, payload)
+            return {**payload, "stale": False}
+        except Exception:
+            if cached:
+                return {**cached[1], "stale": True}
+            return {"watchlist": [], "indices": [], "error": "unavailable", "stale": False}
 
     @app.get("/api/skills")
     def get_skills(conn=Depends(get_db)):
