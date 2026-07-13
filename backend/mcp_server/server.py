@@ -38,6 +38,24 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def query(table: str, filters: dict | None = None, since: str | None = None,
+              until: str | None = None, order: str | None = None,
+              limit: int = 50) -> list[dict]:
+        """Read-only SELECT over a whitelisted table. filters is {col: value} for
+        equality or {col: {"op": OP, "value": v}} with OP in =,!=,<,<=,>,>=,in.
+        since/until bound a date column (created_at, or ran_at/window_start).
+        order is 'col' or 'col desc'. limit capped at 200. Queryable tables:
+        signals, tasks, alerts, events, learning, news_items, critical_deadlines,
+        trends, trend_findings, people, person_handles, topics, config, actions,
+        guidance, content_tags, content_links, skill_runs, board_columns."""
+        conn = _conn()
+        try:
+            return tools.query(conn, table, filters=filters, since=since,
+                               until=until, order=order, limit=limit)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def update_status(table: str, row_id: int, status: str) -> int:
         """Set status on a whitelisted table row. Returns rows affected."""
         conn = _conn()

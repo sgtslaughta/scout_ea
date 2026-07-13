@@ -1,5 +1,6 @@
 import pytest
 from ea import db
+from mcp_server import tools as mcp_tools
 
 
 def _conn(tmp_path):
@@ -39,3 +40,10 @@ def test_query_op_and_in_and_caps_limit(tmp_path):
     inq = db.query(conn, "signals", filters={"external_ref": {"op": "in", "value": ["m0", "m2"]}})
     assert {r["external_ref"] for r in inq} == {"m0", "m2"}
     assert db.query(conn, "signals", limit=99999)  # must not raise; cap applies internally
+
+
+def test_tools_query_passthrough(tmp_path):
+    conn = _conn(tmp_path)
+    db.upsert_signal(conn, type="email", source="o", external_ref="m1", title="A")
+    rows = mcp_tools.query(conn, "signals", filters={"external_ref": "m1"})
+    assert rows[0]["title"] == "A"

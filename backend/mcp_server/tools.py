@@ -45,6 +45,12 @@ def list_table(conn, table, status=None):
     return [dict(r) for r in conn.execute(sql).fetchall()]
 
 
+def query(conn, table, filters=None, since=None, until=None, order=None, limit=50):
+    """Read-only flexible SELECT. See db.query."""
+    return db.query(conn, table, filters=filters, since=since, until=until,
+                    order=order, limit=limit)
+
+
 def upsert_trend(conn, term, kind, window_start, window_end, score=0, count=0,
                  delta=None, source_skill=None) -> int:
     return db.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
