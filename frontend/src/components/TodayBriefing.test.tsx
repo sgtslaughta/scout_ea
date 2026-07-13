@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
@@ -36,6 +36,7 @@ function renderModal() {
 
 describe('TodayBriefing', () => {
   beforeEach(() => vi.spyOn(api, 'getBriefing').mockResolvedValue(payload as never))
+  afterEach(() => vi.restoreAllMocks())
 
   it('renders summary + all section headers + items', async () => {
     renderModal()

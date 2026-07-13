@@ -556,7 +556,8 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
             with urllib.request.urlopen(url, timeout=5) as resp:
                 quotes = _finance.parse_quotes(resp.read().decode())
             payload = {
-                "watchlist": [q for q in quotes if q["symbol"].upper() in watch_set],
+                "watchlist": [q for q in quotes
+                              if q["symbol"].upper() in watch_set and q["symbol"].upper() not in idx_set],
                 "indices": [q for q in quotes if q["symbol"].upper() in idx_set],
             }
             _FINANCE_CACHE[key] = (now, payload)
@@ -564,7 +565,7 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         except Exception:
             if cached:
                 return {**cached[1], "stale": True}
-            return {"watchlist": [], "indices": [], "error": "unavailable"}
+            return {"watchlist": [], "indices": [], "error": "unavailable", "stale": False}
 
     @app.get("/api/skills")
     def get_skills(conn=Depends(get_db)):

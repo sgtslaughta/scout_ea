@@ -43,6 +43,14 @@ def test_finance_splits_watchlist_and_indices(tmp_path):
     assert body["stale"] is False
 
 
+def test_finance_index_in_watchlist_appears_only_in_indices(tmp_path):
+    # A symbol that is both user-added and a fixed index must not double-count.
+    with patch("web.app.urllib.request.urlopen", side_effect=_fake_urlopen):
+        body = _client(tmp_path, watchlist="AAPL,^SPX").get("/api/finance").json()
+    assert {q["symbol"] for q in body["watchlist"]} == {"AAPL"}
+    assert "^SPX" in {q["symbol"] for q in body["indices"]}
+
+
 def test_finance_upstream_failure_degrades(tmp_path):
     def boom(*a, **k):
         raise OSError("down")
