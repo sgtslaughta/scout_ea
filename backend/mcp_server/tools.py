@@ -53,10 +53,10 @@ def query(conn, table, filters=None, since=None, until=None, order=None, limit=5
 
 
 def upsert_trend(conn, term, kind, window_start, window_end, score=0, count=0,
-                 delta=None, source_skill=None) -> int:
+                 delta=None, sources=None, source_skill=None) -> int:
     return db.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
                            window_end=window_end, score=score, count=count,
-                           delta=delta, source_skill=source_skill)
+                           delta=delta, sources=sources, source_skill=source_skill)
 
 
 def add_trend_finding(conn, **fields) -> int:

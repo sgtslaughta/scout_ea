@@ -106,27 +106,38 @@ def build_server(db_path) -> FastMCP:
     @mcp.tool()
     def add_deadline(title: str, due_at: str, source: str, external_ref: str,
                      detail: str | None = None, priority: int = 2,
-                     source_skill: str | None = None) -> int:
-        """Add a critical deadline (due_at = UTC ISO-8601). Returns rowcount."""
+                     source_skill: str | None = None, person_id: int | None = None,
+                     signal_id: int | None = None, visible: int | None = None) -> int:
+        """Add a critical deadline (due_at = UTC ISO-8601), dedup on external_ref.
+        visible=0 hides it from the deadline strip. Returns rowcount."""
         conn = _conn()
         try:
-            return tools.add_deadline(conn, title=title, due_at=due_at, source=source,
-                                      external_ref=external_ref, detail=detail,
-                                      priority=priority, source_skill=source_skill)
+            fields = {"title": title, "due_at": due_at, "source": source,
+                      "external_ref": external_ref, "priority": priority}
+            for k, v in (("detail", detail), ("source_skill", source_skill),
+                         ("person_id", person_id), ("signal_id", signal_id),
+                         ("visible", visible)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_deadline(conn, **fields)
         finally:
             conn.close()
 
     @mcp.tool()
     def add_task(title: str, priority: int = 3, detail: str | None = None,
-                 due_at: str | None = None) -> int:
-        """Add an actionable task. Returns the new task id."""
+                 due_at: str | None = None, status: str | None = None,
+                 person_id: int | None = None, source_signal_id: int | None = None,
+                 board_column_id: int | None = None) -> int:
+        """Add an actionable task. status defaults to the table default ('open').
+        source_signal_id links the task to the signal that spawned it. Returns id."""
         conn = _conn()
         try:
             fields = {"title": title, "priority": priority}
-            if detail is not None:
-                fields["detail"] = detail
-            if due_at is not None:
-                fields["due_at"] = due_at
+            for k, v in (("detail", detail), ("due_at", due_at), ("status", status),
+                         ("person_id", person_id), ("source_signal_id", source_signal_id),
+                         ("board_column_id", board_column_id)):
+                if v is not None:
+                    fields[k] = v
             return tools.add_task(conn, **fields)
         finally:
             conn.close()
@@ -144,12 +155,15 @@ def build_server(db_path) -> FastMCP:
 
     @mcp.tool()
     def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
-                     score: float = 0, count: int = 0, delta: str | None = None) -> int:
-        """Upsert a trend by term and window. Returns the trend id."""
+                     score: float = 0, count: int = 0, delta: str | None = None,
+                     sources: str | None = None) -> int:
+        """Upsert a trend by (term, window_start). sources is a freeform provenance
+        string (e.g. 'signal:1,signal:2'). Returns the trend id."""
         conn = _conn()
         try:
-            return tools.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
-                                      window_end=window_end, score=score, count=count, delta=delta)
+            return tools.upsert_trend(conn, term=term, kind=kind,
+                                      window_start=window_start, window_end=window_end,
+                                      score=score, count=count, delta=delta, sources=sources)
         finally:
             conn.close()
 

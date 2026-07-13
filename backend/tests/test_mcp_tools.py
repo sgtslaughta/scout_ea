@@ -70,3 +70,19 @@ def test_add_signal_full_fields(tmp_path):
         url="http://x", occurred_at="2026-07-13T09:00:00+00:00", triage_rank=1) == 1
     row = tools.list_table(conn, "signals")[0]
     assert row["who"] == "CFO" and row["impact"] == 88 and row["polarity"] == "risk"
+
+
+def test_writers_extra_fields(tmp_path):
+    conn = _conn(tmp_path)
+    assert tools.add_deadline(conn, title="D", due_at="2099-01-01T00:00:00+00:00",
+                              source="manual", external_ref="d1",
+                              person_id=1, visible=0) == 1
+    d = tools.list_table(conn, "critical_deadlines")[0]
+    assert d["visible"] == 0 and d["person_id"] == 1
+    tid = tools.add_task(conn, title="T", status="in_progress", person_id=1)
+    assert tid >= 1
+    rid = tools.upsert_trend(conn, "ai", "topic", "2026-06-14", "2026-06-21",
+                             score=2.0, sources="signal:1,signal:2")
+    assert rid >= 1
+    tr = tools.list_table(conn, "trends")[0]
+    assert tr["sources"] == "signal:1,signal:2"
