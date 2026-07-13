@@ -1,7 +1,10 @@
 """Agent-facing tool functions over EA_DB — thin wrappers around ea.db. No MCP SDK here."""
 from __future__ import annotations
+from datetime import datetime, timezone
 from ea import db
 from lib import search as _search
+from lib import skills as _skills
+from lib import skill_health as _skill_health
 
 # Tables an agent may read via the generic list tool.
 _READABLE = {
@@ -123,3 +126,20 @@ def search(conn, q, limit=20):
 def get_entity(conn, ref_type, ref_id):
     """Full context for one entity. See db.get_entity."""
     return db.get_entity(conn, ref_type, ref_id)
+
+
+def list_skills(conn, skills_dir) -> list[dict]:
+    """Skill roster enriched with last_run + active health. [] if skills_dir falsy."""
+    if not skills_dir:
+        return []
+    skills = _skills.list_skills(skills_dir)
+    if not skills:
+        return []
+    last = {r["skill"]: r["last_run"] for r in conn.execute(
+        "SELECT skill, MAX(ran_at) AS last_run FROM skill_runs GROUP BY skill")}
+    now = datetime.now(timezone.utc)
+    for s in skills:
+        lr = last.get(s["name"])
+        s["last_run"] = lr
+        s["active"] = _skill_health.is_active(s.get("schedule"), lr, now)
+    return skills

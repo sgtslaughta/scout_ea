@@ -6,7 +6,7 @@ from mcp_server import tools
 from mcp_server.auth import BearerAuthMiddleware
 
 
-def build_server(db_path) -> FastMCP:
+def build_server(db_path, skills_dir=None) -> FastMCP:
     """Construct a FastMCP server whose tools read/write the EA_DB at db_path."""
     mcp = FastMCP("Scout EA")
 
@@ -361,35 +361,47 @@ def build_server(db_path) -> FastMCP:
         finally:
             conn.close()
 
+    @mcp.tool()
+    def list_skills() -> list[dict]:
+        """List the automation skills Scout runs: [{name, description, schedule,
+        last_run, active}]. active=False means the skill is overdue for its cadence."""
+        conn = _conn()
+        try:
+            return tools.list_skills(conn, skills_dir)
+        finally:
+            conn.close()
+
     return mcp
 
 
-def http_app(db_path, token):
+def http_app(db_path, token, skills_dir=None):
     """Return the bearer-gated streamable-http ASGI app for this server."""
-    app = build_server(db_path).streamable_http_app()
+    app = build_server(db_path, skills_dir=skills_dir).streamable_http_app()
     app.add_middleware(BearerAuthMiddleware, token=token)
     return app
 
 
 def _runtime_params(environ):
-    """Resolve (db_path, token, port) from the environment. Fails closed on missing token."""
-    from pathlib import Path
+    """Resolve (db_path, token, port, host, skills_dir) from the environment. Fails closed on missing token."""
+    from pathlib import Path as _P
     token = environ.get("EA_MCP_TOKEN")
     if not token:
         raise RuntimeError("EA_MCP_TOKEN environment variable is required")
-    db_path = Path(environ.get("EA_DB_PATH", "ea.sqlite"))
+    db_path = _P(environ.get("EA_DB_PATH", "ea.sqlite"))
     port = int(environ.get("EA_MCP_PORT", "8766"))
     # ponytail: default localhost-only; container sets 0.0.0.0 so Docker's
     # 127.0.0.1-published port can reach it. Bearer auth fails closed regardless.
     host = environ.get("EA_MCP_HOST", "127.0.0.1")
-    return db_path, token, port, host
+    skills_dir = environ.get("SKILLS_DIR", "/app/skills")
+    skills_dir = skills_dir if _P(skills_dir).is_dir() else None
+    return db_path, token, port, host, skills_dir
 
 
 def main():  # pragma: no cover - process entry, not unit-tested
     import os
     import uvicorn
-    db_path, token, port, host = _runtime_params(os.environ)
-    uvicorn.run(http_app(db_path, token), host=host, port=port)
+    db_path, token, port, host, skills_dir = _runtime_params(os.environ)
+    uvicorn.run(http_app(db_path, token, skills_dir=skills_dir), host=host, port=port)
 
 
 if __name__ == "__main__":

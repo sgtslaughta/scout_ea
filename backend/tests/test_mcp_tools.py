@@ -102,3 +102,23 @@ def test_add_alert_rejects_bad_column(tmp_path):
     conn = _conn(tmp_path)
     with pytest.raises(ValueError):
         tools.add_alert(conn, severity="info", title="t", body="b", bogus=1)
+
+
+def test_list_skills_roster_and_health(tmp_path):
+    conn = _conn(tmp_path)
+    skills_dir = tmp_path / "skills" / "triage_email"
+    skills_dir.mkdir(parents=True)
+    (skills_dir / "SKILL.md").write_text(
+        "---\nname: triage_email\ndescription: triage inbound\n"
+        "schedule: heartbeat 30m\n---\nbody\n")
+    tools.log_skill_run(conn, "triage_email", items_created=1)  # recent run
+    skills = tools.list_skills(conn, tmp_path / "skills")
+    s = next(x for x in skills if x["name"] == "triage_email")
+    assert s["description"] == "triage inbound"
+    assert s["last_run"] is not None
+    assert s["active"] is True
+
+
+def test_list_skills_no_dir(tmp_path):
+    conn = _conn(tmp_path)
+    assert tools.list_skills(conn, None) == []
