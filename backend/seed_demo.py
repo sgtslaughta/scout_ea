@@ -135,7 +135,7 @@ def seed(db_path):
         {"skill": "triage_email", "items_created": 5},
         {"skill": "parse_deadlines", "items_created": 2},
         {"skill": "compute_trends", "items_created": 8},
-        {"skill": "daily_outlook", "items_created": 0, "status": "error", "note": "API timeout"},
+        {"skill": "daily_briefing", "items_created": 0, "status": "error", "note": "API timeout"},
     ]
 
     for run in skill_runs:
