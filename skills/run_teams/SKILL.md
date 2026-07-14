@@ -4,6 +4,12 @@ description: Execute approved Teams chat + group + channel actions; write result
 schedule: heartbeat 5m
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Claim
 Call `list_actions(status='approved')` filtered to action types: `teams_dm`, `teams_group`, `teams_post`. For each action, call `claim_action(id)`; proceed only if it returns True (another loop may have claimed it).
 

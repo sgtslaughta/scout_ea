@@ -4,6 +4,12 @@ description: Execute approved email + status actions via M365; write results bac
 schedule: heartbeat 5m
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Claim
 Call `list_actions(status='approved')` filtered to action types: `email_reply`, `email_forward`, `email_new`, `status_set`. Also call `list_actions(status='drafted', mode='auto')` filtered to `status_set`. For each action, call `claim_action(id)`; proceed only if it returns True (another loop may have claimed it).
 

@@ -4,6 +4,12 @@ description: Read signals implying meetings; suggest calendar times and attendee
 schedule: heartbeat 30m
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Read the last `log_skill_run` entry for this skill. Use its `ran_at` as `window_start`. If none exists, use `now - heartbeat_minutes` (default 30 min).
 
@@ -27,28 +33,19 @@ For each meeting candidate:
 
 ## Draft event
 For each candidate, insert one `events` row:
-```
-INSERT INTO events (
-  title, body, proposed_times, attendees, status, source_signal_id
-) VALUES (
-  <signal.title>,
-  <signal.summary>,
-  '[ISO-datetime, ISO-datetime, ...]',  -- JSON array, >=3 slots
-  '[person_id, person_id, ...]',        -- JSON array
-  'suggested',
-  <signal.id>
-)
-```
+Call the **`add_event`** tool:
+
+`add_event(title=…, body=…, proposed_times="[iso, iso, …]", attendees="[person_id, …]", status="suggested", source_signal_id=<signal id>)`
+
+Dedup first: `query("events", filters=[["source_signal_id","=",<signal id>]])` — skip if a row already exists for this `source_signal_id`.
 
 Deduplicate: do not insert if an `events` row already exists with the same `source_signal_id`.
 
 ## No-op and log
-If no meeting-implied signals in window, write a `skill_runs` row with `items_created=0` and exit.
+If no meeting-implied signals in window, log the run with `items_created=0` and exit.
 
-If events suggested, write:
-```
-INSERT INTO skill_runs (skill, ran_at, window_start, window_end, items_created, status, note)
-VALUES ('suggest_events', datetime('now'), ?, datetime('now'), <count>, 'ok', NULL)
-```
+Finish — in every case, including a no-op — with the **`log_skill_run`** tool:
+
+`log_skill_run(skill="suggest_events", items_created=<count>, status="ok", note=None)`
 
 Then exit.

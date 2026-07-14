@@ -4,8 +4,14 @@ description: Search current headlines per topic; add news_items (deduped), tagge
 schedule: automation, daily 06:30 EST
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Gather active topics
-Query `SELECT * FROM topics WHERE active=1 ORDER BY priority, name`. For each topic:
+Read active topics with the **`query`** tool: `query("topics", filters=[["active","=",1]], order="priority")`. For each topic:
 
 ## Search current headlines
 Perform a news/web search for recent articles in the topic area (last 3 days where the

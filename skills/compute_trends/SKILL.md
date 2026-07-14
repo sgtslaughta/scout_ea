@@ -4,13 +4,19 @@ description: Daily extraction of trending keywords/topics from signals; compute 
 schedule: automation, daily 08:00 EST
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Fixed window: `[now - config.trend_window_days, now]` (default: last 7 days).
 
 ## Gather items
 Query items in the window:
-1. `signals WHERE created_at >= window_start AND created_at <= window_end`
-2. `learning WHERE created_at >= window_start AND created_at <= window_end`
+1. `query("signals", since=window_start, until=now)`
+2. `query("learning", since=window_start, until=now)`
 
 For each item, concatenate: `title + summary + (body or synopsis)` as the text to extract keywords from.
 
@@ -56,19 +62,8 @@ For each unique term (post-merge if deduped), call the `upsert_trend` tool to up
 
 ## Call log_skill_run
 Write to the `skill_runs` table via the `log_skill_run` tool:
-```
-INSERT INTO skill_runs (
-  skill, ran_at, window_start, window_end, items_created, status, note
-) VALUES (
-  'compute_trends',
-  datetime('now'),
-  ?,
-  datetime('now'),
-  <unique_terms_count>,
-  'ok',
-  '<items_scanned> items analyzed; <merges_count> deduped via embedding' OR
-  '<items_scanned> items analyzed; count-based only (embedding unavailable)'
-)
-```
+Finish — in every case, including a no-op — with the **`log_skill_run`** tool:
+
+`log_skill_run(skill="compute_trends", items_created=<count>, status="ok", note="<items> analyzed; <merges> deduped (or count-based if no embeddings)")`
 
 Then exit.

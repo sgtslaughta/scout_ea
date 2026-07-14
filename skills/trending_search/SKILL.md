@@ -4,11 +4,17 @@ description: Weekly web/news search for trending content per topic; upsert trend
 schedule: automation, weekly Friday 14:00 EST
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Fixed window: last 7 days (for context), but this skill searches **current** trending results (not historical).
 
 ## Gather active topics
-Query `SELECT * FROM topics WHERE active=1 ORDER BY priority, name`. For each topic:
+Read active topics with the **`query`** tool: `query("topics", filters=[["active","=",1]], order="priority")`. For each topic:
 
 ## Web search for trending
 Perform a **web search** (+ optional news search) for trending/current content in the topic area:
@@ -26,7 +32,7 @@ For each result, extract:
 
 ## Deconflict against existing trend_findings
 Before inserting:
-1. Query `SELECT * FROM trend_findings WHERE external_ref=?` with the URL.
+1. Check for an existing finding with the **`query`** tool: `query("trend_findings", filters=[["external_ref","=",<url>]])`.
 2. If found, skip (already logged).
 3. Respect a per-run cap: `topics.max_suggest` (default 5) items per topic per run.
    - If cap reached for a topic, stop adding items for that topic and note in `skill_runs.note`.
@@ -34,7 +40,7 @@ Before inserting:
 ## Map to existing trends (optional)
 For each finding, attempt to map it to an existing `trends` row:
 - Extract the trend term(s) most relevant to the article.
-- Query `trends WHERE term=? AND window_start >= now - config.trend_window_days LIMIT 1`.
+- Look up a matching recent trend with the **`query`** tool: `query("trends", filters=[["term","=",<term>]], limit=1)`.
 - If found, store `trend_id` in the finding (links the finding to the trend).
 - If not found, leave `trend_id=NULL` (the finding stands alone).
 
@@ -51,19 +57,9 @@ For each non-deduped result, call the `add_trend_finding` tool to insert into th
 
 ## Call log_skill_run
 Call the `log_skill_run` tool to write:
-```
-INSERT INTO skill_runs (
-  skill, ran_at, window_start, window_end, items_created, status, note
-) VALUES (
-  'trending_search',
-  datetime('now'),
-  datetime('now', '-7 days'),
-  datetime('now'),
-  <findings_count>,
-  'ok',
-  '<topics_searched> topics searched; <dedup_count> deduplicated; <capped_topics> topics hit cap'
-)
-```
+Finish — in every case, including a no-op — with the **`log_skill_run`** tool:
+
+`log_skill_run(skill="trending_search", items_created=<count>, status="ok", note="<topics> searched; <dedup> deduped; <capped> hit cap")`
 
 Then exit.
 

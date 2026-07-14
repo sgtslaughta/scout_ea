@@ -4,6 +4,12 @@ description: Consolidate training/research emails from the week; compile summary
 schedule: automation, weekly Friday 10:00 EST
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Timeframe: last 7 days (fixed window).
 
@@ -34,19 +40,9 @@ If > 3 new training items, optionally insert a low-priority info alert: "New tra
 
 ## Call log_skill_run
 Write to the `skill_runs` table via the `log_skill_run` tool:
-```
-INSERT INTO skill_runs (
-  skill, ran_at, window_start, window_end, items_created, status, note
-) VALUES (
-  'compile_learning_email',
-  datetime('now'),
-  datetime('now', '-7 days'),
-  datetime('now'),
-  <count>,
-  'ok',
-  'Week reviewed; <count> items consolidated'
-)
-```
+Finish — in every case, including a no-op — with the **`log_skill_run`** tool:
+
+`log_skill_run(skill="compile_learning_email", items_created=<count>, status="ok", note="week reviewed; <count> items consolidated")`
 
 Then exit.
 

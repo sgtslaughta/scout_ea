@@ -4,11 +4,17 @@ description: Weekly web/news search for developments in active topics; upsert le
 schedule: automation, weekly Friday 09:00 EST
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Timeframe: last 7 days (fixed window, not anchored to `skill_runs` for this automation).
 
 ## Gather active topics
-Query `SELECT * FROM topics WHERE active=1 ORDER BY priority, name`. For each topic, perform:
+Read active topics with the **`query`** tool: `query("topics", filters=[["active","=",1]], order="priority")`. For each topic, perform:
 
 ## Web search for developments
 For each active topic:
@@ -26,7 +32,7 @@ For each result, extract:
 
 ## Deconflict against existing learning
 Before inserting a `learning` row:
-1. Query `SELECT * FROM learning WHERE external_ref=?` with the article URL.
+1. Check for an existing item with the **`query`** tool: `query("learning", filters=[["external_ref","=",<article url>]])`.
 2. If found, skip (already logged).
 3. Respect caps:
    - Per-topic: `topics.max_suggest` (default 5) new items per run
@@ -34,7 +40,7 @@ Before inserting a `learning` row:
    - If either cap reached, stop adding items and note it in the `skill_runs.note`.
 
 ## Write learning items
-For each non-deduped result, call the `add_signal` tool to insert into the `learning` table:
+For each non-deduped result, call the **`add_learning`** tool:
 - `kind`: 'read'
 - `source`: 'web'
 - `external_ref`: article URL (for dedup)
@@ -48,19 +54,9 @@ For each non-deduped result, call the `add_signal` tool to insert into the `lear
 
 ## Call log_skill_run
 If no results or all deduped, call the `log_skill_run` tool to write:
-```
-INSERT INTO skill_runs (
-  skill, ran_at, window_start, window_end, items_created, status, note
-) VALUES (
-  'research_topics',
-  datetime('now'),
-  datetime('now', '-7 days'),
-  datetime('now'),
-  <count>,
-  'ok',
-  <note: caps hit? dedup count?>
-)
-```
+Finish — in every case, including a no-op — with the **`log_skill_run`** tool:
+
+`log_skill_run(skill="research_topics", items_created=<count>, status="ok", note="<count> added; caps/dedup noted")`
 
 Then exit.
 

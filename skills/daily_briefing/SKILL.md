@@ -4,6 +4,12 @@ description: Morning briefing curator — proactive risk/opportunity signals + o
 schedule: automation, daily at config.outlook_send_time (default 07:00), workdays only
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Fixed 24h window `[now - 1 day, now]` for gathering recent context.
 

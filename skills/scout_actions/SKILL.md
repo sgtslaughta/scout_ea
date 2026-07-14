@@ -4,6 +4,12 @@ description: Scan recent signals/deadlines/people and draft outgoing actions for
 schedule: heartbeat 5m
 ---
 
+## MCP server
+This skill runs entirely through the Scout **MCP server** at `http://127.0.0.1:8766`
+(default port; bearer token `EA_MCP_TOKEN`). Every read and write goes through an MCP
+tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
+unreachable, stop and report; do not fall back to the database.
+
 ## Lookback window
 Read the last `log_skill_run` entry for `scout_actions`; use its `ran_at` as `window_start`. If none, use `now - 5 min`.
 
