@@ -200,6 +200,11 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         return {"url": f"http://{host}:{port}/mcp", "token": token,
                 "configured": bool(token)}
 
+    @app.get("/api/mcp/status")
+    def get_mcp_status(conn=Depends(get_db)):
+        row = conn.execute("SELECT value FROM config WHERE key='mcp_last_seen'").fetchone()
+        return {"last_seen": row["value"] if row else None}
+
     @app.get("/api/signals")
     def get_signals(status: str | None = None, conn=Depends(get_db)):
         if status:
