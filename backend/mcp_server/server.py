@@ -85,7 +85,7 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
     @mcp.tool()
     def get_entity(ref_type: str, ref_id: int) -> dict | None:
         """Full context for one entity in a single call: the row plus its tags,
-        links (person/topic with resolved labels), and related open/recent actions.
+        links (person/topic with resolved labels), and its related actions (any status).
         ref_type in signal|task|deadline|event|trend|trend_finding|learning|news|
         person|topic. Returns null if not found."""
         conn = _conn()
