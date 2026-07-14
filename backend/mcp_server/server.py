@@ -416,7 +416,7 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
 def http_app(db_path, token, skills_dir=None):
     """Return the bearer-gated streamable-http ASGI app for this server."""
     app = build_server(db_path, skills_dir=skills_dir).streamable_http_app()
-    app.add_middleware(BearerAuthMiddleware, token=token)
+    app.add_middleware(BearerAuthMiddleware, token=token, db_path=db_path)
     return app
 
 
