@@ -6,7 +6,7 @@ from mcp_server import tools
 from mcp_server.auth import BearerAuthMiddleware
 
 
-def build_server(db_path) -> FastMCP:
+def build_server(db_path, skills_dir=None) -> FastMCP:
     """Construct a FastMCP server whose tools read/write the EA_DB at db_path."""
     mcp = FastMCP("Scout EA")
 
@@ -17,14 +17,30 @@ def build_server(db_path) -> FastMCP:
     def add_signal(type: str, source: str, title: str, external_ref: str,
                    status: str = "new", source_skill: str | None = None,
                    summary: str | None = None, priority: int = 3,
-                   reasoning: str | None = None) -> int:
-        """Add an inbound signal (email/teams/etc). Returns rowcount (1 new, 0 duplicate)."""
+                   reasoning: str | None = None, who: str | None = None,
+                   what: str | None = None, when_rel: str | None = None,
+                   why: str | None = None, polarity: str | None = None,
+                   impact: int | None = None, person_id: int | None = None,
+                   topic_id: int | None = None, url: str | None = None,
+                   occurred_at: str | None = None,
+                   triage_rank: int | None = None) -> int:
+        """Add an inbound signal (email/teams/etc), dedup on external_ref. Returns
+        rowcount (1 new, 0 duplicate). polarity in risk|opportunity|neutral;
+        impact is a 0-100 briefing score; who/what/when_rel/why are the structured
+        summary; occurred_at is UTC ISO-8601."""
         conn = _conn()
         try:
-            return tools.add_signal(conn, type=type, source=source, title=title,
-                                    external_ref=external_ref, status=status,
-                                    source_skill=source_skill, summary=summary, priority=priority,
-                                    reasoning=reasoning)
+            fields = {"type": type, "source": source, "title": title,
+                      "external_ref": external_ref, "status": status, "priority": priority}
+            for k, v in (("source_skill", source_skill), ("summary", summary),
+                         ("reasoning", reasoning), ("who", who), ("what", what),
+                         ("when_rel", when_rel), ("why", why), ("polarity", polarity),
+                         ("impact", impact), ("person_id", person_id),
+                         ("topic_id", topic_id), ("url", url),
+                         ("occurred_at", occurred_at), ("triage_rank", triage_rank)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_signal(conn, **fields)
         finally:
             conn.close()
 
@@ -34,6 +50,47 @@ def build_server(db_path) -> FastMCP:
         conn = _conn()
         try:
             return tools.list_table(conn, table, status=status)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def query(table: str, filters: dict | None = None, since: str | None = None,
+              until: str | None = None, order: str | None = None,
+              limit: int = 50) -> list[dict]:
+        """Read-only SELECT over a whitelisted table. filters is {col: value} for
+        equality or {col: {"op": OP, "value": v}} with OP in =,!=,<,<=,>,>=,in.
+        since/until bound a date column (created_at, or ran_at/window_start).
+        order is 'col' or 'col desc'. limit capped at 200. Queryable tables:
+        signals, tasks, alerts, events, learning, news_items, critical_deadlines,
+        trends, trend_findings, people, person_handles, topics, config, actions,
+        guidance, content_tags, content_links, skill_runs, board_columns."""
+        conn = _conn()
+        try:
+            return tools.query(conn, table, filters=filters, since=since,
+                               until=until, order=order, limit=limit)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def search(q: str, limit: int = 20) -> list[dict]:
+        """Full-text search across signals, tasks, deadlines, events, people,
+        topics, trends. Returns [{kind, ref_id, title, snippet}] ranked by
+        relevance. Use get_entity(kind, ref_id) to expand a hit. limit capped 50."""
+        conn = _conn()
+        try:
+            return tools.search(conn, q, limit=limit)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def get_entity(ref_type: str, ref_id: int) -> dict | None:
+        """Full context for one entity in a single call: the row plus its tags,
+        links (person/topic with resolved labels), and related open/recent actions.
+        ref_type in signal|task|deadline|event|trend|trend_finding|learning|news|
+        person|topic. Returns null if not found."""
+        conn = _conn()
+        try:
+            return tools.get_entity(conn, ref_type, ref_id)
         finally:
             conn.close()
 
@@ -49,27 +106,38 @@ def build_server(db_path) -> FastMCP:
     @mcp.tool()
     def add_deadline(title: str, due_at: str, source: str, external_ref: str,
                      detail: str | None = None, priority: int = 2,
-                     source_skill: str | None = None) -> int:
-        """Add a critical deadline (due_at = UTC ISO-8601). Returns rowcount."""
+                     source_skill: str | None = None, person_id: int | None = None,
+                     signal_id: int | None = None, visible: int | None = None) -> int:
+        """Add a critical deadline (due_at = UTC ISO-8601), dedup on external_ref.
+        visible=0 hides it from the deadline strip. Returns rowcount."""
         conn = _conn()
         try:
-            return tools.add_deadline(conn, title=title, due_at=due_at, source=source,
-                                      external_ref=external_ref, detail=detail,
-                                      priority=priority, source_skill=source_skill)
+            fields = {"title": title, "due_at": due_at, "source": source,
+                      "external_ref": external_ref, "priority": priority}
+            for k, v in (("detail", detail), ("source_skill", source_skill),
+                         ("person_id", person_id), ("signal_id", signal_id),
+                         ("visible", visible)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_deadline(conn, **fields)
         finally:
             conn.close()
 
     @mcp.tool()
     def add_task(title: str, priority: int = 3, detail: str | None = None,
-                 due_at: str | None = None) -> int:
-        """Add an actionable task. Returns the new task id."""
+                 due_at: str | None = None, status: str | None = None,
+                 person_id: int | None = None, source_signal_id: int | None = None,
+                 board_column_id: int | None = None) -> int:
+        """Add an actionable task. status defaults to the table default ('open').
+        source_signal_id links the task to the signal that spawned it. Returns id."""
         conn = _conn()
         try:
             fields = {"title": title, "priority": priority}
-            if detail is not None:
-                fields["detail"] = detail
-            if due_at is not None:
-                fields["due_at"] = due_at
+            for k, v in (("detail", detail), ("due_at", due_at), ("status", status),
+                         ("person_id", person_id), ("source_signal_id", source_signal_id),
+                         ("board_column_id", board_column_id)):
+                if v is not None:
+                    fields[k] = v
             return tools.add_task(conn, **fields)
         finally:
             conn.close()
@@ -86,13 +154,33 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
-    def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
-                     score: float = 0, count: int = 0, delta: str | None = None) -> int:
-        """Upsert a trend by term and window. Returns the trend id."""
+    def add_alert(severity: str, title: str, body: str, url: str | None = None,
+                  source_table: str | None = None, source_id: int | None = None) -> int:
+        """Raise a user-facing alert (drives toast + web push). severity in
+        info|warning|critical. url is an optional in-app deep link. source_table/
+        source_id point back at the originating row. Returns the new alert id."""
         conn = _conn()
         try:
-            return tools.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
-                                      window_end=window_end, score=score, count=count, delta=delta)
+            fields = {"severity": severity, "title": title, "body": body}
+            for k, v in (("url", url), ("source_table", source_table),
+                         ("source_id", source_id)):
+                if v is not None:
+                    fields[k] = v
+            return tools.add_alert(conn, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
+                     score: float = 0, count: int = 0, delta: str | None = None,
+                     sources: str | None = None) -> int:
+        """Upsert a trend by (term, window_start). sources is a freeform provenance
+        string (e.g. 'signal:1,signal:2'). Returns the trend id."""
+        conn = _conn()
+        try:
+            return tools.upsert_trend(conn, term=term, kind=kind,
+                                      window_start=window_start, window_end=window_end,
+                                      score=score, count=count, delta=delta, sources=sources)
         finally:
             conn.close()
 
@@ -218,6 +306,12 @@ def build_server(db_path) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def list_action_types() -> list[str]:
+        """Valid action_type values for add_action, e.g. email_reply, teams_dm,
+        calendar_invite, status_set, cowork_doc. Call before drafting an action."""
+        return tools.list_action_types()
+
+    @mcp.tool()
     def list_actions(status: str | None = None, mode: str | None = None) -> list[dict]:
         """List actions (optionally by status/mode), newest first."""
         conn = _conn()
@@ -273,35 +367,47 @@ def build_server(db_path) -> FastMCP:
         finally:
             conn.close()
 
+    @mcp.tool()
+    def list_skills() -> list[dict]:
+        """List the automation skills Scout runs: [{name, description, schedule,
+        last_run, active}]. active=False means the skill is overdue for its cadence."""
+        conn = _conn()
+        try:
+            return tools.list_skills(conn, skills_dir)
+        finally:
+            conn.close()
+
     return mcp
 
 
-def http_app(db_path, token):
+def http_app(db_path, token, skills_dir=None):
     """Return the bearer-gated streamable-http ASGI app for this server."""
-    app = build_server(db_path).streamable_http_app()
+    app = build_server(db_path, skills_dir=skills_dir).streamable_http_app()
     app.add_middleware(BearerAuthMiddleware, token=token)
     return app
 
 
 def _runtime_params(environ):
-    """Resolve (db_path, token, port) from the environment. Fails closed on missing token."""
-    from pathlib import Path
+    """Resolve (db_path, token, port, host, skills_dir) from the environment. Fails closed on missing token."""
+    from pathlib import Path as _P
     token = environ.get("EA_MCP_TOKEN")
     if not token:
         raise RuntimeError("EA_MCP_TOKEN environment variable is required")
-    db_path = Path(environ.get("EA_DB_PATH", "ea.sqlite"))
+    db_path = _P(environ.get("EA_DB_PATH", "ea.sqlite"))
     port = int(environ.get("EA_MCP_PORT", "8766"))
     # ponytail: default localhost-only; container sets 0.0.0.0 so Docker's
     # 127.0.0.1-published port can reach it. Bearer auth fails closed regardless.
     host = environ.get("EA_MCP_HOST", "127.0.0.1")
-    return db_path, token, port, host
+    skills_dir = environ.get("SKILLS_DIR", "/app/skills")
+    skills_dir = skills_dir if _P(skills_dir).is_dir() else None
+    return db_path, token, port, host, skills_dir
 
 
 def main():  # pragma: no cover - process entry, not unit-tested
     import os
     import uvicorn
-    db_path, token, port, host = _runtime_params(os.environ)
-    uvicorn.run(http_app(db_path, token), host=host, port=port)
+    db_path, token, port, host, skills_dir = _runtime_params(os.environ)
+    uvicorn.run(http_app(db_path, token, skills_dir=skills_dir), host=host, port=port)
 
 
 if __name__ == "__main__":

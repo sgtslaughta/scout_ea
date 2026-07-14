@@ -25,11 +25,13 @@ export interface NewsItem {
   id: number; title: string; url?: string; synopsis?: string; topic_id?: number
   source?: string; event_at?: string; relevance?: number; status: string
   tags?: ContentTag[]; links?: ContentLink[]
+  rank?: number; score?: number; category?: 'news' | 'learning'   // briefing
 }
 export interface LearningItem {
   id: number; kind: string; title: string; synopsis?: string; url?: string; provider?: string
   event_at?: string; topic_id?: number; relevance?: number; status: string
   tags?: ContentTag[]; links?: ContentLink[]
+  rank?: number; score?: number; category?: 'news' | 'learning'   // briefing
 }
 export interface FeedRecent {
   category: string; id: number; title: string; when: string; url?: string; status: string
@@ -70,6 +72,8 @@ export interface Signal {
   url?: string
   person_id?: number
   polarity?: 'risk' | 'opportunity' | null
+  impact?: number         // 0-100 criticality (briefing)
+  rank?: number; score?: number   // briefing
 }
 
 export interface Task {
@@ -151,13 +155,15 @@ export interface OutlookResponse {
 export interface CriticalItem {
   id: number; title: string; kind: 'deadline' | 'task' | 'signal'
   nav: { view: string; id: number }
-  countdown_seconds?: number; due_at?: string; priority?: number; summary?: string; why?: string
+  countdown_seconds?: number; due_at?: string; priority?: number
+  summary?: string; detail?: string; why?: string
+  rank?: number; score?: number
 }
 export interface BriefingTopicGroup {
   topic_id: number; topic_name: string; topic_priority: number
-  items: (NewsItem | LearningItem)[] & { category: 'news' | 'learning' }[]
+  items: (NewsItem | LearningItem)[]
 }
-export interface BriefingPerson extends Person { signals: Signal[] }
+export interface BriefingPerson extends Person { signals: Signal[]; rank?: number; score?: number }
 export interface BriefingResponse {
   date: string
   summary: string | null
@@ -186,6 +192,21 @@ export const getWeather = (lat: number, lon: number) =>
 export const getFinance = () => fetchJson<FinanceResponse>('/api/finance')
 
 export const getConfig = () => fetchJson<Record<string, string>>('/api/config')
+
+export interface CityHit { name: string; admin1?: string; country?: string; lat: number; lon: number }
+
+// ponytail: Open-Meteo geocoding is keyless + CORS-open, call direct from browser (no backend proxy)
+export const searchCities = async (q: string): Promise<CityHit[]> => {
+  if (!q.trim()) return []
+  const u = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=en&format=json`
+  const r = await fetch(u)
+  if (!r.ok) return []
+  const j = await r.json()
+  return (j.results || []).map((x: Record<string, unknown>) => ({
+    name: x.name as string, admin1: x.admin1 as string, country: x.country as string,
+    lat: x.latitude as number, lon: x.longitude as number,
+  }))
+}
 
 export const getDeadlines = (includeHidden?: boolean) =>
   fetchJson<Deadline[]>(`/api/deadlines${includeHidden ? '?include_hidden=true' : ''}`)
@@ -371,6 +392,12 @@ export interface Action {
 }
 export interface Guidance { id: number; scope: string; text: string; created_at: string }
 
+export interface ForecastDay {
+  date: string
+  hi?: number | null
+  lo?: number | null
+  condition: 'clear' | 'clouds' | 'rain' | 'snow' | 'fog' | 'storm'
+}
 export interface WeatherResponse {
   temp?: number
   code?: number
@@ -379,12 +406,15 @@ export interface WeatherResponse {
   sunrise?: string
   sunset?: string
   label?: string
+  unit?: 'C' | 'F'
+  forecast?: ForecastDay[]
   stale?: boolean
   error?: string
 }
 
 export interface Quote {
   symbol: string
+  name?: string
   price?: number
   open?: number; high?: number; low?: number; volume?: number
   change_pct?: number | null

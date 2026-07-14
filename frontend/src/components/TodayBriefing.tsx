@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -9,13 +9,39 @@ import {
   Paper,
   IconButton,
   Skeleton,
-  Tooltip,
 } from '@mui/material'
 import { X } from 'lucide-react'
 import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
 import { FinanceStrip } from './finance/FinanceStrip'
+import { RankedItem } from './briefing/RankedItem'
 import { useWeatherLocation } from '@/lib/useWeatherLocation'
+
+const fmtCountdown = (s?: number): string | undefined => {
+  if (s == null) return undefined
+  if (s <= 0) return 'overdue'
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60)
+  return h > 0 ? `due in ${h}h ${m}m` : `due in ${m}m`
+}
+
+const SubLabel = ({ text }: { text: string }) => (
+  <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
+    color: 'text.disabled', letterSpacing: 0.5, mt: 0.75, ml: 1 }}>{text}</Typography>
+)
+
+function Section({ title, empty, emptyText, children }:
+  { title: string; empty: boolean; emptyText: string; children: ReactNode }) {
+  return (
+    <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+      <Typography variant="overline" sx={{ fontWeight: 700, display: 'block', mb: 1, color: 'text.secondary' }}>
+        {title}
+      </Typography>
+      {empty
+        ? <Typography variant="caption" sx={{ color: 'text.secondary' }}>{emptyText}</Typography>
+        : <Stack spacing={0.25}>{children}</Stack>}
+    </Paper>
+  )
+}
 
 interface TodayBriefingProps {
   open: boolean
@@ -73,7 +99,10 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
         </IconButton>
 
         {/* Weather band */}
-        {weather ? <Box sx={{ mb: 3 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 3 }} />}
+        {weather ? <Box sx={{ mb: 2 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 2 }} />}
+
+        {/* Finance strip — horizontal, directly below weather */}
+        {finance && <Box sx={{ mb: 3 }}><FinanceStrip finance={finance} /></Box>}
 
         {isLoading ? (
           <Stack spacing={2}>
@@ -92,163 +121,59 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
               </Box>
             )}
 
-            {/* Grid of 4 section cards */}
+            {/* Grid of 4 section cards — ranked, scored, with context */}
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-              {/* Critical Section */}
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                  CRITICAL
-                </Typography>
-                {briefing?.critical && briefing.critical.length > 0 ? (
-                  <Stack spacing={1}>
-                    {briefing.critical.map((item) => (
-                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
-                        <Box
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => item.nav && go(item.nav.view)}
-                          onKeyDown={(e) => e.key === 'Enter' && item.nav && go(item.nav.view)}
-                          sx={{
-                            p: 1,
-                            borderRadius: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'action.selected' },
-                          }}
-                        >
-                          <Typography variant="body2">{item.title}</Typography>
-                        </Box>
-                      </Tooltip>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    No critical items — clear morning
-                  </Typography>
-                )}
-              </Paper>
+              {/* Critical */}
+              <Section title="Critical" empty={!briefing?.critical?.length}
+                emptyText="No critical items — clear morning">
+                {briefing?.critical?.map((item) => (
+                  <RankedItem key={`c-${item.id}`} rank={item.rank ?? 0} title={item.title}
+                    score={item.score} subtitle={item.summary || item.detail}
+                    meta={item.kind === 'deadline' ? fmtCountdown(item.countdown_seconds) : undefined}
+                    onClick={() => item.nav && go(item.nav.view)} />
+                ))}
+              </Section>
 
-              {/* Risks & Opportunities Section */}
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                  RISKS & OPPORTUNITIES
-                </Typography>
-                {(briefing?.risks && briefing.risks.length > 0) || (briefing?.opportunities && briefing.opportunities.length > 0) ? (
-                  <Stack spacing={1}>
-                    {briefing?.risks?.map((item) => (
-                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
-                        <Box
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => go('/feed')}
-                          onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
-                          sx={{
-                            p: 1,
-                            borderRadius: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'action.selected' },
-                          }}
-                        >
-                          <Typography variant="body2">{item.title}</Typography>
-                        </Box>
-                      </Tooltip>
-                    ))}
-                    {briefing?.opportunities?.map((item) => (
-                      <Tooltip key={item.id} title={item.title} placement="right" arrow>
-                        <Box
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => go('/feed')}
-                          onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
-                          sx={{
-                            p: 1,
-                            borderRadius: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'action.selected' },
-                          }}
-                        >
-                          <Typography variant="body2">{item.title}</Typography>
-                        </Box>
-                      </Tooltip>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    Nothing flagged
-                  </Typography>
-                )}
-              </Paper>
+              {/* Risks & Opportunities */}
+              <Section title="Risks & Opportunities"
+                empty={!briefing?.risks?.length && !briefing?.opportunities?.length}
+                emptyText="Nothing flagged">
+                {!!briefing?.risks?.length && <SubLabel text="Risks" />}
+                {briefing?.risks?.map((s) => (
+                  <RankedItem key={`r-${s.id}`} rank={s.rank ?? 0} title={s.title}
+                    score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
+                ))}
+                {!!briefing?.opportunities?.length && <SubLabel text="Opportunities" />}
+                {briefing?.opportunities?.map((s) => (
+                  <RankedItem key={`o-${s.id}`} rank={s.rank ?? 0} title={s.title}
+                    score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
+                ))}
+              </Section>
 
-              {/* Topics News Section */}
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                  TOPICS NEWS
-                </Typography>
-                {briefing?.news_by_topic && briefing.news_by_topic.length > 0 ? (
-                  <Stack spacing={1}>
-                    {briefing.news_by_topic.map((topic) =>
-                      topic.items?.map((item) => (
-                        <Tooltip key={item.id} title={item.title} placement="right" arrow>
-                          <Box
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => go('/feed')}
-                            onKeyDown={(e) => e.key === 'Enter' && go('/feed')}
-                            sx={{
-                              p: 1,
-                              borderRadius: 0.5,
-                              cursor: 'pointer',
-                              '&:hover': { bgcolor: 'action.selected' },
-                            }}
-                          >
-                            <Typography variant="body2">{item.title}</Typography>
-                          </Box>
-                        </Tooltip>
-                      ))
-                    )}
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    No topics today
-                  </Typography>
-                )}
-              </Paper>
-
-              {/* Key People Section */}
-              <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
-                <Typography variant="caption" sx={{ fontWeight: 600, display: 'block', mb: 1 }}>
-                  KEY PEOPLE
-                </Typography>
-                {briefing?.people && briefing.people.length > 0 ? (
-                  <Stack spacing={1}>
-                    {briefing.people.map((person) => (
-                      <Tooltip key={person.id} title={person.name} placement="right" arrow>
-                        <Box
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => go('/people')}
-                          onKeyDown={(e) => e.key === 'Enter' && go('/people')}
-                          sx={{
-                            p: 1,
-                            borderRadius: 0.5,
-                            cursor: 'pointer',
-                            '&:hover': { bgcolor: 'action.selected' },
-                          }}
-                        >
-                          <Typography variant="body2">{person.name}</Typography>
-                        </Box>
-                      </Tooltip>
+              {/* Topics News */}
+              <Section title="Topics News" empty={!briefing?.news_by_topic?.length}
+                emptyText="No topics today">
+                {briefing?.news_by_topic?.map((topic) => (
+                  <Box key={topic.topic_id}>
+                    <SubLabel text={topic.topic_name} />
+                    {topic.items?.map((item) => (
+                      <RankedItem key={`n-${item.id}`} rank={item.rank ?? 0} title={item.title}
+                        score={item.score} subtitle={item.synopsis} onClick={() => go('/feed')} />
                     ))}
-                  </Stack>
-                ) : (
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    No key people
-                  </Typography>
-                )}
-              </Paper>
+                  </Box>
+                ))}
+              </Section>
+
+              {/* Key People */}
+              <Section title="Key People" empty={!briefing?.people?.length}
+                emptyText="No key people">
+                {briefing?.people?.map((p) => (
+                  <RankedItem key={`p-${p.id}`} rank={p.rank ?? 0} title={p.name} score={p.score}
+                    subtitle={p.notes} meta={[p.role, p.org].filter(Boolean).join(' · ') || undefined}
+                    onClick={() => go('/people')} />
+                ))}
+              </Section>
             </Box>
-
-            {/* Finance strip */}
-            {finance ? <FinanceStrip finance={finance} /> : <Box sx={{ minHeight: 60 }} />}
           </>
         )}
       </Box>

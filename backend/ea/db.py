@@ -108,6 +108,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE signals ADD COLUMN polarity TEXT")
         conn.commit()
 
+    # Add signals.impact (0-100 briefing score) for pre-existing DBs.
+    if not any(r[1] == "impact" for r in signals_pragma):
+        conn.execute("ALTER TABLE signals ADD COLUMN impact INTEGER")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
@@ -115,7 +120,7 @@ _STATUS_TABLES = {"signals", "tasks", "alerts", "events", "learning", "news_item
 
 _SIGNAL_COLS = {"type", "source", "source_skill", "external_ref", "title", "summary",
                 "who", "what", "when_rel", "why", "reasoning", "url", "person_id", "topic_id",
-                "priority", "triage_rank", "status", "occurred_at", "polarity"}
+                "priority", "triage_rank", "status", "occurred_at", "polarity", "impact"}
 
 
 def upsert_signal(conn: sqlite3.Connection, **fields) -> int:
@@ -160,6 +165,93 @@ def update_status(conn: sqlite3.Connection, table: str, row_id: int, status: str
     )
     conn.commit()
     return cur.rowcount
+
+
+_ALERT_COLS = {"severity", "title", "body", "url", "source_table", "source_id", "status"}
+
+
+def add_alert(conn: sqlite3.Connection, **fields) -> int:
+    """Insert an alert (toast/push). Requires severity, title, body. Returns new id.
+    Columns validated against _ALERT_COLS."""
+    for req in ("severity", "title", "body"):
+        if req not in fields:
+            raise ValueError(f"add_alert requires {req!r}")
+    bad = set(fields) - _ALERT_COLS
+    if bad:
+        raise ValueError(f"unknown alert columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO alerts ({cols}) VALUES ({placeholders})", list(fields.values())
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+# Tables the read-only query() primitive may SELECT from. Excludes push_subscriptions
+# (holds push secrets) and search_index (FTS virtual table).
+_QUERYABLE = {
+    "signals", "tasks", "alerts", "events", "learning", "news_items",
+    "critical_deadlines", "trends", "trend_findings", "people", "person_handles",
+    "topics", "config", "actions", "guidance", "content_tags", "content_links",
+    "skill_runs", "board_columns",
+}
+_QUERY_OPS = {"=", "!=", "<", "<=", ">", ">=", "in"}
+# Per-table column used for since/until range; default 'created_at'.
+_QUERY_DATE_COL = {"skill_runs": "ran_at", "trends": "window_start"}
+
+
+def query(conn: sqlite3.Connection, table: str, filters: dict | None = None,
+          since: str | None = None, until: str | None = None,
+          order: str | None = None, limit: int = 50) -> list[dict]:
+    """Read-only SELECT over a whitelisted table. Identifiers whitelisted, values bound.
+
+    filters: {col: value} for equality, or {col: {"op": OP, "value": v}} where OP in
+    _QUERY_OPS ('in' takes a non-empty list). since/until bound-range a date column.
+    order: "col" or "col desc". limit capped at 200. Returns list[dict].
+    """
+    if table not in _QUERYABLE:
+        raise ValueError(f"table not queryable: {table!r}")
+    cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    where, params = [], []
+    for col, val in (filters or {}).items():
+        if col not in cols:
+            raise ValueError(f"unknown column {col!r} on {table}")
+        if isinstance(val, dict):
+            op = val.get("op", "=")
+            if op not in _QUERY_OPS:
+                raise ValueError(f"unknown op {op!r}")
+            v = val.get("value")
+            if op == "in":
+                if not isinstance(v, (list, tuple)) or not v:
+                    raise ValueError("'in' requires a non-empty list")
+                where.append(f"{col} IN ({', '.join('?' for _ in v)})")
+                params.extend(v)
+            else:
+                where.append(f"{col} {op} ?")
+                params.append(v)
+        else:
+            where.append(f"{col} = ?")
+            params.append(val)
+    date_col = _QUERY_DATE_COL.get(table, "created_at")
+    if date_col in cols:
+        if since is not None:
+            where.append(f"{date_col} >= ?"); params.append(since)
+        if until is not None:
+            where.append(f"{date_col} <= ?"); params.append(until)
+    clause = (" WHERE " + " AND ".join(where)) if where else ""
+    if order:
+        parts = order.split()
+        ocol = parts[0]
+        if ocol not in cols:
+            raise ValueError(f"unknown order column {ocol!r}")
+        direction = "DESC" if len(parts) > 1 and parts[1].lower() == "desc" else "ASC"
+        order_sql = f"{ocol} {direction}"
+    else:
+        order_sql = "created_at DESC, id DESC" if "created_at" in cols else "id DESC"
+    lim = max(1, min(int(limit), 200))
+    sql = f"SELECT * FROM {table}{clause} ORDER BY {order_sql} LIMIT {lim}"
+    return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
 
 def data_version(conn: sqlite3.Connection) -> int:
@@ -348,6 +440,33 @@ def list_all_tags(conn: sqlite3.Connection) -> list[sqlite3.Row]:
     return conn.execute("SELECT id, name, color FROM tags ORDER BY name").fetchall()
 
 
+# ref_type -> physical table for get_entity (mirrors _TAGGABLE_TYPES naming).
+_ENTITY_TABLE = {
+    "signal": "signals", "task": "tasks", "deadline": "critical_deadlines",
+    "event": "events", "trend": "trends", "trend_finding": "trend_findings",
+    "learning": "learning", "news": "news_items", "person": "people", "topic": "topics",
+}
+
+
+def get_entity(conn: sqlite3.Connection, ref_type: str, ref_id: int) -> dict | None:
+    """Full context for one entity: {ref_type, ref_id, row, tags, links,
+    related_actions}. Returns None if the row does not exist."""
+    if ref_type not in _ENTITY_TABLE:
+        raise ValueError(f"unknown ref_type: {ref_type!r}")
+    table = _ENTITY_TABLE[ref_type]
+    row = conn.execute(f"SELECT * FROM {table} WHERE id=?", (ref_id,)).fetchone()
+    if row is None:
+        return None
+    acts = [a for a in list_actions(conn)
+            if a.get("entity_type") == ref_type and a.get("entity_id") == ref_id]
+    return {
+        "ref_type": ref_type, "ref_id": ref_id, "row": dict(row),
+        "tags": list_tags_for(conn, ref_type, ref_id),
+        "links": list_links_for(conn, ref_type, ref_id),
+        "related_actions": acts,
+    }
+
+
 def content_ids_by_tag(conn: sqlite3.Connection, tag_id: int, ref_type: str | None = None) -> list[dict]:
     """[{ref_type, ref_id}] for everything carrying `tag_id` (optionally one ref_type)."""
     if ref_type is not None:
@@ -434,7 +553,8 @@ def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
 WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_window_days",
                    "reminder_enabled", "reminder_lead_minutes",
                    "alert_loud_threshold", "alert_sound_enabled", "daily_summary",
-                   "weather_lat", "weather_lon", "weather_label", "finance_watchlist"}
+                   "weather_lat", "weather_lon", "weather_label", "weather_unit",
+                   "finance_watchlist"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:

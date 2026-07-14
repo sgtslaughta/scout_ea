@@ -1,6 +1,10 @@
 """Agent-facing tool functions over EA_DB — thin wrappers around ea.db. No MCP SDK here."""
 from __future__ import annotations
+from datetime import datetime, timezone
 from ea import db
+from lib import search as _search
+from lib import skills as _skills
+from lib import skill_health as _skill_health
 
 # Tables an agent may read via the generic list tool.
 _READABLE = {
@@ -8,6 +12,13 @@ _READABLE = {
     "critical_deadlines", "trends", "trend_findings",
     "people", "topics", "config",
 }
+
+# The outgoing action types the executor skills (run_comms/run_teams/run_calendar/
+# run_cowork) know how to run. Keep in sync with those SKILL.md files.
+ACTION_TYPES = (
+    "email_reply", "email_forward", "email_new", "teams_dm", "teams_group",
+    "teams_post", "calendar_invite", "status_set", "cowork_doc", "cowork_gather",
+)
 
 
 def add_signal(conn, **fields) -> int:
@@ -30,6 +41,10 @@ def log_skill_run(conn, skill, **kw) -> int:
     return db.add_skill_run(conn, skill, **kw)
 
 
+def add_alert(conn, **fields) -> int:
+    return db.add_alert(conn, **fields)
+
+
 def list_table(conn, table, status=None):
     """Read rows from a whitelisted table (optionally filtered by status). Newest first."""
     if table not in _READABLE:
@@ -45,11 +60,17 @@ def list_table(conn, table, status=None):
     return [dict(r) for r in conn.execute(sql).fetchall()]
 
 
+def query(conn, table, filters=None, since=None, until=None, order=None, limit=50):
+    """Read-only flexible SELECT. See db.query."""
+    return db.query(conn, table, filters=filters, since=since, until=until,
+                    order=order, limit=limit)
+
+
 def upsert_trend(conn, term, kind, window_start, window_end, score=0, count=0,
-                 delta=None, source_skill=None) -> int:
+                 delta=None, sources=None, source_skill=None) -> int:
     return db.upsert_trend(conn, term=term, kind=kind, window_start=window_start,
                            window_end=window_end, score=score, count=count,
-                           delta=delta, source_skill=source_skill)
+                           delta=delta, sources=sources, source_skill=source_skill)
 
 
 def add_trend_finding(conn, **fields) -> int:
@@ -102,3 +123,35 @@ def add_guidance(conn, scope, text) -> int:
 
 def list_guidance(conn, scope=None):
     return db.list_guidance(conn, scope=scope)
+
+
+def search(conn, q, limit=20):
+    """Full-text search across core entities. See lib.search.search."""
+    return _search.search(conn, q, limit=min(int(limit), 50))
+
+
+def get_entity(conn, ref_type, ref_id):
+    """Full context for one entity. See db.get_entity."""
+    return db.get_entity(conn, ref_type, ref_id)
+
+
+def list_skills(conn, skills_dir) -> list[dict]:
+    """Skill roster enriched with last_run + active health. [] if skills_dir falsy."""
+    if not skills_dir:
+        return []
+    skills = _skills.list_skills(skills_dir)
+    if not skills:
+        return []
+    last = {r["skill"]: r["last_run"] for r in conn.execute(
+        "SELECT skill, MAX(ran_at) AS last_run FROM skill_runs GROUP BY skill")}
+    now = datetime.now(timezone.utc)
+    for s in skills:
+        lr = last.get(s["name"])
+        s["last_run"] = lr
+        s["active"] = _skill_health.is_active(s.get("schedule"), lr, now)
+    return skills
+
+
+def list_action_types() -> list[str]:
+    """The valid action_type values for add_action."""
+    return list(ACTION_TYPES)

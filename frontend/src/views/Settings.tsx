@@ -10,13 +10,14 @@ import {
   ToggleButtonGroup,
   TextField,
   IconButton,
+  Autocomplete,
 } from '@mui/material'
 import { Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useThemeSelection, THEMES } from '@/themes/ThemeSelectionProvider'
 import { useTimePrefs } from '@/lib/timePrefs'
 import { COMMON_ZONES, effectiveZone, formatFriendly } from '@/lib/datetime'
-import { getGuidance, deleteGuidance, setConfig } from '@/api'
+import { getGuidance, deleteGuidance, setConfig, searchCities, type CityHit } from '@/api'
 
 const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`
 import {
@@ -47,10 +48,19 @@ export function SettingsView() {
   const leadMin = cfg.reminder_lead_minutes ?? '15'
   const loudThreshold = cfg.alert_loud_threshold ?? 'critical'
   const soundOn = cfg.alert_sound_enabled !== '0'
-  const weatherLat = cfg.weather_lat ?? ''
-  const weatherLon = cfg.weather_lon ?? ''
   const weatherLabel = cfg.weather_label ?? ''
+  const weatherUnit = (cfg.weather_unit ?? 'C').toUpperCase().startsWith('F') ? 'F' : 'C'
   const financeWatchlist = cfg.finance_watchlist ?? ''
+
+  // City autocomplete (keyless Open-Meteo geocoding, debounced)
+  const [cityInput, setCityInput] = useState('')
+  const [cityOpts, setCityOpts] = useState<CityHit[]>([])
+  useEffect(() => {
+    const q = cityInput.trim()
+    if (!q) { setCityOpts([]); return }
+    const t = setTimeout(() => { searchCities(q).then(setCityOpts).catch(() => setCityOpts([])) }, 300)
+    return () => clearTimeout(t)
+  }, [cityInput])
 
   useEffect(() => {
     const loadPushState = async () => {
@@ -403,20 +413,35 @@ export function SettingsView() {
 
         {/* Weather location section */}
         <Box sx={{ mb: 4 }}>
-          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>Weather Location</Typography>
+          <Typography variant="overline" sx={{ display: 'block', mb: 2, fontWeight: 600 }}>Weather</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Label" size="small" value={weatherLabel} placeholder="e.g., NYC" sx={{ minWidth: 240 }}
-              onChange={(e) => saveCfg.mutate({ key: 'weather_label', value: e.target.value })}
-              slotProps={{ htmlInput: { 'aria-label': 'Weather location label' } }} />
-            <Box sx={{ display: 'flex', gap: 2 }}>
-              <TextField label="Latitude" type="number" size="small" value={weatherLat} placeholder="-90 to 90" sx={{ minWidth: 120 }}
-                onBlur={(e) => { const v = e.target.value; if (v && Number(v) >= -90 && Number(v) <= 90) saveCfg.mutate({ key: 'weather_lat', value: v }) }}
-                slotProps={{ htmlInput: { min: -90, max: 90, step: 'any', 'aria-label': 'Weather latitude' } }} />
-              <TextField label="Longitude" type="number" size="small" value={weatherLon} placeholder="-180 to 180" sx={{ minWidth: 120 }}
-                onBlur={(e) => { const v = e.target.value; if (v && Number(v) >= -180 && Number(v) <= 180) saveCfg.mutate({ key: 'weather_lon', value: v }) }}
-                slotProps={{ htmlInput: { min: -180, max: 180, step: 'any', 'aria-label': 'Weather longitude' } }} />
+            <Autocomplete<CityHit>
+              size="small"
+              sx={{ minWidth: 280, maxWidth: 360 }}
+              options={cityOpts}
+              filterOptions={(x) => x}
+              getOptionLabel={(c) => [c.name, c.admin1, c.country].filter(Boolean).join(', ')}
+              onInputChange={(_e, v) => setCityInput(v)}
+              onChange={(_e, val) => {
+                if (!val) return
+                saveCfg.mutate({ key: 'weather_label', value: val.name })
+                saveCfg.mutate({ key: 'weather_lat', value: String(val.lat) })
+                saveCfg.mutate({ key: 'weather_lon', value: String(val.lon) })
+              }}
+              renderInput={(params) => (
+                <TextField {...params} label="Search city"
+                  helperText={weatherLabel ? `Fallback location: ${weatherLabel}` : 'Fallback when browser geolocation is unavailable'} />
+              )}
+            />
+            <Box>
+              <Typography variant="caption" sx={{ display: 'block', mb: 0.5, color: 'text.secondary' }}>Temperature units</Typography>
+              <ToggleButtonGroup exclusive size="small" value={weatherUnit}
+                onChange={(_e, v) => { if (v) saveCfg.mutate({ key: 'weather_unit', value: v }) }}
+                aria-label="Temperature units">
+                <ToggleButton value="C" aria-label="Celsius">°C</ToggleButton>
+                <ToggleButton value="F" aria-label="Fahrenheit">°F</ToggleButton>
+              </ToggleButtonGroup>
             </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>Used as fallback when browser geolocation is unavailable.</Typography>
           </Box>
         </Box>
 

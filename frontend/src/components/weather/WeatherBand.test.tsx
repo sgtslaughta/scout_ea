@@ -21,4 +21,14 @@ describe('WeatherBand', () => {
     render(<WeatherBand weather={base} now={NOW} />)
     expect(screen.getByTestId('celestial-sun')).toBeInTheDocument()
   })
+  it('shows the unit symbol and a forecast strip (skipping today)', () => {
+    render(<WeatherBand weather={{ ...base, unit: 'F', forecast: [
+      { date: '2026-06-21', hi: 80, lo: 60, condition: 'clear' },   // today, skipped
+      { date: '2026-06-22', hi: 82, lo: 61, condition: 'rain' },
+    ] }} now={NOW} />)
+    expect(screen.getByText(/18°F/)).toBeInTheDocument()
+    const fc = screen.getByTestId('weather-forecast')
+    expect(fc).toHaveTextContent('82°')   // tomorrow shown
+    expect(fc).not.toHaveTextContent('80°')  // today omitted
+  })
 })

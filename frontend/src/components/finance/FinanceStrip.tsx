@@ -1,4 +1,4 @@
-import { Box, Typography, Tooltip, useTheme } from '@mui/material'
+import { Box, Typography, Tooltip } from '@mui/material'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 
@@ -6,45 +6,38 @@ export interface FinanceStripProps {
   finance: FinanceResponse
 }
 
-const toStooq = (symbol: string): string => {
-  const s = symbol.toLowerCase()
-  return s.startsWith('^') || s.includes('.') ? s : s + '.us'
-}
+const yahooUrl = (symbol: string): string =>
+  `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`
 
 export function FinanceStrip({ finance }: FinanceStripProps) {
-  const theme = useTheme()
-
   // Early return if error or both lists empty
   if (finance.error || (finance.watchlist.length === 0 && finance.indices.length === 0)) {
     return (
-      <Box sx={{ p: 2, color: 'text.secondary' }}>
-        <Typography>Markets unavailable</Typography>
+      <Box sx={{ p: 1.5, color: 'text.secondary' }}>
+        <Typography variant="body2">Markets unavailable</Typography>
       </Box>
     )
   }
 
   const handleChipClick = (symbol: string) => {
-    const url = safeHttpUrl(`https://stooq.com/q/?s=${toStooq(symbol)}`)
+    const url = safeHttpUrl(yahooUrl(symbol))
     if (url) window.open(url, '_blank', 'noopener')
   }
 
   const handleChipKeyDown = (e: React.KeyboardEvent, symbol: string) => {
-    if (e.key === 'Enter') {
-      handleChipClick(symbol)
-    }
+    if (e.key === 'Enter') handleChipClick(symbol)
   }
 
-  const renderQuote = (q: Quote) => {
+  const renderQuote = (q: Quote, useName = false) => {
     const dir = q.change_pct == null ? 'flat' : q.change_pct > 0 ? 'up' : q.change_pct < 0 ? 'down' : 'flat'
-    const isUp = dir === 'up'
-    const isDown = dir === 'down'
-    const color = isUp ? theme.palette.success.main : isDown ? theme.palette.error.main : theme.palette.text.secondary
+    // theme palette tokens so green/red stay legible in light + dark
+    const color = dir === 'up' ? 'success.main' : dir === 'down' ? 'error.main' : 'text.secondary'
 
     const tooltipTitle = [
-      q.open !== undefined && `O ${q.open}`,
-      q.high !== undefined && `H ${q.high}`,
-      q.low !== undefined && `L ${q.low}`,
-      q.volume !== undefined && `Vol ${q.volume}`,
+      q.open != null && `O ${q.open}`,
+      q.high != null && `H ${q.high}`,
+      q.low != null && `L ${q.low}`,
+      q.volume != null && `Vol ${q.volume}`,
     ]
       .filter(Boolean)
       .join(' · ')
@@ -61,28 +54,28 @@ export function FinanceStrip({ finance }: FinanceStripProps) {
           sx={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 1,
-            px: 1.5,
-            py: 0.75,
+            gap: 0.75,
+            px: 1.25,
+            py: 0.5,
             borderRadius: 1,
             bgcolor: 'action.hover',
+            border: '1px solid',
+            borderColor: 'divider',
             cursor: 'pointer',
-            '&:hover': {
-              bgcolor: 'action.selected',
-            },
-            mr: 1,
-            mb: 1,
+            transition: 'background-color 120ms',
+            '&:hover': { bgcolor: 'action.selected' },
+            '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
           }}
         >
-          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
-            {q.symbol}
+          <Typography sx={{ fontWeight: 600, fontSize: '0.8125rem', color: 'text.primary' }}>
+            {useName ? (q.name || q.symbol) : q.symbol}
           </Typography>
-          <Typography sx={{ fontFamily: 'monospace', fontSize: '0.875rem', color }}>
+          <Typography sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color }}>
             {q.price?.toFixed(2)}
           </Typography>
-          <Typography sx={{ fontSize: '0.875rem', color }}>
-            {isUp && '▲'}
-            {isDown && '▼'}
+          <Typography sx={{ fontSize: '0.8125rem', color }}>
+            {dir === 'up' && '▲'}
+            {dir === 'down' && '▼'}
             {q.change_pct?.toFixed(2)}%
           </Typography>
         </Box>
@@ -90,26 +83,39 @@ export function FinanceStrip({ finance }: FinanceStripProps) {
     )
   }
 
+  const groupLabel = (text: string) => (
+    <Typography
+      sx={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', letterSpacing: 0.5 }}
+    >
+      {text}
+    </Typography>
+  )
+
   return (
-    <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: { xs: 1, md: 1 },
+        columnGap: { xs: 1.5, md: 3 },
+        p: 1.5,
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
       {finance.watchlist.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
-            Watchlist
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-            {finance.watchlist.map(renderQuote)}
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+          {groupLabel('Watchlist')}
+          {finance.watchlist.map((q) => renderQuote(q))}
         </Box>
       )}
       {finance.indices.length > 0 && (
-        <Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'text.secondary', mb: 1 }}>
-            Markets
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
-            {finance.indices.map(renderQuote)}
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+          {groupLabel('Markets')}
+          {finance.indices.map((q) => renderQuote(q, true))}
         </Box>
       )}
     </Box>
