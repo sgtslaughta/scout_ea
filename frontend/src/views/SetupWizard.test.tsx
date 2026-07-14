@@ -9,6 +9,7 @@ beforeEach(() => {
   vi.spyOn(api, 'getConfig').mockResolvedValue({ mcp_name: 'scout-ea' })
   vi.spyOn(api, 'setConfig').mockResolvedValue({ key: 'mcp_name', value: 'x' })
   vi.spyOn(api, 'getMcpStatus').mockResolvedValue({ last_seen: null })
+  vi.spyOn(api, 'getSkills').mockResolvedValue([])
 })
 
 describe('SetupWizard', () => {

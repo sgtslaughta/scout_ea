@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import {
   Box, Stepper, Step, StepLabel, Button, Stack, TextField, Typography,
-  Paper, IconButton, Alert, CircularProgress,
+  Paper, IconButton, Alert, CircularProgress, Card, CardContent, Collapse,
 } from '@mui/material'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import {
-  getMcpConfig, getConfig, setConfig, getMcpStatus, type McpConfig,
+  getMcpConfig, getConfig, setConfig, getMcpStatus, getSkills, type McpConfig, type Skill,
 } from '../api'
 
 const STEPS = ['Connect', 'Skills', 'Automations']
@@ -94,6 +94,47 @@ export function SetupWizard() {
   )
 }
 
-// Placeholder step bodies — filled by Tasks 8–9.
-function Step2Skills({ mcpName }: { mcpName: string }) { return <div>Skills step ({mcpName})</div> }
+function renderBody(body: string, mcpName: string) {
+  return body.split('{{mcp_name}}').join(mcpName)
+}
+
+function Step2Skills({ mcpName }: { mcpName: string }) {
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  useEffect(() => { getSkills().then(setSkills) }, [])
+  return (
+    <Stack spacing={2}>
+      <Typography variant="body2" color="text.secondary">
+        A skill is a set of instructions Scout follows. For each one, click <b>Copy</b> and paste it
+        into a new Skill in Scout.
+      </Typography>
+      {skills.map((s) => (
+        <Card key={s.name} variant="outlined">
+          <CardContent sx={{ py: 1.5 }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" sx={{ fontFamily: 'monospace' }}>{s.name}</Typography>
+                <Typography variant="caption" color="text.secondary">{s.description}</Typography>
+              </Box>
+              <Button size="small" onClick={() => setOpen((o) => ({ ...o, [s.name]: !o[s.name] }))}>
+                {open[s.name] ? 'Hide' : 'View'}
+              </Button>
+              <Button size="small" variant="contained"
+                onClick={() => navigator.clipboard.writeText(renderBody(s.body, mcpName))}>
+                Copy
+              </Button>
+            </Stack>
+            <Collapse in={!!open[s.name]} unmountOnExit>
+              <Box component="pre" sx={{ mt: 1, p: 1, bgcolor: 'action.hover', borderRadius: 1,
+                whiteSpace: 'pre-wrap', fontSize: 12, overflowX: 'auto' }}>
+                {renderBody(s.body, mcpName)}
+              </Box>
+            </Collapse>
+          </CardContent>
+        </Card>
+      ))}
+    </Stack>
+  )
+}
+
 function Step3Automations() { return <div>Automations step</div> }
