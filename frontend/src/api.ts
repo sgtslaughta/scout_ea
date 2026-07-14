@@ -106,6 +106,15 @@ export interface Skill {
   active?: boolean
 }
 
+export interface McpConfig {
+  url: string
+  token: string
+  configured: boolean
+}
+export interface McpStatus {
+  last_seen: string | null
+}
+
 export interface Activity {
   id: number
   skill: string
@@ -221,6 +230,9 @@ export const getTrends = async (windowStart?: string): Promise<Trend[]> => {
 }
 
 export const getSkills = () => fetchJson<Skill[]>('/api/skills')
+
+export const getMcpConfig = () => fetchJson<McpConfig>('/api/mcp/config')
+export const getMcpStatus = () => fetchJson<McpStatus>('/api/mcp/status')
 
 export const getSignals = (status?: string) => {
   const qs = status ? `?status=${encodeURIComponent(status)}` : ''
