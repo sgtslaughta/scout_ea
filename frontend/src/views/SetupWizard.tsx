@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Box, Stepper, Step, StepLabel, Button, Stack, TextField, Typography,
   Paper, IconButton, Alert, CircularProgress, Card, CardContent, Collapse,
+  Select, MenuItem,
 } from '@mui/material'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -87,8 +88,9 @@ export function SetupWizard() {
       </Box>
       <Stack direction="row" sx={{ justifyContent: 'space-between', mt: 3 }}>
         <Button disabled={active === 0} onClick={() => setActive((s) => s - 1)}>Back</Button>
-        <Button variant="contained" disabled={active === STEPS.length - 1}
-                onClick={() => setActive((s) => s + 1)}>Next</Button>
+        {active === STEPS.length - 1
+          ? <Button variant="contained" onClick={() => setConfig('wizard_done', '1')}>Finish</Button>
+          : <Button variant="contained" onClick={() => setActive((s) => s + 1)}>Next</Button>}
       </Stack>
     </Box>
   )
@@ -137,4 +139,46 @@ function Step2Skills({ mcpName }: { mcpName: string }) {
   )
 }
 
-function Step3Automations() { return <div>Automations step</div> }
+const FREQ_PRESETS = [
+  'Every weekday at 2:00 PM',
+  'Every day at 7:00 AM',
+  'Every hour',
+  'Every 30 minutes',
+  'Every Monday at 9:00 AM',
+]
+
+function Step3Automations() {
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [freq, setFreq] = useState<Record<string, string>>({})
+  useEffect(() => { getSkills().then(setSkills) }, [])
+  return (
+    <Stack spacing={2}>
+      <Typography variant="body2" color="text.secondary">
+        An automation is <b>when</b> + <b>what</b>. Pick a frequency, then copy the action into a new
+        Automation in Scout.
+      </Typography>
+      {skills.map((s) => {
+        const f = freq[s.name] ?? FREQ_PRESETS[0]
+        return (
+          <Paper key={s.name} variant="outlined" sx={{ p: 1.5 }}>
+            <Typography variant="subtitle2" sx={{ fontFamily: 'monospace', mb: 1 }}>{s.name}</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: 'center' }}>
+              <Select size="small" value={f} sx={{ minWidth: 220 }}
+                onChange={(e) => setFreq((m) => ({ ...m, [s.name]: e.target.value }))}>
+                {FREQ_PRESETS.map((p) => <MenuItem key={p} value={p}>{p}</MenuItem>)}
+              </Select>
+              <Button size="small" onClick={() => navigator.clipboard.writeText(f)}>Copy schedule</Button>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', flex: 1 }}>
+                Run the '{s.name}' skill
+              </Typography>
+              <Button size="small" variant="contained"
+                onClick={() => navigator.clipboard.writeText(`Run the '${s.name}' skill`)}>
+                Copy action
+              </Button>
+            </Stack>
+          </Paper>
+        )
+      })}
+    </Stack>
+  )
+}
