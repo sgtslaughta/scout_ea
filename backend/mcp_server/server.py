@@ -171,6 +171,39 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
             conn.close()
 
     @mcp.tool()
+    def add_event(title: str, body: str = "", proposed_times: str = "",
+                  chosen_time: str = "", attendees: str = "", status: str = "suggested",
+                  source_signal_id: int | None = None, external_ref: str | None = None) -> int:
+        """Create an event. title is required. status defaults to 'suggested'.
+        Dedupes on external_ref if provided. Returns the new event id."""
+        conn = _conn()
+        try:
+            fields = {"title": title, "status": status}
+            for k, v in (("body", body), ("proposed_times", proposed_times),
+                         ("chosen_time", chosen_time), ("attendees", attendees),
+                         ("source_signal_id", source_signal_id), ("external_ref", external_ref)):
+                if v:
+                    fields[k] = v
+            return tools.add_event(conn, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
+    def update_event(event_id: int, status: str = "", external_ref: str = "",
+                     chosen_time: str = "") -> int:
+        """Update an event row. Pass only the fields you want to change. Returns rows affected."""
+        conn = _conn()
+        try:
+            fields = {}
+            for k, v in (("status", status), ("external_ref", external_ref),
+                         ("chosen_time", chosen_time)):
+                if v:
+                    fields[k] = v
+            return tools.update_event(conn, event_id, **fields)
+        finally:
+            conn.close()
+
+    @mcp.tool()
     def upsert_trend(term: str, kind: str, window_start: str, window_end: str,
                      score: float = 0, count: int = 0, delta: str | None = None,
                      sources: str | None = None) -> int:

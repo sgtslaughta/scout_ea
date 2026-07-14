@@ -45,6 +45,14 @@ def add_alert(conn, **fields) -> int:
     return db.add_alert(conn, **fields)
 
 
+def add_event(conn, **fields) -> int:
+    return db.add_event(conn, **fields)
+
+
+def update_event(conn, event_id, **fields) -> int:
+    return db.update_event(conn, event_id, **fields)
+
+
 def list_table(conn, table, status=None):
     """Read rows from a whitelisted table (optionally filtered by status). Newest first."""
     if table not in _READABLE:

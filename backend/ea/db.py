@@ -330,6 +330,46 @@ def update_deadline(conn: sqlite3.Connection, deadline_id: int, **fields) -> int
     return cur.rowcount
 
 
+# --- event helpers ---------------------------------------------------------
+
+_EVENT_COLS = {"title", "body", "proposed_times", "chosen_time", "attendees",
+               "status", "source_signal_id", "external_ref"}
+
+
+def add_event(conn: sqlite3.Connection, **fields) -> int:
+    """Insert an events row. Requires 'title'. Columns validated against _EVENT_COLS.
+    Dedupes on external_ref when present. Returns new row id."""
+    if "title" not in fields:
+        raise ValueError("add_event requires 'title'")
+    bad = set(fields) - _EVENT_COLS
+    if bad:
+        raise ValueError(f"unknown event columns: {bad}")
+    cols = ", ".join(fields)
+    placeholders = ", ".join("?" for _ in fields)
+    cur = conn.execute(
+        f"INSERT INTO events ({cols}) VALUES ({placeholders}) "
+        "ON CONFLICT(external_ref) DO NOTHING",
+        list(fields.values()),
+    )
+    conn.commit()
+    return cur.lastrowid
+
+
+def update_event(conn: sqlite3.Connection, event_id: int, **fields) -> int:
+    """Update an events row. Columns validated against _EVENT_COLS. Returns rows affected."""
+    bad = set(fields) - _EVENT_COLS
+    if bad:
+        raise ValueError(f"unknown event columns: {bad}")
+    if not fields:
+        return 0
+    sets = ", ".join(f"{k}=?" for k in fields)
+    cur = conn.execute(
+        f"UPDATE events SET {sets} WHERE id=?", [*fields.values(), event_id]
+    )
+    conn.commit()
+    return cur.rowcount
+
+
 # --- deadline cross-references (links + tags) ------------------------------
 
 # ref_type -> label-lookup SQL. Whitelist doubles as ref_type validation.
