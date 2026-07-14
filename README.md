@@ -1,4 +1,10 @@
+<p align="center">
+  <img src="frontend/public/scout_ea_logo.png" alt="Scout EA logo" width="160">
+</p>
+
 # Scout EA
+
+📖 **[Documentation](https://sgtslaughta.github.io/scout_ea/)** · 🐳 `docker pull ghcr.io/sgtslaughta/scout_ea:latest`
 
 A personal **Executive Agent** that runs locally — Microsoft Scout scans your email, Teams, and calendar on a schedule, triages everything into one ranked feed, and surfaces it in a live "command-deck" web dashboard. All data stays on your machine.
 

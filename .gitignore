@@ -14,3 +14,5 @@ screenshots/
 frontend_dist/
 .claude/worktrees/
 node_modules/
+website/site/
+website/.cache/

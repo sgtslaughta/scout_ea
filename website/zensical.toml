@@ -1,0 +1,68 @@
+[project]
+site_name = "Scout EA"
+site_description = "A local-first Executive Agent — Microsoft Scout triages your email, Teams, and calendar into one ranked command-deck dashboard."
+site_author = "sgtslaughta"
+site_url = "https://sgtslaughta.github.io/scout_ea/"
+copyright = "Copyright &copy; 2026 Scout EA"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Quick Start" = "quickstart.md" },
+  { "Architecture" = "architecture.md" },
+  { "Skills" = [
+    "skills.md",
+    "setup-wizard.md",
+  ] },
+  { "MCP Tools" = "mcp-tools.md" },
+  { "GitHub" = "https://github.com/sgtslaughta/scout_ea" },
+]
+
+[project.theme]
+variant = "modern"
+language = "en"
+logo = "assets/scout_ea_logo_64.png"
+favicon = "assets/scout_ea_logo_64.png"
+features = [
+  "content.code.copy",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/sgtslaughta/scout_ea"
+
+[project.markdown_extensions.admonition]
+[project.markdown_extensions.attr_list]
+[project.markdown_extensions.def_list]
+[project.markdown_extensions.md_in_html]
+[project.markdown_extensions.toc]
+permalink = true
+[project.markdown_extensions.pymdownx.details]
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+[project.markdown_extensions.pymdownx.inlinehilite]
+[project.markdown_extensions.pymdownx.superfences]
+custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" }
+]
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+[project.markdown_extensions.pymdownx.tasklist]
+custom_checkbox = true
