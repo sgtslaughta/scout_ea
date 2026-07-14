@@ -14,7 +14,7 @@ surfaces it in a live "command-deck" web dashboard. **All data stays on your mac
 - :material-sitemap: **[Architecture](architecture.md)** — two surfaces over one SQLite DB.
 - :material-robot: **[Skills](skills.md)** — the 17 automations that drive Scout.
 - :material-wizard-hat: **[Setup Wizard](setup-wizard.md)** — install every skill in order, with intervals.
-- :material-tools: **[MCP Tools](mcp-tools.md)** — the 29-tool API skills call.
+- :material-tools: **[MCP Tools](mcp-tools.md)** — the 31-tool API skills call.
 
 </div>
 

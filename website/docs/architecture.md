@@ -4,7 +4,7 @@ Two surfaces over one SQLite database.
 
 ```mermaid
 graph LR
-  Scout["Microsoft Scout<br/>(17 skills)"] -->|bearer MCP :8766| MCP["MCP server<br/>(FastMCP, 29 tools)"]
+  Scout["Microsoft Scout<br/>(17 skills)"] -->|bearer MCP :8766| MCP["MCP server<br/>(FastMCP, 31 tools)"]
   MCP --> DB[("SQLite<br/>ea.sqlite")]
   Web["Web API :8765<br/>(HTTP + SSE)"] --> DB
   UI["React dashboard"] -->|HTTP + SSE| Web

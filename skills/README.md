@@ -99,9 +99,9 @@ Scout's closed-loop action pipeline: `scout_actions` drafts, the four `run_*` ex
 
 ---
 
-## MCP Tool Reference (29 tools)
+## MCP Tool Reference (31 tools)
 
-Skills call these over the bearer-gated MCP server. Reads: `list_rows`, `query` (flexible whitelisted SELECT — filters/since/until/order/limit), `search` (full-text), `get_entity` (row + tags + links + related actions), `list_tags`, `list_actions`, `list_guidance`, `list_skills` (roster + cadence health), `list_action_types`. Writes: `add_signal`, `add_deadline`, `add_task`, `add_learning`, `add_news`, `upsert_trend`, `add_trend_finding`, `add_alert` (user-facing notification), `add_action`, `add_guidance`, `update_status`, `update_action`, `claim_action`, `has_open_action`, `tag_content`, `link_content`, `log_skill_run`. M365 passthrough: `m365_status`, `m365_send_mail`, `m365_create_event`.
+Skills call these over the bearer-gated MCP server. Reads: `list_rows`, `query` (flexible whitelisted SELECT — filters/since/until/order/limit), `search` (full-text), `get_entity` (row + tags + links + related actions), `list_tags`, `list_actions`, `list_guidance`, `list_skills` (roster + cadence health), `list_action_types`. Writes: `add_signal`, `add_deadline`, `add_task`, `add_learning`, `add_news`, `add_event`, `update_event`, `upsert_trend`, `add_trend_finding`, `add_alert` (user-facing notification), `add_action`, `add_guidance`, `update_status`, `update_action`, `claim_action`, `has_open_action`, `tag_content`, `link_content`, `log_skill_run`. M365 passthrough: `m365_status`, `m365_send_mail`, `m365_create_event`.
 
 ---
 
