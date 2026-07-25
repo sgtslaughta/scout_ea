@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Box, Popover, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { Box, Popover, Typography, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material'
 import { SparkLineChart } from '@mui/x-charts/SparkLineChart'
+import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine'
 import { useQuery } from '@tanstack/react-query'
 import { getFinanceHistory, type HistoryRange, type Quote } from '@/api'
 
@@ -17,6 +18,7 @@ export interface TickerPopoverProps {
 }
 
 export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: TickerPopoverProps) {
+  const theme = useTheme()
   const [range, setRange] = useState<HistoryRange>('1d')
 
   // Lazy: nothing is fetched until the popover actually opens.
@@ -35,6 +37,11 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
   ].filter(Boolean).join(' · ')
 
   const points = data?.points ?? []
+  // Reference baseline is the opening value for the selected range — "above
+  // the line" matches the up/down semantics of change_pct elsewhere in the strip.
+  const baseline = points[0]
+  const isUp = points.length > 1 && points[points.length - 1] >= baseline
+  const trendColor = isUp ? theme.palette.success.main : theme.palette.error.main
 
   return (
     <Popover
@@ -62,7 +69,21 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
 
       <Box sx={{ height: 48, mb: 1 }}>
         {points.length > 1
-          ? <SparkLineChart data={points} height={48} color="var(--color-accent)" />
+          ? (
+            <SparkLineChart
+              data={points}
+              height={48}
+              color={trendColor}
+              area
+              baseline={baseline}
+              data-testid="finance-sparkline"
+            >
+              <ChartsReferenceLine
+                y={baseline}
+                lineStyle={{ stroke: theme.palette.divider, strokeDasharray: '3 3' }}
+              />
+            </SparkLineChart>
+          )
           : <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
               No history available
             </Typography>}
