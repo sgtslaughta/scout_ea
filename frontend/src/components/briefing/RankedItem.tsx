@@ -1,9 +1,12 @@
-import { Box, Typography, Tooltip } from '@mui/material'
+import { useState } from 'react'
+import { Box, Typography } from '@mui/material'
+import { HoverCard } from './HoverCard'
 
 export interface RankedItemProps {
   rank: number
   title: string
   score?: number
+  scoreReason?: string
   subtitle?: string
   meta?: string
   onClick?: () => void
@@ -16,9 +19,10 @@ const scoreStyle = (s: number) =>
   s >= 40 ? { bg: 'info.main', fg: '#fff' } :
             { bg: 'action.selected', fg: 'text.secondary' }
 
-export function RankedItem({ rank, title, score, subtitle, meta, onClick }: RankedItemProps) {
+export function RankedItem({ rank, title, score, scoreReason, subtitle, meta, onClick }: RankedItemProps) {
   const clickable = !!onClick
   const badge = score != null ? scoreStyle(score) : null
+  const [scoreAnchor, setScoreAnchor] = useState<HTMLElement | null>(null)
   return (
     <Box
       role={clickable ? 'button' : undefined}
@@ -50,15 +54,33 @@ export function RankedItem({ rank, title, score, subtitle, meta, onClick }: Rank
             {title}
           </Typography>
           {badge && (
-            <Tooltip title={`Impact ${score}/100`} arrow>
+            <>
               <Box
+                onMouseEnter={(e) => setScoreAnchor(e.currentTarget)}
+                onMouseLeave={() => setScoreAnchor(null)}
                 sx={{ px: 0.75, py: '1px', borderRadius: 0.75, fontSize: '0.7rem', fontWeight: 700,
                       fontVariantNumeric: 'tabular-nums', color: badge.fg, bgcolor: badge.bg,
-                      lineHeight: 1.7, minWidth: 26, textAlign: 'center', flexShrink: 0 }}
+                      lineHeight: 1.7, minWidth: 26, textAlign: 'center', flexShrink: 0,
+                      cursor: 'help' }}
               >
                 {score}
               </Box>
-            </Tooltip>
+              <HoverCard
+                anchorEl={scoreAnchor}
+                open={!!scoreAnchor}
+                onClose={() => setScoreAnchor(null)}
+              >
+                <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 0.5 }}>
+                  Impact {score} / 100
+                </Typography>
+                {scoreReason && (
+                  <Typography sx={{ fontSize: '0.8rem', mb: 1 }}>{scoreReason}</Typography>
+                )}
+                <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary' }}>
+                  80–100 Critical · 60–79 High · 40–59 Medium · 0–39 Low
+                </Typography>
+              </HoverCard>
+            </>
           )}
         </Box>
         {subtitle && (
