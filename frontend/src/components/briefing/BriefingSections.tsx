@@ -19,10 +19,15 @@ function Section({ title, empty, emptyText, children }:
   { title: string; empty: boolean; emptyText: string; children: ReactNode }) {
   return (
     <Paper
+      data-testid="briefing-section"
       sx={(theme) => ({
         p: 2,
         // Translucent so the sky reads through; blur keeps text contrast.
-        backgroundColor: alpha(theme.palette.background.paper, 0.72),
+        // theme.vars is only populated under cssVariables (enabled for this app);
+        // fall back to alpha() for callers/tests without the CSS-vars ThemeProvider.
+        backgroundColor: theme.vars
+          ? `rgba(${theme.vars.palette.background.paperChannel} / 0.72)`
+          : alpha(theme.palette.background.paper, 0.72),
         backdropFilter: 'blur(8px)',
         border: '1px solid',
         borderColor: 'divider',
