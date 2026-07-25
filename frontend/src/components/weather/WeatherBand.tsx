@@ -2,18 +2,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { WeatherResponse } from '@/api'
 import { skyPhase, arcFraction } from './sky'
+import { SkyBackdrop } from './SkyBackdrop'
 
 export interface WeatherBandProps {
   weather: WeatherResponse
   now?: Date
-}
-
-/** Sky gradient presets by phase */
-const skyGradients: Record<string, string> = {
-  dawn: 'linear-gradient(180deg, #ffc2a6 0%, #ffb380 50%, #a8d8ff 100%)',
-  day: 'linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%)',
-  dusk: 'linear-gradient(180deg, #ff9a56 0%, #c66dd4 50%, #2a1b4d 100%)',
-  night: 'linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0d0a1a 100%)',
 }
 
 export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
@@ -88,13 +81,7 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
       }}
     >
       {/* SkyBackdrop */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: skyGradients[phase] || skyGradients.day,
-        }}
-      />
+      <SkyBackdrop phase={phase} />
 
       {/* CelestialArc */}
       <svg
