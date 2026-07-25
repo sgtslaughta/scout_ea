@@ -11,8 +11,10 @@ export interface CelestialArcProps {
  * rather than confined to the weather band's 120px strip.
  */
 export function CelestialArc({ arcPos, isNight }: CelestialArcProps) {
+  // Horizons sit at y=30 (top ~30% of the modal) and the peak sits at y=4,
+  // so the arc never dips into the finance strip / card region below.
   const celestialX = arcPos * 100
-  const celestialY = 92 - Math.sin(arcPos * Math.PI) * 82
+  const celestialY = 30 - Math.sin(arcPos * Math.PI) * 26
 
   return (
     <Box aria-hidden sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
@@ -22,7 +24,7 @@ export function CelestialArc({ arcPos, isNight }: CelestialArcProps) {
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
       >
         {/* Arc path (faint) */}
-        <path d="M 0 92 Q 50 10 100 92" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="0.3" fill="none" />
+        <path d="M 0 30 Q 50 -22 100 30" stroke="rgba(255, 255, 255, 0.15)" strokeWidth="0.3" fill="none" />
         {/* Celestial body */}
         {!isNight ? (
           <circle

@@ -45,4 +45,17 @@ describe('CelestialArc', () => {
     // a flat/near-flat arc would have excursion near 0.
     expect(excursion / vbHeight).toBeGreaterThan(0.3)
   })
+
+  it.each([0, 0.5, 1])(
+    'keeps the celestial body in the upper band of the modal at arcPos=%s — a regression that drops it into the card region must fail',
+    (arcPos) => {
+      const { container } = render(<CelestialArc arcPos={arcPos} isNight={false} />)
+      const circle = container.querySelector('circle')
+      const cy = Number(circle?.getAttribute('cy'))
+      // In the 100-unit viewBox, the arc must live in the top ~30% — never
+      // dip down among the finance strip / quadrant cards.
+      expect(cy).toBeGreaterThanOrEqual(0)
+      expect(cy).toBeLessThanOrEqual(30)
+    },
+  )
 })
