@@ -162,19 +162,33 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
 
       {/* Forecast strip (next few days) */}
       {upcoming.length > 0 && (
-        <Box
-          data-testid="weather-forecast"
-          sx={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            zIndex: 10,
-            display: 'flex',
-            gap: 1.5,
-            color: '#fff',
-            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-          }}
-        >
+        <>
+          {/* Local scrim — the main scrim fades to transparent by 75% width, which
+              leaves this bottom-right block unprotected against bright daytime skies. */}
+          <Box
+            aria-hidden
+            data-testid="weather-forecast-scrim"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background:
+                'linear-gradient(270deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.18) 30%, transparent 60%)',
+            }}
+          />
+          <Box
+            data-testid="weather-forecast"
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              zIndex: 10,
+              display: 'flex',
+              gap: 1.5,
+              color: '#fff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            }}
+          >
           {upcoming.map((d) => (
             <Box key={d.date} sx={{ textAlign: 'center', minWidth: 34 }}>
               <Typography sx={{ fontSize: '0.7rem', opacity: 0.9 }}>
@@ -188,7 +202,8 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
               </Typography>
             </Box>
           ))}
-        </Box>
+          </Box>
+        </>
       )}
 
       {/* Global animation keyframes */}

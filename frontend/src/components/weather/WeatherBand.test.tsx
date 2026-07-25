@@ -72,4 +72,20 @@ describe('WeatherBand', () => {
     )
     expect(screen.getByTestId('weather-scrim')).toBeInTheDocument()
   })
+  it('renders a local scrim protecting the forecast strip', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 30, condition: 'clear', is_day: true, unit: 'F', label: 'Austin',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+          forecast: [
+            { date: '2026-07-25', hi: 95, lo: 75, condition: 'clear' },
+            { date: '2026-07-26', hi: 96, lo: 76, condition: 'clear' },
+          ],
+        }}
+        now={new Date('2026-07-25T12:00:00Z')}
+      />,
+    )
+    expect(screen.getByTestId('weather-forecast-scrim')).toBeInTheDocument()
+  })
 })
