@@ -17,7 +17,7 @@ This directory contains the 17 Scout automation skills that orchestrate the Exec
 ### 3. `extract_research_training_email`
 **Description:** Identify training opportunities and research announcements in email; upsert learning items  
 **Schedule:** Heartbeat 30 min, workdays 07:00–18:00 EST  
-**MCP Tools:** `add_signal`, `log_skill_run`
+**MCP Tools:** `add_learning`, `log_skill_run`
 
 ### 4. `suggest_events`
 **Description:** Read signals implying meetings; suggest calendar times and attendees; draft events  
@@ -32,7 +32,7 @@ This directory contains the 17 Scout automation skills that orchestrate the Exec
 ### 6. `research_topics`
 **Description:** Weekly web/news search for developments in active topics; upsert learning items  
 **Schedule:** Automation, weekly Friday 09:00 EST  
-**MCP Tools:** `add_signal`, `log_skill_run`
+**MCP Tools:** `add_learning`, `log_skill_run`
 
 ### 7. `compile_learning_email`
 **Description:** Consolidate training/research emails from the week; compile summary  
