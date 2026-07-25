@@ -72,6 +72,24 @@ it('shows the why field alongside detail when the row is hovered', async () => {
   expect(screen.getByText(/Flagged because the vendor contract renews Friday/)).toBeInTheDocument()
 })
 
+it('closes the row detail popover on Escape via keyboard focus, without leaking to an ancestor handler', async () => {
+  const ancestorEscape = vi.fn()
+  render(
+    <div onKeyDown={(e) => { if (e.key === 'Escape') ancestorEscape() }}>
+      <RankedItem rank={1} title="Board deck due" score={92}
+        subtitle="short" detail="the full untruncated explanation" meta="due in 4h" />
+    </div>,
+  )
+  await userEvent.tab() // focuses the row
+  expect(await screen.findByText(/the full untruncated explanation/)).toBeInTheDocument()
+  const row = screen.getAllByText('Board deck due')[0].closest('[tabindex]') as HTMLElement
+  expect(row).toHaveFocus()
+
+  await userEvent.keyboard('{Escape}')
+  expect(screen.queryByText(/the full untruncated explanation/)).not.toBeInTheDocument()
+  expect(ancestorEscape).not.toHaveBeenCalled()
+})
+
 it('never shows both the score explanation and the row detail at once', async () => {
   render(
     <RankedItem rank={1} title="Board deck due" score={92}
