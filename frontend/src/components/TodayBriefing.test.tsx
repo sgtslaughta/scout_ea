@@ -122,4 +122,13 @@ describe('TodayBriefing', () => {
     expect(modalBackdrop()).toHaveAttribute('data-phase', 'dusk')
     vi.useRealTimers()
   })
+
+  it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
+    renderModal()
+    const backdrop = await screen.findByTestId('sky-backdrop')
+    const closeButton = screen.getByLabelText('Close briefing')
+    // The backdrop must live on a non-scrolling layer (the Dialog's Paper),
+    // a sibling of the scrollable content box — not nested inside it.
+    expect(backdrop.parentElement).not.toBe(closeButton.parentElement)
+  })
 })

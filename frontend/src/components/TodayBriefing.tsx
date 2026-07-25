@@ -102,9 +102,11 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   if (!open) return null
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { position: 'relative', height: '92vh', m: 'auto' } } }}>
-      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative' }}>
-        <SkyBackdrop phase={phase} fade />
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { position: 'relative', height: '92vh', m: 'auto', overflow: 'hidden' } } }}>
+      {/* Pinned to the Paper (non-scrolling layer) so the sky stays behind
+          below-the-fold content instead of scrolling away with it. */}
+      <SkyBackdrop phase={phase} fade />
+      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative', zIndex: 1 }}>
         {/* Close button */}
         <IconButton
           ref={closeButtonRef}
