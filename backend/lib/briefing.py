@@ -25,11 +25,33 @@ def _score_of(row) -> int:
     return _PRIORITY_SCORE.get(row.get("priority", 3), 55)
 
 
+def _score_reason(row) -> str:
+    """Plain-english explanation of this row's impact score.
+
+    Branches mirror `_score_of` exactly and in the same order, so the sentence
+    always describes the branch that actually produced the score. Signals may
+    carry a skill-authored sentence in `reasoning`; everything else is derived
+    from the inputs the formula read.
+    """
+    authored = (row.get("reasoning") or "").strip()
+    if authored:
+        return authored
+    if row.get("impact") is not None:
+        return f"Impact {_score_of(row)} set directly by the source skill."
+    rel = row.get("relevance")
+    if rel is not None:
+        return f"Topic relevance {rel} → {_score_of(row)}."
+    if row.get("importance") is not None:
+        return f"Person importance {int(row['importance'])} of 5 → {_score_of(row)}."
+    return f"Priority {int(row.get('priority', 3))} → {_score_of(row)}."
+
+
 def _rank(rows: list) -> list:
-    """Attach 1-based rank + score to already-ordered rows (in place)."""
+    """Attach 1-based rank + score + explanation to already-ordered rows (in place)."""
     for i, r in enumerate(rows, 1):
         r["rank"] = i
         r["score"] = _score_of(r)
+        r["score_reason"] = _score_reason(r)
     return rows
 
 

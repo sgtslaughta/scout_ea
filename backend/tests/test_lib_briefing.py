@@ -146,3 +146,41 @@ def test_news_items_cap_at_five_per_topic():
         news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
     )
     assert len(out["news_by_topic"][0]["items"]) == 5
+
+
+def test_score_reason_prefers_skill_authored_reasoning():
+    row = {"impact": 91, "reasoning": "CEO asked for a decision before Friday's board call."}
+    assert _briefing._score_reason(row) == "CEO asked for a decision before Friday's board call."
+
+
+def test_score_reason_explains_explicit_impact():
+    assert "91" in _briefing._score_reason({"impact": 91})
+
+
+def test_score_reason_explains_relevance():
+    out = _briefing._score_reason({"relevance": 0.82})
+    assert "0.82" in out and "82" in out
+
+
+def test_score_reason_explains_importance():
+    # NOTE: importance is INVERTED relative to priority. `_score_of` computes
+    # `_PRIORITY_SCORE[6 - importance]`, so importance 5 is the most important
+    # person (-> 92) and importance 1 the least (-> 15). Verified against the
+    # live function; do not "correct" these numbers to match priority's scale.
+    out = _briefing._score_reason({"importance": 5})
+    assert "5" in out and "92" in out
+
+    low = _briefing._score_reason({"importance": 1})
+    assert "1" in low and "15" in low
+
+
+def test_score_reason_explains_priority():
+    out = _briefing._score_reason({"priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_rank_attaches_score_reason():
+    rows = [{"priority": 1, "title": "x"}]
+    ranked = _briefing._rank(rows)
+    assert ranked[0]["score_reason"]
+    assert ranked[0]["score"] == 92
