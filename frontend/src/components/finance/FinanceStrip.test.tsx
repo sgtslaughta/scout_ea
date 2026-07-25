@@ -1,7 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen, act, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FinanceStrip } from './FinanceStrip'
+
+// FinanceStrip mounts a TickerPopover (react-query) on chip hover, so every
+// render needs a QueryClient in scope.
+function wrap(ui: React.ReactNode) {
+  return render(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>)
+}
 
 const fin = {
   watchlist: [
@@ -16,7 +23,7 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('FinanceStrip', () => {
   it('renders watchlist + indices chips with direction', () => {
-    render(<FinanceStrip finance={fin} />)
+    wrap(<FinanceStrip finance={fin} />)
     expect(screen.getByText('AAPL')).toBeInTheDocument()
     expect(screen.getByText('S&P 500')).toBeInTheDocument()   // index shows friendly name
     expect(screen.getByTestId('quote-AAPL').getAttribute('data-dir')).toBe('up')
@@ -24,13 +31,13 @@ describe('FinanceStrip', () => {
   })
   it('click opens Yahoo Finance in a new tab', async () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
-    render(<FinanceStrip finance={fin} />)
+    wrap(<FinanceStrip finance={fin} />)
     await userEvent.click(screen.getByTestId('quote-AAPL'))
     expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining('finance.yahoo.com/quote/AAPL'), '_blank', 'noopener')
   })
   it('shows unavailable state on error', () => {
-    render(<FinanceStrip finance={{ watchlist: [], indices: [], error: 'unavailable' }} />)
+    wrap(<FinanceStrip finance={{ watchlist: [], indices: [], error: 'unavailable' }} />)
     expect(screen.getByText(/unavailable/i)).toBeInTheDocument()
   })
 })
@@ -41,7 +48,7 @@ const finance = {
 }
 
 it('renders indices and watchlist in one merged row', () => {
-  render(<FinanceStrip finance={finance} />)
+  wrap(<FinanceStrip finance={finance} />)
   expect(screen.getByTestId('finance-row')).toBeInTheDocument()
   // Both groups present, no separate WATCHLIST / MARKETS group rows
   expect(screen.getByTestId('quote-^GSPC')).toBeInTheDocument()
@@ -76,7 +83,7 @@ it('advances the page on the interval and wraps at the end', () => {
   // 12 chips of 100px in a 250px row => 3 pages
   const restore = stubLayout({ chip: 100, row: 250 })
   vi.useFakeTimers()
-  render(<FinanceStrip finance={many} intervalMs={1000} />)
+  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
 
   const row = () => screen.getByTestId('finance-row')
   expect(row()).toHaveAttribute('data-page', '0')
@@ -101,7 +108,7 @@ it('advances the page on the interval and wraps at the end', () => {
 it('pauses rotation while hovered', async () => {
   const restore = stubLayout({ chip: 100, row: 250 })
   vi.useFakeTimers()
-  render(<FinanceStrip finance={many} intervalMs={1000} />)
+  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
   const row = () => screen.getByTestId('finance-row')
 
   fireEvent.mouseEnter(row().parentElement!)
@@ -117,7 +124,7 @@ it('pauses rotation while hovered', async () => {
 })
 
 it('advances when the manual button is pressed', async () => {
-  render(<FinanceStrip finance={finance} intervalMs={999999} />)
+  wrap(<FinanceStrip finance={finance} intervalMs={999999} />)
   const btn = screen.getByRole('button', { name: /next tickers/i })
   await userEvent.click(btn)
   expect(screen.getByTestId('finance-row')).toBeInTheDocument()

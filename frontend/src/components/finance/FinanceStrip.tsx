@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Box, Typography, Tooltip, alpha, IconButton } from '@mui/material'
+import { Box, Typography, alpha, IconButton } from '@mui/material'
 import { ChevronDown } from 'lucide-react'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 import { packPages } from './paging'
+import { TickerPopover } from './TickerPopover'
 
 export interface FinanceStripProps {
   finance: FinanceResponse
@@ -38,22 +39,14 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
     // theme palette tokens so green/red stay legible in light + dark
     const color = dir === 'up' ? 'success.main' : dir === 'down' ? 'error.main' : 'text.secondary'
 
-    const tooltipTitle = [
-      q.open != null && `O ${q.open}`,
-      q.high != null && `H ${q.high}`,
-      q.low != null && `L ${q.low}`,
-      q.volume != null && `Vol ${q.volume}`,
-    ]
-      .filter(Boolean)
-      .join(' · ')
-
     return (
-      <Tooltip key={q.symbol} title={tooltipTitle || ''} arrow>
         <Box
+          key={q.symbol}
           data-testid={`quote-${q.symbol}`}
           data-dir={dir}
           onClick={() => handleChipClick(q.symbol)}
           onKeyDown={(e) => handleChipKeyDown(e, q.symbol)}
+          onMouseEnter={(e) => setHovered({ q, el: e.currentTarget })}
           role="button"
           tabIndex={0}
           sx={{
@@ -84,7 +77,6 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
             {q.change_pct?.toFixed(2)}%
           </Typography>
         </Box>
-      </Tooltip>
     )
   }
 
@@ -102,6 +94,7 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
   const [available, setAvailable] = useState(0)
   const [page, setPage] = useState(0)
   const [paused, setPaused] = useState(false)
+  const [hovered, setHovered] = useState<{ q: Quote; el: HTMLElement } | null>(null)
 
   // Measure chips + container, and re-measure on resize.
   useLayoutEffect(() => {
@@ -126,10 +119,14 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
   const advance = () => setPage((p) => (p + 1) % pageCount)
 
   useEffect(() => {
-    if (paused || pageCount <= 1) return
+    // `hovered` pins rotation for as long as a popover is open, even if the
+    // pointer has moved off the container and onto the (portaled) popover
+    // paper itself — otherwise the row could rotate out from under an
+    // anchored-but-now-clipped chip while its popover is still open.
+    if (paused || hovered || pageCount <= 1) return
     const id = setInterval(advance, intervalMs)
     return () => clearInterval(id)
-  }, [paused, pageCount, intervalMs])
+  }, [paused, hovered, pageCount, intervalMs])
 
   const activeIdx = pages[Math.min(page, pages.length - 1)] ?? merged.map((_, i) => i)
   const firstVisible = activeIdx[0] ?? 0
@@ -173,6 +170,15 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
           ))}
         </Box>
       </Box>
+
+      {hovered && (
+        <TickerPopover
+          quote={hovered.q}
+          anchorEl={hovered.el}
+          open
+          onClose={() => setHovered(null)}
+        />
+      )}
 
       {/* Dots only make sense with more than one page; the manual advance is always
           available so the control does not appear and vanish as the row is resized. */}
