@@ -29,10 +29,35 @@ it('opens the score explanation on keyboard focus and closes on blur', async () 
   )
   await userEvent.tab() // focuses the row
   await userEvent.tab() // focuses the score badge
-  const badge = screen.getByRole('button', { name: /Impact score 92 explanation/ })
+  const badge = screen.getByLabelText(/Impact score 92 explanation/)
   expect(badge).toHaveFocus()
   expect(await screen.findByText(/Priority 1 → 92\./)).toBeInTheDocument()
   await userEvent.tab() // moves focus away, blurring the badge
+  expect(screen.queryByText(/Priority 1 → 92\./)).not.toBeInTheDocument()
+})
+
+it('does not claim a role it cannot honor on the score badge', () => {
+  render(
+    <RankedItem rank={1} title="Board deck due" score={92}
+      scoreReason="Priority 1 → 92." />,
+  )
+  const badge = screen.getByLabelText(/Impact score 92 explanation/)
+  // It's an information trigger (focusable + labeled), not an actionable
+  // control — it has no Enter/Space activation handler, so it must not
+  // announce as a button.
+  expect(badge).not.toHaveAttribute('role', 'button')
+  expect(badge).toHaveAttribute('tabindex', '0')
+})
+
+it('closes the score popover on Escape without an activation handler firing', async () => {
+  render(
+    <RankedItem rank={1} title="Board deck due" score={92}
+      scoreReason="Priority 1 → 92." />,
+  )
+  const badge = screen.getByLabelText(/Impact score 92 explanation/)
+  badge.focus()
+  expect(await screen.findByText(/Priority 1 → 92\./)).toBeInTheDocument()
+  await userEvent.keyboard('{Escape}')
   expect(screen.queryByText(/Priority 1 → 92\./)).not.toBeInTheDocument()
 })
 

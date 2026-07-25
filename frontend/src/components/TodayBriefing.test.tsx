@@ -149,6 +149,36 @@ describe('TodayBriefing', () => {
     expect(weatherBand.contains(conditionFX)).toBe(false)
   })
 
+  it('Escape closes the score popover, not the modal, when a popover is open', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText('Ship it')
+    const badges = screen.getAllByLabelText(/Impact score 92 explanation/)
+    badges[0].focus()
+    expect(await screen.findByText(/Impact 92 \/ 100/)).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByText(/Impact 92 \/ 100/)).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('Escape still closes the modal when no popover is open', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText('Ship it')
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
     renderModal()
     const backdrop = await screen.findByTestId('sky-backdrop')

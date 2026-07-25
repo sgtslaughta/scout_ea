@@ -25,12 +25,22 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
   const badge = score != null ? scoreStyle(score) : null
   const [scoreAnchor, setScoreAnchor] = useState<HTMLElement | null>(null)
   const [rowAnchor, setRowAnchor] = useState<HTMLElement | null>(null)
+  // The badge's explanation takes precedence over the row's own detail card
+  // when both anchors are live (the badge sits inside the row's bounds, so
+  // hovering/focusing it also fires the row's handlers) — never both open.
+  const scoreOpen = !!scoreAnchor
+  const rowOpen = !!rowAnchor && !scoreOpen && !!(detail || subtitle || meta)
   return (
     <Box
       role={clickable ? 'button' : undefined}
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={(e) => { if (clickable && e.key === 'Enter') onClick?.() }}
+      onKeyDown={(e) => {
+        if (clickable && e.key === 'Enter') onClick?.()
+        // Escape closes the row's own detail popover without also
+        // closing the enclosing modal (which listens for Escape too).
+        if (e.key === 'Escape' && rowOpen) { e.stopPropagation(); setRowAnchor(null) }
+      }}
       onMouseEnter={(e) => setRowAnchor(e.currentTarget)}
       onMouseLeave={() => setRowAnchor(null)}
       onFocus={(e) => setRowAnchor(e.currentTarget)}
@@ -62,13 +72,16 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
           {badge && (
             <>
               <Box
-                role="button"
                 tabIndex={0}
                 aria-label={`Impact score ${score} explanation`}
                 onMouseEnter={(e) => setScoreAnchor(e.currentTarget)}
                 onMouseLeave={() => setScoreAnchor(null)}
                 onFocus={(e) => setScoreAnchor(e.currentTarget)}
                 onBlur={() => setScoreAnchor(null)}
+                onKeyDown={(e) => {
+                  // Escape closes just this popover, not the enclosing modal.
+                  if (e.key === 'Escape' && scoreOpen) { e.stopPropagation(); setScoreAnchor(null) }
+                }}
                 sx={{ px: 0.75, py: '1px', borderRadius: 0.75, fontSize: '0.7rem', fontWeight: 700,
                       fontVariantNumeric: 'tabular-nums', color: badge.fg, bgcolor: badge.bg,
                       lineHeight: 1.7, minWidth: 26, textAlign: 'center', flexShrink: 0,
@@ -78,7 +91,7 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
               </Box>
               <HoverCard
                 anchorEl={scoreAnchor}
-                open={!!scoreAnchor}
+                open={scoreOpen}
                 onClose={() => setScoreAnchor(null)}
               >
                 <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 0.5 }}>
@@ -108,7 +121,7 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
       </Box>
       <HoverCard
         anchorEl={rowAnchor}
-        open={!!rowAnchor && !scoreAnchor && !!(detail || subtitle || meta)}
+        open={rowOpen}
         onClose={() => setRowAnchor(null)}
       >
         <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', mb: 0.5 }}>{title}</Typography>
