@@ -25,7 +25,7 @@
 
 **Files:**
 - Modify: `backend/lib/finance.py`
-- Test: `backend/tests/test_finance.py` (add to the existing file)
+- Test: `backend/tests/test_lib_finance.py` (add to the existing file)
 
 **Interfaces:**
 - Consumes: nothing.
@@ -35,7 +35,7 @@ Yahoo returns gaps as `null` inside `indicators.quote[0].close` (market closed, 
 
 - [ ] **Step 1: Write the failing test**
 
-Add to `backend/tests/test_finance.py`:
+Add to `backend/tests/test_lib_finance.py`:
 
 ```python
 from lib import finance as _finance
@@ -65,7 +65,7 @@ def test_parse_history_coerces_ints_and_skips_junk():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && ../.venv/bin/python -m pytest tests/test_finance.py -q`
+Run: `cd backend && ../.venv/bin/python -m pytest tests/test_lib_finance.py -q`
 Expected: FAIL — `AttributeError: module 'lib.finance' has no attribute 'parse_history'`
 
 - [ ] **Step 3: Implement it**
@@ -90,13 +90,13 @@ def parse_history(result: dict) -> list[float]:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd backend && ../.venv/bin/python -m pytest tests/test_finance.py -q`
+Run: `cd backend && ../.venv/bin/python -m pytest tests/test_lib_finance.py -q`
 Expected: PASS
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/lib/finance.py backend/tests/test_finance.py
+git add backend/lib/finance.py backend/tests/test_lib_finance.py
 git commit -m "feat(finance): parse_history extracts close series from Yahoo chart"
 ```
 
