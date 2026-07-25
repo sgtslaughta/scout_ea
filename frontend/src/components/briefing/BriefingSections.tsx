@@ -10,6 +10,11 @@ const fmtCountdown = (s?: number): string | undefined => {
   return h > 0 ? `due in ${h}h ${m}m` : `due in ${m}m`
 }
 
+// Signal.created_at is the only reliably-declared timestamp among the row
+// types wired here (CriticalItem's due_at is deadline/task-specific).
+const fmtTimestamp = (iso?: string): string | undefined =>
+  iso ? new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : undefined
+
 const SubLabel = ({ text }: { text: string }) => (
   <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase',
     color: 'text.disabled', letterSpacing: 0.5, mt: 0.75, ml: 1 }}>{text}</Typography>
@@ -58,6 +63,7 @@ export function BriefingSections({ briefing, onNavigate }: BriefingSectionsProps
           <RankedItem key={`c-${item.id}`} rank={item.rank ?? 0} title={item.title}
             score={item.score} scoreReason={item.score_reason}
             subtitle={item.summary || item.detail} detail={item.detail || item.summary}
+            why={item.kind === 'signal' ? item.why : undefined}
             meta={item.kind === 'deadline' ? fmtCountdown(item.countdown_seconds) : undefined}
             onClick={() => item.nav && onNavigate(item.nav.view)} />
         ))}
@@ -71,13 +77,15 @@ export function BriefingSections({ briefing, onNavigate }: BriefingSectionsProps
         {briefing?.risks?.map((s) => (
           <RankedItem key={`r-${s.id}`} rank={s.rank ?? 0} title={s.title}
             score={s.score} scoreReason={s.score_reason}
-            subtitle={s.summary} detail={s.summary} onClick={() => onNavigate('/feed')} />
+            subtitle={s.summary} detail={s.summary} why={s.why} timestamp={fmtTimestamp(s.created_at)}
+            onClick={() => onNavigate('/feed')} />
         ))}
         {!!briefing?.opportunities?.length && <SubLabel text="Opportunities" />}
         {briefing?.opportunities?.map((s) => (
           <RankedItem key={`o-${s.id}`} rank={s.rank ?? 0} title={s.title}
             score={s.score} scoreReason={s.score_reason}
-            subtitle={s.summary} detail={s.summary} onClick={() => onNavigate('/feed')} />
+            subtitle={s.summary} detail={s.summary} why={s.why} timestamp={fmtTimestamp(s.created_at)}
+            onClick={() => onNavigate('/feed')} />
         ))}
       </Section>
 

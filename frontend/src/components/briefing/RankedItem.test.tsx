@@ -61,6 +61,17 @@ it('closes the score popover on Escape without an activation handler firing', as
   expect(screen.queryByText(/Priority 1 → 92\./)).not.toBeInTheDocument()
 })
 
+it('shows the why field alongside detail when the row is hovered', async () => {
+  render(
+    <RankedItem rank={1} title="Board deck due" score={92}
+      subtitle="short" detail="the full untruncated explanation"
+      why="Flagged because the vendor contract renews Friday" meta="due in 4h" />,
+  )
+  await userEvent.hover(screen.getByText('Board deck due'))
+  expect(await screen.findByText(/the full untruncated explanation/)).toBeInTheDocument()
+  expect(screen.getByText(/Flagged because the vendor contract renews Friday/)).toBeInTheDocument()
+})
+
 it('never shows both the score explanation and the row detail at once', async () => {
   render(
     <RankedItem rank={1} title="Board deck due" score={92}
