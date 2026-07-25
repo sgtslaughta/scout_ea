@@ -10,7 +10,7 @@ tool — never run raw SQL or touch the SQLite database directly. If the MCP ser
 unreachable, stop and report; do not fall back to the database.
 
 ## Lookback window
-Read the last `log_skill_run` entry for this skill. Use its `ran_at` as `window_start`. If none exists, use `now - heartbeat_minutes` (default 30 min).
+Read the last `log_skill_run` entry for this skill. Use its `ran_at` as `window_start`. If none exists (first run), use `now - 24h`.
 
 ## Gather meeting signals
 Query `list_rows('signals', status='new')` for signals created in `[window_start, now]` where the content implies a meeting or sync:

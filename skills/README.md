@@ -123,7 +123,7 @@ Scout executes Skills by reading `.md` files from a skills directory and parsing
 
 All skills follow these rules from the design spec:
 
-1. **Lookback via `skill_runs`**: On start, read the last `skill_runs.ran_at` for this skill and use it as `window_start`. Fallback: `now - config.heartbeat_minutes`.
+1. **Lookback via `skill_runs`**: On start, read the last `skill_runs.ran_at` for this skill and use it as `window_start`. Fallback on first run: `now - 24h`.
 2. **Dedup before insert**: Compute `external_ref` (message-id, chat-id, URL, or manual:<uuid>). `INSERT ... ON CONFLICT(external_ref) DO NOTHING`.
 3. **Shared priority scale**: 1 (critical) → 5 (info).
 4. **All timestamps** in UTC ISO-8601.
