@@ -3,9 +3,48 @@ import { Box, Popover, Typography, ToggleButton, ToggleButtonGroup, useTheme } f
 import { SparkLineChart } from '@mui/x-charts/SparkLineChart'
 import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine'
 import { useQuery } from '@tanstack/react-query'
+import { Clock, TrendingUp, TrendingDown, BarChart3 } from 'lucide-react'
 import { getFinanceHistory, type HistoryRange, type Quote } from '@/api'
 
 const RANGES: HistoryRange[] = ['1d', '5d', '1w', '1m']
+
+export const priceFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const volumeFmt = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 })
+
+const OHLC_META = {
+  open: { label: 'O', Icon: Clock, format: priceFmt },
+  high: { label: 'H', Icon: TrendingUp, format: priceFmt },
+  low: { label: 'L', Icon: TrendingDown, format: priceFmt },
+  volume: { label: 'Vol', Icon: BarChart3, format: volumeFmt },
+} as const
+
+function OhlcChip({ field, value }: { field: keyof typeof OHLC_META; value: number }) {
+  const { label, Icon, format } = OHLC_META[field]
+  return (
+    <Box
+      data-testid={`ohlc-chip-${field}`}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.5,
+        px: 0.75,
+        py: 0.25,
+        borderRadius: 1,
+        bgcolor: 'action.hover',
+        border: '1px solid',
+        borderColor: 'divider',
+        fontSize: '0.7rem',
+        color: 'text.secondary',
+      }}
+    >
+      <Icon size={12} aria-label={field} />
+      <Typography component="span" sx={{ fontSize: 'inherit', fontWeight: 600 }}>{label}</Typography>
+      <Typography component="span" sx={{ fontSize: 'inherit', fontFamily: 'monospace' }}>
+        {format.format(value)}
+      </Typography>
+    </Box>
+  )
+}
 
 export interface TickerPopoverProps {
   quote: Quote
@@ -30,12 +69,12 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
     staleTime: 300_000,
   })
 
-  const ohlc = [
-    quote.open != null && `O ${quote.open}`,
-    quote.high != null && `H ${quote.high}`,
-    quote.low != null && `L ${quote.low}`,
-    quote.volume != null && `Vol ${quote.volume}`,
-  ].filter(Boolean).join(' · ')
+  const ohlcChips: Array<{ field: keyof typeof OHLC_META; value: number }> = [
+    { field: 'open', value: quote.open },
+    { field: 'high', value: quote.high },
+    { field: 'low', value: quote.low },
+    { field: 'volume', value: quote.volume },
+  ].filter((c): c is { field: keyof typeof OHLC_META; value: number } => c.value != null)
 
   const points = data?.points ?? []
   // Reference baseline is the opening value for the selected range — "above
@@ -82,9 +121,11 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
       <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
         {quote.name || quote.symbol}
       </Typography>
-      <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', mb: 1 }}>
-        {ohlc}
-      </Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+        {ohlcChips.map(({ field, value }) => (
+          <OhlcChip key={field} field={field} value={value} />
+        ))}
+      </Box>
 
       <Box sx={{ height: 48, mb: 1 }}>
         {points.length > 1

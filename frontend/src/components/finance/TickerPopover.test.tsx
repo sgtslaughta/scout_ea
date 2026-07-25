@@ -41,10 +41,47 @@ it('shows OHLC and the range toggles', async () => {
   wrap(<TickerPopover quote={quote} anchorEl={anchor} open onClose={() => {}} />)
 
   expect(await screen.findByText(/AAPL/)).toBeInTheDocument()
-  expect(screen.getByText(/O 99/)).toBeInTheDocument()
+  expect(screen.getByTestId('ohlc-chip-open')).toHaveTextContent('O99.00')
   for (const r of ['1d', '5d', '1w', '1m']) {
     expect(screen.getByRole('button', { name: r })).toBeInTheDocument()
   }
+})
+
+it('formats OHLC prices with thousands separators and 2 decimals, and volume compactly', async () => {
+  const anchor = document.createElement('div')
+  document.body.appendChild(anchor)
+  const q = { ...quote, open: 7406.2998046875, high: 7460.98, low: 7396.53, volume: 3022195000 }
+  wrap(<TickerPopover quote={q} anchorEl={anchor} open onClose={() => {}} />)
+
+  expect(await screen.findByText('7,406.30')).toBeInTheDocument()
+  expect(screen.getByText('7,460.98')).toBeInTheDocument()
+  expect(screen.getByText('7,396.53')).toBeInTheDocument()
+  expect(screen.getByText('3.02B')).toBeInTheDocument()
+})
+
+it('omits a chip for a null OHLC value instead of rendering "undefined"', async () => {
+  const anchor = document.createElement('div')
+  document.body.appendChild(anchor)
+  const q = { ...quote, open: null, high: 101, low: 98, volume: 1000 }
+  wrap(<TickerPopover quote={q as any} anchorEl={anchor} open onClose={() => {}} />)
+
+  await screen.findByText(/AAPL/)
+  expect(screen.queryByTestId('ohlc-chip-open')).not.toBeInTheDocument()
+  expect(screen.queryByText(/undefined/)).not.toBeInTheDocument()
+  expect(screen.getByTestId('ohlc-chip-high')).toBeInTheDocument()
+})
+
+it('gives each OHLC chip a distinguishable glyph via an accessible name', async () => {
+  const anchor = document.createElement('div')
+  document.body.appendChild(anchor)
+  wrap(<TickerPopover quote={quote} anchorEl={anchor} open onClose={() => {}} />)
+
+  await screen.findByText(/AAPL/)
+  expect(screen.getByTestId('ohlc-chip-open')).toHaveTextContent('O')
+  expect(screen.getByLabelText('open')).toBeInTheDocument()
+  expect(screen.getByLabelText('high')).toBeInTheDocument()
+  expect(screen.getByLabelText('low')).toBeInTheDocument()
+  expect(screen.getByLabelText('volume')).toBeInTheDocument()
 })
 
 it('fetches a new range when a toggle is clicked', async () => {

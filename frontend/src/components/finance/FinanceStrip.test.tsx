@@ -34,6 +34,10 @@ describe('FinanceStrip', () => {
     expect(screen.getByTestId('quote-AAPL').getAttribute('data-dir')).toBe('up')
     expect(screen.getByTestId('quote-MSFT').getAttribute('data-dir')).toBe('down')
   })
+  it('formats the price chip with thousands separators', () => {
+    wrap(<FinanceStrip finance={fin} />)
+    expect(screen.getByText('5,010.00')).toBeInTheDocument()
+  })
   it('click opens Yahoo Finance in a new tab', async () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     wrap(<FinanceStrip finance={fin} />)
