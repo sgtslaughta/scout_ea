@@ -43,3 +43,21 @@ def parse_quote(result: dict) -> dict | None:
         "volume": int(vol) if vol is not None else None,
         "change_pct": change,
     }
+
+
+def parse_history(result: dict) -> list[float]:
+    """One Yahoo v8 chart `result[0]` dict → close-price series, nulls dropped.
+
+    Yahoo writes null for gaps (market closed, thin trading); SparkLineChart
+    cannot render those, so they are dropped rather than interpolated.
+    """
+    q = (((result or {}).get("indicators") or {}).get("quote") or [{}])[0]
+    closes = q.get("close")
+    if not isinstance(closes, (list, tuple)):
+        closes = []
+    out = []
+    for v in closes:
+        n = _num(v)
+        if n is not None:
+            out.append(n)
+    return out

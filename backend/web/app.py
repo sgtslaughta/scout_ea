@@ -593,6 +593,55 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
                 return {**cached[1], "stale": True}
             return {"watchlist": [], "indices": [], "error": "unavailable", "stale": False}
 
+    # range → (Yahoo range, Yahoo interval). Closed whitelist: anything else is rejected.
+    _HISTORY_RANGES = {
+        "1d": ("1d", "5m"),
+        "5d": ("5d", "15m"),
+        "1w": ("7d", "30m"),
+        "1m": ("1mo", "1d"),
+    }
+    _HISTORY_CACHE: dict = {}
+    _HISTORY_TTL = 300
+
+    @app.get("/api/finance/history")
+    def get_finance_history(symbol: str, range: str = "1d", conn=Depends(get_db)):
+        rng = _HISTORY_RANGES.get(range)
+        if rng is None:
+            raise HTTPException(status_code=400, detail="unknown range")
+
+        # SECURITY: `symbol` is interpolated into an upstream URL. Only symbols the
+        # user has actually configured (or our fixed indices) may be requested —
+        # otherwise this endpoint is an SSRF pivot. Encoding alone is not enough.
+        row = conn.execute("SELECT value FROM config WHERE key='finance_watchlist'").fetchone()
+        watch = [t.strip() for t in (row["value"] if row else "").split(",") if t.strip()]
+        allowed = {_finance.to_yahoo_symbol(s) for s in watch if s}
+        allowed |= {i.upper() for i in _FINANCE_INDICES}
+        y = _finance.to_yahoo_symbol(symbol)
+        if not y or y not in allowed:
+            raise HTTPException(status_code=400, detail="unknown symbol")
+
+        key = (y, range)
+        now = datetime.now(timezone.utc).timestamp()
+        cached = _HISTORY_CACHE.get(key)
+        if cached and (now - cached[0]) < _HISTORY_TTL:
+            return {"symbol": y, "range": range, "points": cached[1], "stale": False}
+
+        yr, yi = rng
+        try:
+            cu = (f"https://query1.finance.yahoo.com/v8/finance/chart/"
+                  f"{urllib.parse.quote(y)}?interval={yi}&range={yr}")
+            req = urllib.request.Request(cu, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                raw = json.loads(resp.read().decode())
+            res = ((raw.get("chart") or {}).get("result") or [None])[0]
+            points = _finance.parse_history(res) if res else []
+            _HISTORY_CACHE[key] = (now, points)
+            return {"symbol": y, "range": range, "points": points, "stale": False}
+        except Exception:
+            if cached:
+                return {"symbol": y, "range": range, "points": cached[1], "stale": True}
+            return {"symbol": y, "range": range, "points": [], "error": "unavailable"}
+
     @app.get("/api/skills")
     def get_skills(conn=Depends(get_db)):
         skills = _skills.list_skills(skills_dir) if skills_dir else []

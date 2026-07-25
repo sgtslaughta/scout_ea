@@ -200,6 +200,21 @@ export const getWeather = (lat: number, lon: number) =>
 
 export const getFinance = () => fetchJson<FinanceResponse>('/api/finance')
 
+export type HistoryRange = '1d' | '5d' | '1w' | '1m'
+
+export interface FinanceHistory {
+  symbol: string
+  range: string
+  points: number[]
+  stale?: boolean
+  error?: string
+}
+
+export const getFinanceHistory = (symbol: string, range: HistoryRange) =>
+  fetchJson<FinanceHistory>(
+    `/api/finance/history?symbol=${encodeURIComponent(symbol)}&range=${range}`,
+  )
+
 export const getConfig = () => fetchJson<Record<string, string>>('/api/config')
 
 export interface CityHit { name: string; admin1?: string; country?: string; lat: number; lon: number }
