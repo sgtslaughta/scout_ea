@@ -19,7 +19,7 @@ function ConditionGlyph({
   condition, size = 14, testId,
 }: { condition: ForecastDay['condition']; size?: number; testId: string }) {
   const Icon = CONDITION_ICON[condition]
-  return <Icon size={size} aria-label={condition} data-testid={testId} />
+  return <Icon size={size} role="img" aria-label={condition} data-testid={testId} />
 }
 
 export function WeatherBand({ weather }: WeatherBandProps) {

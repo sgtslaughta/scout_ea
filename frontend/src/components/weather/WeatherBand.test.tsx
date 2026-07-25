@@ -59,6 +59,10 @@ describe('WeatherBand', () => {
     render(<WeatherBand weather={base} />)
     expect(screen.getByTestId('current-weather-glyph')).toHaveAccessibleName(/rain/i)
   })
+  it('exposes the current condition glyph with role="img" so its label is announced', () => {
+    render(<WeatherBand weather={base} />)
+    expect(screen.getByRole('img', { name: 'rain' })).toBe(screen.getByTestId('current-weather-glyph'))
+  })
   it('renders a local scrim protecting the forecast strip', () => {
     render(
       <WeatherBand

@@ -37,7 +37,7 @@ function OhlcChip({ field, value }: { field: keyof typeof OHLC_META; value: numb
         color: 'text.secondary',
       }}
     >
-      <Icon size={12} aria-label={field} />
+      <Icon size={12} role="img" aria-label={field} />
       <Typography component="span" sx={{ fontSize: 'inherit', fontWeight: 600 }}>{label}</Typography>
       <Typography component="span" sx={{ fontSize: 'inherit', fontFamily: 'monospace' }}>
         {format.format(value)}

@@ -84,6 +84,18 @@ it('gives each OHLC chip a distinguishable glyph via an accessible name', async 
   expect(screen.getByLabelText('volume')).toBeInTheDocument()
 })
 
+it('exposes each OHLC glyph with role="img" so its label is announced', async () => {
+  const anchor = document.createElement('div')
+  document.body.appendChild(anchor)
+  wrap(<TickerPopover quote={quote} anchorEl={anchor} open onClose={() => {}} />)
+
+  await screen.findByText(/AAPL/)
+  expect(screen.getByRole('img', { name: 'open' })).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: 'high' })).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: 'low' })).toBeInTheDocument()
+  expect(screen.getByRole('img', { name: 'volume' })).toBeInTheDocument()
+})
+
 it('fetches a new range when a toggle is clicked', async () => {
   const { getFinanceHistory } = await import('@/api')
   const anchor = document.createElement('div')
