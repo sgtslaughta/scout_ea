@@ -19,7 +19,11 @@ def _score_of(row) -> int:
         return max(0, min(100, int(row["impact"])))
     rel = row.get("relevance")
     if rel is not None:
-        return max(0, min(100, round(rel * 100) if rel <= 1 else round(rel)))
+        # relevance is a 1-5 ordinal where 1 = exact match, 5 = tangential
+        # (see skills/news_search/SKILL.md); map through the same priority
+        # table priority already uses, clamping out-of-range values to the
+        # nearest valid end of the scale.
+        return _PRIORITY_SCORE.get(max(1, min(5, round(rel))), 55)
     if row.get("importance") is not None:   # people: higher importance = more important
         return _PRIORITY_SCORE.get(6 - int(row["importance"]), 55)
     return _PRIORITY_SCORE.get(row.get("priority", 3), 55)
@@ -40,7 +44,7 @@ def _score_reason(row) -> str:
         return f"Impact {_score_of(row)} set directly by the source skill."
     rel = row.get("relevance")
     if rel is not None:
-        return f"Topic relevance {rel} → {_score_of(row)}."
+        return f"Topic relevance {rel} (1=exact match, 5=tangential) → {_score_of(row)}."
     if row.get("importance") is not None:
         return f"Person importance {int(row['importance'])} of 5 → {_score_of(row)}."
     priority = row.get("priority", 3)
@@ -95,7 +99,7 @@ def _news_by_topic(topics, news, learning):
     # Cap the whole quadrant at GRID_CAP items TOTAL (consistent with the other
     # three quadrants), selected by score globally — not GRID_CAP per topic,
     # which used to blow the quadrant up to 5 x (number of topics) rows.
-    all_items.sort(key=lambda i: i.get("relevance") or 0, reverse=True)
+    all_items.sort(key=_score_of, reverse=True)
     top = _rank(all_items[:GRID_CAP])   # global 1..5 ranks: items are grouped under
                                          # topic headings, not re-ranked per group, so
                                          # a reader sees one consistent 1-5 ordering

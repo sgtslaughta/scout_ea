@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 import { packPages } from './paging'
-import { TickerPopover } from './TickerPopover'
+import { TickerPopover, priceFmt } from './TickerPopover'
 
 export interface FinanceStripProps {
   finance: FinanceResponse
@@ -70,7 +70,7 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
             {useName ? (q.name || q.symbol) : q.symbol}
           </Typography>
           <Typography sx={{ fontFamily: 'monospace', fontSize: '0.8125rem', color }}>
-            {q.price?.toFixed(2)}
+            {q.price != null && priceFmt.format(q.price)}
           </Typography>
           <Typography sx={{ fontSize: '0.8125rem', color }}>
             {dir === 'up' && '▲'}

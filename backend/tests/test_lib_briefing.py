@@ -56,10 +56,10 @@ def test_score_falls_back_to_priority_then_relevance():
     out = _base(
         deadlines=[{"id": 5, "title": "D", "due_at": "2026-06-21T17:00:00+00:00", "priority": 1}],
         topics=[{"id": 10, "name": "AI", "priority": 1}],
-        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 0.9, "status": "new"}],
+        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 1, "status": "new"}],
     )
     assert out["critical"][0]["score"] == 92 and out["critical"][0]["rank"] == 1  # priority 1
-    assert out["news_by_topic"][0]["items"][0]["score"] == 90                     # relevance 0.9 -> 90
+    assert out["news_by_topic"][0]["items"][0]["score"] == 92                     # relevance 1 (exact) -> 92
 
 
 def test_polarity_split():
@@ -75,9 +75,9 @@ def test_polarity_split():
 def test_news_grouped_by_topic_relevance_desc():
     out = _base(
         topics=[{"id": 10, "name": "AI", "priority": 1}],
-        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 0.2, "status": "new"},
-              {"id": 2, "title": "b", "topic_id": 10, "relevance": 0.9, "status": "new"}],
-        learning=[{"id": 3, "title": "c", "topic_id": 10, "relevance": 0.5, "status": "suggested"}],
+        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 3, "status": "new"},
+              {"id": 2, "title": "b", "topic_id": 10, "relevance": 1, "status": "new"}],
+        learning=[{"id": 3, "title": "c", "topic_id": 10, "relevance": 2, "status": "suggested"}],
     )
     grp = out["news_by_topic"][0]
     assert grp["topic_id"] == 10 and grp["topic_name"] == "AI"
@@ -140,7 +140,7 @@ def test_grids_are_sorted_by_score_descending():
 def test_news_quadrant_caps_at_five_total_single_topic():
     topics = [{"id": 1, "name": "AI", "priority": 1}]
     news = [{"id": i, "title": f"n{i}", "topic_id": 1, "status": "new",
-             "relevance": (100 - i) / 100} for i in range(10)]
+             "relevance": (i % 5) + 1} for i in range(10)]
     out = _briefing.assemble(
         "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=[],
         news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
@@ -155,10 +155,14 @@ def test_news_quadrant_caps_at_five_total_across_multiple_topics():
     belong to; a topic contributing no surviving item must not appear at all."""
     topics = [{"id": 1, "name": "AI", "priority": 1}, {"id": 2, "name": "Markets", "priority": 2}]
     news = (
+        # relevance 1 = exact match (most relevant, highest score)
         [{"id": i, "title": f"ai{i}", "topic_id": 1, "status": "new",
-          "relevance": (100 - i) / 100} for i in range(10)]
+          "relevance": 1} for i in range(10)]
+        # relevance 5 = tangential (least relevant, lowest score) -- and, under
+        # the OLD inverted sort (raw relevance desc), 5 would have won, proving
+        # this test fails against the pre-fix sort.
         + [{"id": 100 + i, "title": f"mk{i}", "topic_id": 2, "status": "new",
-            "relevance": (50 - i) / 100} for i in range(10)]
+            "relevance": 5} for i in range(10)]
     )
     out = _briefing.assemble(
         "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=[],
@@ -166,8 +170,8 @@ def test_news_quadrant_caps_at_five_total_across_multiple_topics():
     )
     total = sum(len(g["items"]) for g in out["news_by_topic"])
     assert total == 5
-    # All 5 highest-relevance candidates come from topic AI (relevance 0.99..0.90
-    # beats Markets' best of 0.5) -> Markets group should be absent entirely.
+    # All 5 highest-relevance (lowest relevance NUMBER) candidates come from
+    # topic AI -> Markets group should be absent entirely.
     assert [g["topic_id"] for g in out["news_by_topic"]] == [1]
     assert [i["id"] for i in out["news_by_topic"][0]["items"]] == [0, 1, 2, 3, 4]
     # Ranks are global across the quadrant (1..5), not restarted per topic group.
@@ -184,8 +188,8 @@ def test_score_reason_explains_explicit_impact():
 
 
 def test_score_reason_explains_relevance():
-    out = _briefing._score_reason({"relevance": 0.82})
-    assert "0.82" in out and "82" in out
+    out = _briefing._score_reason({"relevance": 2})
+    assert "2" in out and "76" in out
 
 
 def test_score_reason_explains_importance():
@@ -237,7 +241,7 @@ def test_score_reason_falls_through_null_importance_to_priority():
 def test_score_reason_number_always_matches_score_of():
     rows = [
         {"impact": 91},
-        {"relevance": 0.5},
+        {"relevance": 4},
         {"importance": 3},
         {"priority": 4},
         {"priority": None},
@@ -260,7 +264,7 @@ def test_assemble_grids_all_carry_nonempty_score_reason():
             {"id": 1, "title": "r", "type": "proactive", "status": "new", "polarity": "risk"},
             {"id": 2, "title": "o", "type": "proactive", "status": "new", "polarity": "opportunity"},
         ],
-        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 0.2, "status": "new"}],
+        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 4, "status": "new"}],
         learning=[],
         topics=[{"id": 10, "name": "AI", "priority": 1}],
         people=[{"id": 2, "name": "Hi", "importance": 5}],
@@ -273,3 +277,37 @@ def test_assemble_grids_all_carry_nonempty_score_reason():
     for group in out["news_by_topic"]:
         for item in group["items"]:
             assert item["score_reason"]
+
+
+def test_relevance_scale_maps_through_priority_table():
+    """relevance is a 1-5 ordinal where 1 = exact match, 5 = tangential
+    (see skills/news_search/SKILL.md); it must map through the same
+    _PRIORITY_SCORE table priority uses, not a 0-100 scale."""
+    assert _briefing._score_of({"relevance": 1}) == 92
+    assert _briefing._score_of({"relevance": 2}) == 76
+    assert _briefing._score_of({"relevance": 3}) == 55
+    assert _briefing._score_of({"relevance": 4}) == 34
+    assert _briefing._score_of({"relevance": 5}) == 15
+
+
+def test_relevance_out_of_range_clamps_to_nearest_valid_end():
+    assert _briefing._score_of({"relevance": 0}) == 92    # clamps up to 1 (most relevant)
+    assert _briefing._score_of({"relevance": 7}) == 15    # clamps down to 5 (least relevant)
+
+
+def test_news_quadrant_selects_most_relevant_lowest_numbers():
+    """Sorting must select the LOWEST relevance numbers (most relevant), not
+    the highest -- this fails against the pre-fix sort, which favored the
+    most tangential item."""
+    topics = [{"id": 10, "name": "AI", "priority": 1}]
+    news = [
+        {"id": 1, "title": "tangential", "topic_id": 10, "relevance": 5, "status": "new"},
+        {"id": 2, "title": "exact", "topic_id": 10, "relevance": 1, "status": "new"},
+    ]
+    out = _base(topics=topics, news=news)
+    assert [i["id"] for i in out["news_by_topic"][0]["items"]] == [2, 1]
+
+
+def test_score_reason_relevance_number_matches_score_of():
+    row = {"relevance": 3}
+    assert str(_briefing._score_of(row)) in _briefing._score_reason(row)
