@@ -94,6 +94,7 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
       {/* CelestialArc */}
       <svg
         viewBox="0 0 100 40"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
           inset: 0,

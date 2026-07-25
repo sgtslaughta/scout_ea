@@ -31,4 +31,18 @@ describe('WeatherBand', () => {
     expect(fc).toHaveTextContent('82°')   // tomorrow shown
     expect(fc).not.toHaveTextContent('80°')  // today omitted
   })
+  it('stretches the celestial arc across the full band width', () => {
+    const { container } = render(
+      <WeatherBand
+        weather={{
+          temp: 20, condition: 'clear', is_day: true, unit: 'C', label: 'Test',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T13:00:00Z')}
+      />,
+    )
+    const svg = container.querySelector('svg')
+    // Without this, xMidYMid meet letterboxes the arc into a narrow centered strip.
+    expect(svg?.getAttribute('preserveAspectRatio')).toBe('none')
+  })
 })
