@@ -11,7 +11,8 @@ INSERT OR IGNORE INTO config(key, value) VALUES
   ('weather_lat',       '40.71'),
   ('weather_lon',       '-74.01'),
   ('weather_label',     'New York'),
-  ('finance_watchlist', 'AAPL,MSFT,GOOGL,NVDA');
+  ('finance_watchlist', 'AAPL,MSFT,GOOGL,NVDA'),
+  ('briefing_ticker_interval_ms', '15000');
 
 INSERT OR IGNORE INTO people(id, name, role, org, importance, notes) VALUES
   (1, 'Dr. Vance', 'Regional VP', 'Acme', 5, 'Owns the renewal decision — highest-priority contact.');
