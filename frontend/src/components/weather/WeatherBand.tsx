@@ -131,6 +131,19 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
       {/* ConditionFX Layer */}
       <ConditionFX condition={weather.condition} isDay={weather.is_day ?? true} />
 
+      {/* Scrim — keeps white text legible against a bright daytime sky */}
+      <Box
+        aria-hidden
+        data-testid="weather-scrim"
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.18) 45%, transparent 75%)',
+        }}
+      />
+
       {/* Content Overlay */}
       <Box
         sx={{

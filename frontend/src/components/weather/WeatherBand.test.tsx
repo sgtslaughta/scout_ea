@@ -60,4 +60,16 @@ describe('WeatherBand', () => {
     expect(screen.getByTestId('celestial-moon')).toBeInTheDocument()
     expect(screen.queryByTestId('celestial-sun')).not.toBeInTheDocument()
   })
+  it('renders a scrim behind the location and temperature', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 30, condition: 'clear', is_day: true, unit: 'F', label: 'Austin',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T12:00:00Z')}
+      />,
+    )
+    expect(screen.getByTestId('weather-scrim')).toBeInTheDocument()
+  })
 })
