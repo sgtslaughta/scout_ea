@@ -1,7 +1,7 @@
 ---
 name: scout_actions
 description: Scan recent signals/deadlines/people and draft outgoing actions for review; report each run. Does not execute.
-schedule: heartbeat 5m
+schedule: every 5m
 ---
 
 ## MCP server

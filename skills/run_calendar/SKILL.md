@@ -1,7 +1,7 @@
 ---
 name: run_calendar
 description: Execute approved calendar invite actions; write results back.
-schedule: heartbeat 5m
+schedule: every 5m
 ---
 
 ## MCP server

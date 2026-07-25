@@ -1,7 +1,7 @@
 ---
 name: suggest_events
 description: Read signals implying meetings; suggest calendar times and attendees; draft events
-schedule: heartbeat 30m
+schedule: every 30m
 ---
 
 ## MCP server

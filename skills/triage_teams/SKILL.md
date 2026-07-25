@@ -1,7 +1,7 @@
 ---
 name: triage_teams
 description: Review active Teams chats for critical/time-sensitive actions and key-person mentions; upsert signals
-schedule: heartbeat 30m, workdays 07:00-18:00 EST
+schedule: every 30m, workdays 07:00-18:00 EST
 ---
 
 ## MCP server

@@ -1,7 +1,7 @@
 ---
 name: run_comms
 description: Execute approved email + status actions via M365; write results back.
-schedule: heartbeat 5m
+schedule: every 5m
 ---
 
 ## MCP server

@@ -1,7 +1,7 @@
 ---
 name: run_cowork
 description: Execute collaboration doc/gather actions; write results back with access URLs.
-schedule: heartbeat 10m
+schedule: every 10m
 ---
 
 ## MCP server

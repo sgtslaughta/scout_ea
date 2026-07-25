@@ -1,7 +1,7 @@
 ---
 name: run_teams
 description: Execute approved Teams chat + group + channel actions; write results back.
-schedule: heartbeat 5m
+schedule: every 5m
 ---
 
 ## MCP server

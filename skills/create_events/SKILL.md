@@ -1,7 +1,7 @@
 ---
 name: create_events
 description: Read approved events; draft calendar invites for user review
-schedule: heartbeat 30m
+schedule: every 30m
 ---
 
 ## MCP server

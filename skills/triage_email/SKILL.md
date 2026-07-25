@@ -1,7 +1,7 @@
 ---
 name: triage_email
 description: Review inbound email for critical/time-sensitive actions, events, and key-person replies; upsert signals
-schedule: heartbeat 30m, workdays 07:00-18:00 EST
+schedule: every 30m, workdays 07:00-18:00 EST
 ---
 
 ## MCP server

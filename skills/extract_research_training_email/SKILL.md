@@ -1,7 +1,7 @@
 ---
 name: extract_research_training_email
 description: Identify training opportunities and research announcements in email; upsert learning items
-schedule: heartbeat 30m, workdays 07:00-18:00 EST
+schedule: every 30m, workdays 07:00-18:00 EST
 ---
 
 ## MCP server

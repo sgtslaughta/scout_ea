@@ -1,7 +1,7 @@
 ---
 name: parse_deadlines
 description: Scan signals and email/chat for hard deadlines; upsert critical_deadlines
-schedule: heartbeat 30m, workdays 07:00-18:00 EST
+schedule: every 30m, workdays 07:00-18:00 EST
 ---
 
 ## MCP server
