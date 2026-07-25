@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -15,7 +15,9 @@ import { X } from 'lucide-react'
 import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
 import { SkyBackdrop } from './weather/SkyBackdrop'
+import { CelestialArc } from './weather/CelestialArc'
 import { useSkyPhase } from './weather/useSkyPhase'
+import { arcFraction } from './weather/sky'
 import { FinanceStrip } from './finance/FinanceStrip'
 import { RankedItem } from './briefing/RankedItem'
 import { useWeatherLocation } from '@/lib/useWeatherLocation'
@@ -84,8 +86,18 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   })
 
   // Sky phase drives the whole modal background, not just the weather band —
-  // shares the same live-tick hook as WeatherBand so both agree at phase boundaries.
-  const { phase } = useSkyPhase(weather?.sunrise, weather?.sunset)
+  // the arc (sun/moon) now lives here too, spanning the full modal height.
+  const { now, phase } = useSkyPhase(weather?.sunrise, weather?.sunset)
+
+  // `weather.is_day` is a server-cached snapshot (30 min TTL) and disagrees with the
+  // live clock near sunrise/sunset — derive night-ness from `phase` instead.
+  const isNight = phase === 'night'
+  const arcPos = useMemo(
+    () => (weather?.sunrise && weather?.sunset
+      ? arcFraction(now, weather.sunrise, weather.sunset, !isNight)
+      : undefined),
+    [now, weather?.sunrise, weather?.sunset, isNight],
+  )
 
   const go = (view: string) => {
     onClose()
@@ -106,6 +118,7 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
       {/* Pinned to the Paper (non-scrolling layer) so the sky stays behind
           below-the-fold content instead of scrolling away with it. */}
       <SkyBackdrop phase={phase} fade />
+      {arcPos != null && <CelestialArc arcPos={arcPos} isNight={isNight} />}
       <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative', zIndex: 1 }}>
         {/* Close button */}
         <IconButton
