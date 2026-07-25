@@ -45,4 +45,19 @@ describe('WeatherBand', () => {
     // Without this, xMidYMid meet letterboxes the arc into a narrow centered strip.
     expect(svg?.getAttribute('preserveAspectRatio')).toBe('none')
   })
+  it('renders the moon at night even when cached is_day is stale-true', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 12, condition: 'clear',
+          is_day: true,  // stale: server cached this up to 30 min ago
+          unit: 'C', label: 'Test',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T23:00:00Z')}  // clearly night
+      />,
+    )
+    expect(screen.getByTestId('celestial-moon')).toBeInTheDocument()
+    expect(screen.queryByTestId('celestial-sun')).not.toBeInTheDocument()
+  })
 })

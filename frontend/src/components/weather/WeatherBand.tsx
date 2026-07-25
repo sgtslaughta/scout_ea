@@ -31,9 +31,14 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
     () => skyPhase(now, weather.sunrise || new Date(), weather.sunset || new Date()),
     [now, weather.sunrise, weather.sunset],
   )
+
+  // The gradient uses the live clock, so the celestial body must too — `weather.is_day`
+  // is a server-cached snapshot (30 min TTL) and disagrees near sunrise/sunset.
+  const isNight = phase === 'night'
+
   const arcPos = useMemo(
-    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), weather.is_day ?? true),
-    [now, weather.sunrise, weather.sunset, weather.is_day],
+    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), !isNight),
+    [now, weather.sunrise, weather.sunset, isNight],
   )
 
   // Early return if error or missing condition
@@ -111,7 +116,7 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
           fill="none"
         />
         {/* Celestial body */}
-        {weather.is_day ? (
+        {!isNight ? (
           <circle
             cx={celestialX}
             cy={celestialY}
