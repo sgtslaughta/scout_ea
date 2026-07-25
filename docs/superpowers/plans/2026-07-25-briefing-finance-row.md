@@ -463,16 +463,68 @@ it('renders indices and watchlist in one merged row', () => {
   expect(screen.getByTestId('quote-AAPL')).toBeInTheDocument()
 })
 
-it('advances the page on the interval', () => {
+// jsdom has no layout engine: offsetWidth/clientWidth are always 0, and
+// packPages falls back to a single page when `available <= 0`. Rotation can
+// therefore NEVER occur in jsdom unless these are stubbed. Without this
+// helper the rotation test silently passes against a component that does not
+// rotate at all.
+function stubLayout({ chip, row }: { chip: number; row: number }) {
+  const offset = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.hasAttribute('data-chip') ? chip : row
+    })
+  const client = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+    .mockReturnValue(row)
+  return () => { offset.mockRestore(); client.mockRestore() }
+}
+
+const many = {
+  indices: Array.from({ length: 6 }, (_, i) => ({
+    symbol: `^IDX${i}`, name: `Index ${i}`, price: 100 + i, change_pct: 1,
+  })),
+  watchlist: Array.from({ length: 6 }, (_, i) => ({
+    symbol: `SYM${i}`, price: 50 + i, change_pct: -1,
+  })),
+}
+
+it('advances the page on the interval and wraps at the end', () => {
+  // 12 chips of 100px in a 250px row => 3 pages
+  const restore = stubLayout({ chip: 100, row: 250 })
   vi.useFakeTimers()
-  render(<FinanceStrip finance={finance} intervalMs={1000} />)
-  const before = screen.getByTestId('finance-row').getAttribute('data-page')
+  render(<FinanceStrip finance={many} intervalMs={1000} />)
+
+  const row = () => screen.getByTestId('finance-row')
+  expect(row()).toHaveAttribute('data-page', '0')
+
   act(() => { vi.advanceTimersByTime(1100) })
-  const after = screen.getByTestId('finance-row').getAttribute('data-page')
-  // With one page the index stays 0; with more it advances. Either way it must not crash.
-  expect(after).not.toBeNull()
-  expect(before).not.toBeNull()
+  expect(row()).toHaveAttribute('data-page', '1')
+
+  // keep advancing until it must have wrapped back to 0
+  const pages = Number(row().getAttribute('data-page-count'))
+  expect(pages).toBeGreaterThan(1)
+  act(() => { vi.advanceTimersByTime(1100 * pages) })
+  expect(row()).toHaveAttribute('data-page', '0')
+
   vi.useRealTimers()
+  restore()
+})
+
+it('pauses rotation while hovered', async () => {
+  const restore = stubLayout({ chip: 100, row: 250 })
+  vi.useFakeTimers()
+  render(<FinanceStrip finance={many} intervalMs={1000} />)
+  const row = () => screen.getByTestId('finance-row')
+
+  fireEvent.mouseEnter(row().parentElement!)
+  act(() => { vi.advanceTimersByTime(5000) })
+  expect(row()).toHaveAttribute('data-page', '0')   // frozen while hovered
+
+  fireEvent.mouseLeave(row().parentElement!)
+  act(() => { vi.advanceTimersByTime(1100) })
+  expect(row()).toHaveAttribute('data-page', '1')   // resumes on leave
+
+  vi.useRealTimers()
+  restore()
 })
 
 it('advances when the manual button is pressed', async () => {
@@ -483,7 +535,15 @@ it('advances when the manual button is pressed', async () => {
 })
 ```
 
-Import `act` from `@testing-library/react` and `userEvent` from `@testing-library/user-event`, matching the existing imports in this test file.
+Import `act` and `fireEvent` from `@testing-library/react` and `userEvent` from
+`@testing-library/user-event`, matching the existing imports in this test file.
+
+**Why the layout stub is mandatory:** `packPages` returns a single page when
+`available <= 0`, and jsdom reports every element's `offsetWidth` and
+`clientWidth` as 0. A rotation test without `stubLayout` therefore exercises a
+one-page strip, where the page index legitimately never changes — it would pass
+against a component with no rotation logic whatsoever. Any assertion about
+paging must stub layout first.
 
 - [ ] **Step 3: Run test to verify it fails**
 
@@ -580,6 +640,7 @@ Then the render — one row, all chips mounted (so they stay measurable), transl
         ref={rowRef}
         data-testid="finance-row"
         data-page={page}
+        data-page-count={pageCount}
         sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}
       >
         <Box
