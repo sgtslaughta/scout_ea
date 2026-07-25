@@ -1,4 +1,5 @@
 import { Box } from '@mui/material'
+import { CloudField } from './CloudField'
 
 export interface ConditionFXProps {
   condition: string
@@ -20,6 +21,8 @@ export function ConditionFX({ condition, isDay }: ConditionFXProps) {
         overflow: 'hidden',
       }}
     >
+      {condition === 'clear' && <CloudField count={2} thin seedOffset={100} />}
+
       {condition === 'clear' && isDay && (
         <svg
           viewBox="0 0 100 120"
@@ -70,67 +73,11 @@ export function ConditionFX({ condition, isDay }: ConditionFXProps) {
         </svg>
       )}
 
-      {condition === 'clouds' && (
-        <>
-          <Box
-            data-testid="cloud"
-            sx={{
-              position: 'absolute',
-              top: '10%',
-              left: '-15%',
-              width: '80px',
-              height: '30px',
-              background: 'rgba(255, 255, 255, 0.4)',
-              borderRadius: '20px',
-              animation: 'driftClouds 22s linear infinite',
-            }}
-          />
-          <Box
-            data-testid="cloud"
-            sx={{
-              position: 'absolute',
-              top: '35%',
-              left: '-15%',
-              width: '100px',
-              height: '35px',
-              background: 'rgba(255, 255, 255, 0.3)',
-              borderRadius: '20px',
-              animation: 'driftClouds 30s linear infinite',
-              animationDelay: '-10s',
-            }}
-          />
-          <Box
-            data-testid="cloud"
-            sx={{
-              position: 'absolute',
-              top: '55%',
-              left: '-15%',
-              width: '60px',
-              height: '24px',
-              background: 'rgba(255, 255, 255, 0.35)',
-              borderRadius: '20px',
-              animation: 'driftClouds 18s linear infinite',
-              animationDelay: '-4s',
-            }}
-          />
-        </>
-      )}
+      {condition === 'clouds' && <CloudField count={6} />}
 
       {condition === 'rain' && (
         <>
-          <Box
-            data-testid="cloud"
-            sx={{
-              position: 'absolute',
-              top: '8%',
-              left: '-15%',
-              width: '60px',
-              height: '25px',
-              background: 'rgba(150, 150, 150, 0.5)',
-              borderRadius: '15px',
-              animation: 'driftClouds 26s linear infinite',
-            }}
-          />
+          <CloudField count={7} dark seedOffset={200} />
           {[0, 1, 2, 3, 4].map((i) => (
             <Box
               key={`rain-${i}`}
@@ -151,6 +98,7 @@ export function ConditionFX({ condition, isDay }: ConditionFXProps) {
 
       {condition === 'snow' && (
         <>
+          <CloudField count={4} seedOffset={400} />
           {[0, 1, 2, 3, 4].map((i) => (
             <Box
               key={`snow-${i}`}
@@ -185,19 +133,7 @@ export function ConditionFX({ condition, isDay }: ConditionFXProps) {
 
       {condition === 'storm' && (
         <>
-          <Box
-            data-testid="cloud"
-            sx={{
-              position: 'absolute',
-              top: '6%',
-              left: '-15%',
-              width: '70px',
-              height: '30px',
-              background: 'rgba(60, 60, 80, 0.7)',
-              borderRadius: '15px',
-              animation: 'driftClouds 16s linear infinite',
-            }}
-          />
+          <CloudField count={8} dark seedOffset={300} />
           {[0, 1, 2].map((i) => (
             <Box
               key={`storm-rain-${i}`}
