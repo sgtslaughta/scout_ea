@@ -44,6 +44,21 @@ describe('WeatherBand', () => {
     )
     expect(screen.getByTestId('weather-scrim')).toBeInTheDocument()
   })
+  it('renders a distinct glyph per forecast day, matching its condition', () => {
+    render(<WeatherBand weather={{ ...base, forecast: [
+      { date: '2026-06-21', hi: 80, lo: 60, condition: 'clear' },   // today, skipped
+      { date: '2026-06-22', hi: 82, lo: 61, condition: 'rain' },
+      { date: '2026-06-23', hi: 70, lo: 55, condition: 'snow' },
+      { date: '2026-06-24', hi: 65, lo: 50, condition: 'clouds' },
+    ] }} />)
+    expect(screen.getByTestId('forecast-glyph-2026-06-22')).toHaveAccessibleName(/rain/i)
+    expect(screen.getByTestId('forecast-glyph-2026-06-23')).toHaveAccessibleName(/snow/i)
+    expect(screen.getByTestId('forecast-glyph-2026-06-24')).toHaveAccessibleName(/clouds/i)
+  })
+  it('renders a glyph for the current condition next to the temperature', () => {
+    render(<WeatherBand weather={base} />)
+    expect(screen.getByTestId('current-weather-glyph')).toHaveAccessibleName(/rain/i)
+  })
   it('renders a local scrim protecting the forecast strip', () => {
     render(
       <WeatherBand

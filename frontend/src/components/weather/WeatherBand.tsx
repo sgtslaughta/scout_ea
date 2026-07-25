@@ -1,8 +1,25 @@
 import { Box, Typography } from '@mui/material'
-import type { WeatherResponse } from '@/api'
+import { Sun, Cloud, CloudRain, CloudSnow, CloudFog, CloudLightning } from 'lucide-react'
+import type { WeatherResponse, ForecastDay } from '@/api'
 
 export interface WeatherBandProps {
   weather: WeatherResponse
+}
+
+const CONDITION_ICON: Record<ForecastDay['condition'], typeof Sun> = {
+  clear: Sun,
+  clouds: Cloud,
+  rain: CloudRain,
+  snow: CloudSnow,
+  fog: CloudFog,
+  storm: CloudLightning,
+}
+
+function ConditionGlyph({
+  condition, size = 14, testId,
+}: { condition: ForecastDay['condition']; size?: number; testId: string }) {
+  const Icon = CONDITION_ICON[condition]
+  return <Icon size={size} aria-label={condition} data-testid={testId} />
 }
 
 export function WeatherBand({ weather }: WeatherBandProps) {
@@ -76,16 +93,19 @@ export function WeatherBand({ weather }: WeatherBandProps) {
         <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
           {weather.label}
         </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            fontFamily: 'monospace',
-          }}
-        >
-          {Math.round(weather.temp || 0)}°{unit}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+          <ConditionGlyph condition={weather.condition} size={20} testId="current-weather-glyph" />
+          <Typography
+            variant="body1"
+            sx={{
+              fontSize: '1.5rem',
+              fontWeight: 'bold',
+              fontFamily: 'monospace',
+            }}
+          >
+            {Math.round(weather.temp || 0)}°{unit}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Forecast strip (next few days) */}
@@ -122,6 +142,9 @@ export function WeatherBand({ weather }: WeatherBandProps) {
               <Typography sx={{ fontSize: '0.7rem', opacity: 0.9 }}>
                 {new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' })}
               </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 0.25 }}>
+                <ConditionGlyph condition={d.condition} testId={`forecast-glyph-${d.date}`} />
+              </Box>
               <Typography sx={{ fontSize: '0.8rem', fontFamily: 'monospace' }}>
                 {d.hi != null ? Math.round(d.hi) : '–'}°
               </Typography>
