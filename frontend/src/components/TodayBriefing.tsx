@@ -16,6 +16,7 @@ import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
 import { SkyBackdrop } from './weather/SkyBackdrop'
 import { CelestialArc } from './weather/CelestialArc'
+import { ConditionFX } from './weather/ConditionFX'
 import { useSkyPhase } from './weather/useSkyPhase'
 import { arcFraction } from './weather/sky'
 import { FinanceStrip } from './finance/FinanceStrip'
@@ -119,6 +120,9 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
           below-the-fold content instead of scrolling away with it. */}
       <SkyBackdrop phase={phase} fade />
       {arcPos != null && <CelestialArc arcPos={arcPos} isNight={isNight} />}
+      {weather && !weather.error && weather.condition && (
+        <ConditionFX condition={weather.condition} isDay={weather.is_day ?? true} />
+      )}
       <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative', zIndex: 1 }}>
         {/* Close button */}
         <IconButton

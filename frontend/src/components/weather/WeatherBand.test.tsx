@@ -6,11 +6,14 @@ const base = { temp: 18, condition: 'rain' as const, is_day: true,
   sunrise: '2026-06-21T06:00:00Z', sunset: '2026-06-21T20:00:00Z', label: 'NYC', stale: false }
 
 describe('WeatherBand', () => {
-  it('renders temp, label, and a condition FX layer', () => {
+  it('renders temp and label', () => {
     render(<WeatherBand weather={base} />)
     expect(screen.getByText(/NYC/)).toBeInTheDocument()
     expect(screen.getByText(/18/)).toBeInTheDocument()
-    expect(screen.getByTestId('condition-rain')).toBeInTheDocument()
+  })
+  it('does not render its own condition FX layer — the modal-level layer shows through instead', () => {
+    render(<WeatherBand weather={base} />)
+    expect(screen.queryByTestId('condition-rain')).not.toBeInTheDocument()
   })
   it('shows unavailable state on error payload', () => {
     render(<WeatherBand weather={{ error: 'unavailable', label: 'NYC' }} />)
