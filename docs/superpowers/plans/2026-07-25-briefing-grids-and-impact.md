@@ -185,8 +185,15 @@ def test_score_reason_explains_relevance():
 
 
 def test_score_reason_explains_importance():
-    out = _briefing._score_reason({"importance": 1})
-    assert "1" in out and "92" in out
+    # NOTE: importance is INVERTED relative to priority. `_score_of` computes
+    # `_PRIORITY_SCORE[6 - importance]`, so importance 5 is the most important
+    # person (-> 92) and importance 1 the least (-> 15). Verified against the
+    # live function; do not "correct" these numbers to match priority's scale.
+    out = _briefing._score_reason({"importance": 5})
+    assert "5" in out and "92" in out
+
+    low = _briefing._score_reason({"importance": 1})
+    assert "1" in low and "15" in low
 
 
 def test_score_reason_explains_priority():

@@ -25,13 +25,13 @@ export interface NewsItem {
   id: number; title: string; url?: string; synopsis?: string; topic_id?: number
   source?: string; event_at?: string; relevance?: number; status: string
   tags?: ContentTag[]; links?: ContentLink[]
-  rank?: number; score?: number; category?: 'news' | 'learning'   // briefing
+  rank?: number; score?: number; score_reason?: string; category?: 'news' | 'learning'   // briefing
 }
 export interface LearningItem {
   id: number; kind: string; title: string; synopsis?: string; url?: string; provider?: string
   event_at?: string; topic_id?: number; relevance?: number; status: string
   tags?: ContentTag[]; links?: ContentLink[]
-  rank?: number; score?: number; category?: 'news' | 'learning'   // briefing
+  rank?: number; score?: number; score_reason?: string; category?: 'news' | 'learning'   // briefing
 }
 export interface FeedRecent {
   category: string; id: number; title: string; when: string; url?: string; status: string
@@ -73,7 +73,7 @@ export interface Signal {
   person_id?: number
   polarity?: 'risk' | 'opportunity' | null
   impact?: number         // 0-100 criticality (briefing)
-  rank?: number; score?: number   // briefing
+  rank?: number; score?: number; score_reason?: string   // briefing
 }
 
 export interface Task {
@@ -166,13 +166,13 @@ export interface CriticalItem {
   nav: { view: string; id: number }
   countdown_seconds?: number; due_at?: string; priority?: number
   summary?: string; detail?: string; why?: string
-  rank?: number; score?: number
+  rank?: number; score?: number; score_reason?: string
 }
 export interface BriefingTopicGroup {
   topic_id: number; topic_name: string; topic_priority: number
   items: (NewsItem | LearningItem)[]
 }
-export interface BriefingPerson extends Person { signals: Signal[]; rank?: number; score?: number }
+export interface BriefingPerson extends Person { signals: Signal[]; rank?: number; score?: number; score_reason?: string }
 export interface BriefingResponse {
   date: string
   summary: string | null

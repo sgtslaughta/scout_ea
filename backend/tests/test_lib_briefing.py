@@ -95,3 +95,155 @@ def test_people_ordered_by_importance_with_signals():
     assert [p["id"] for p in out["people"]] == [2, 1]
     assert out["people"][0]["signals"][0]["id"] == 8
     assert out["people"][1]["signals"] == []
+
+
+from lib import briefing as _briefing
+
+
+def _sig(i, impact, polarity=None, type_="proactive"):
+    return {"id": i, "title": f"s{i}", "type": type_, "status": "new",
+            "impact": impact, "polarity": polarity, "priority": 3}
+
+
+def test_every_grid_caps_at_five():
+    signals = [_sig(i, 90 - i, "risk") for i in range(10)]
+    signals += [_sig(100 + i, 90 - i, "opportunity") for i in range(10)]
+    people = [{"id": i, "name": f"p{i}", "importance": 1} for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=signals,
+        news=[], learning=[], topics=[], people=people, people_signals={}, summary=None,
+    )
+    assert len(out["risks"]) == 5
+    assert len(out["opportunities"]) == 5
+    assert len(out["people"]) == 5
+
+
+def test_critical_caps_at_five():
+    tasks = [{"id": i, "title": f"t{i}", "due_at": "2026-07-25T12:00:00Z", "priority": 1}
+             for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=tasks, signals=[],
+        news=[], learning=[], topics=[], people=[], people_signals={}, summary=None,
+    )
+    assert len(out["critical"]) == 5
+
+
+def test_grids_are_sorted_by_score_descending():
+    signals = [_sig(1, 30, "risk"), _sig(2, 95, "risk"), _sig(3, 60, "risk")]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=signals,
+        news=[], learning=[], topics=[], people=[], people_signals={}, summary=None,
+    )
+    assert [r["score"] for r in out["risks"]] == [95, 60, 30]
+
+
+def test_news_items_cap_at_five_per_topic():
+    topics = [{"id": 1, "name": "AI", "priority": 1}]
+    news = [{"id": i, "title": f"n{i}", "topic_id": 1, "status": "new",
+             "relevance": (100 - i) / 100} for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=[],
+        news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
+    )
+    assert len(out["news_by_topic"][0]["items"]) == 5
+
+
+def test_score_reason_prefers_skill_authored_reasoning():
+    row = {"impact": 91, "reasoning": "CEO asked for a decision before Friday's board call."}
+    assert _briefing._score_reason(row) == "CEO asked for a decision before Friday's board call."
+
+
+def test_score_reason_explains_explicit_impact():
+    assert "91" in _briefing._score_reason({"impact": 91})
+
+
+def test_score_reason_explains_relevance():
+    out = _briefing._score_reason({"relevance": 0.82})
+    assert "0.82" in out and "82" in out
+
+
+def test_score_reason_explains_importance():
+    # NOTE: importance is INVERTED relative to priority. `_score_of` computes
+    # `_PRIORITY_SCORE[6 - importance]`, so importance 5 is the most important
+    # person (-> 92) and importance 1 the least (-> 15). Verified against the
+    # live function; do not "correct" these numbers to match priority's scale.
+    out = _briefing._score_reason({"importance": 5})
+    assert "5" in out and "92" in out
+
+    low = _briefing._score_reason({"importance": 1})
+    assert "1" in low and "15" in low
+
+
+def test_score_reason_explains_priority():
+    out = _briefing._score_reason({"priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_rank_attaches_score_reason():
+    rows = [{"priority": 1, "title": "x"}]
+    ranked = _briefing._rank(rows)
+    assert ranked[0]["score_reason"]
+    assert ranked[0]["score"] == 92
+
+
+def test_score_reason_handles_null_priority_like_score_of():
+    row = {"priority": None}
+    assert _briefing._score_of(row) == 55
+    out = _briefing._score_reason(row)          # must not raise
+    assert "55" in out
+
+
+def test_score_reason_falls_through_null_impact_to_priority():
+    out = _briefing._score_reason({"impact": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_falls_through_null_relevance_to_priority():
+    out = _briefing._score_reason({"relevance": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_falls_through_null_importance_to_priority():
+    out = _briefing._score_reason({"importance": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_number_always_matches_score_of():
+    rows = [
+        {"impact": 91},
+        {"relevance": 0.5},
+        {"importance": 3},
+        {"priority": 4},
+        {"priority": None},
+        {"impact": None, "priority": 1},
+        {"relevance": None, "importance": None, "priority": 5},
+        {},
+    ]
+    for row in rows:
+        expected = _briefing._score_of(row)
+        assert str(expected) in _briefing._score_reason(row)
+
+
+def test_assemble_grids_all_carry_nonempty_score_reason():
+    out = _briefing.assemble(
+        now=NOW,
+        deadlines=[{"id": 5, "title": "D", "due_at": "2026-06-21T17:00:00+00:00", "priority": 1}],
+        tasks=[{"id": 7, "title": "T", "due_at": "2026-06-21T12:00:00+00:00", "priority": None}],
+        signals=[
+            {"id": 9, "title": "S", "type": "email", "priority": 1, "status": "new", "impact": 80},
+            {"id": 1, "title": "r", "type": "proactive", "status": "new", "polarity": "risk"},
+            {"id": 2, "title": "o", "type": "proactive", "status": "new", "polarity": "opportunity"},
+        ],
+        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 0.2, "status": "new"}],
+        learning=[],
+        topics=[{"id": 10, "name": "AI", "priority": 1}],
+        people=[{"id": 2, "name": "Hi", "importance": 5}],
+        people_signals={},
+        summary=None,
+    )
+    for key in ("critical", "risks", "opportunities", "people"):
+        for row in out[key]:
+            assert row["score_reason"]
+    for group in out["news_by_topic"]:
+        for item in group["items"]:
+            assert item["score_reason"]

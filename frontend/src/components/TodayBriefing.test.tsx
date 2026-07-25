@@ -15,7 +15,8 @@ vi.mock('react-router-dom', async (orig) => ({
 const payload = {
   date: '2026-07-12', summary: 'busy day',
   critical: [{ id: 5, title: 'Ship it', kind: 'deadline', nav: { view: '/tasks', id: 5 },
-    countdown_seconds: 3600, rank: 1, score: 92, detail: 'Blocks the release train' }],
+    countdown_seconds: 3600, rank: 1, score: 92, score_reason: 'Priority 1 → 92.',
+    detail: 'Blocks the release train' }],
   risks: [{ id: 1, type: 'proactive', source: 'briefing', title: 'Renewal risk',
     status: 'new', priority: 3, created_at: '', polarity: 'risk', rank: 1, score: 88,
     summary: 'No reply from Vance in 4 days' }],
@@ -54,6 +55,14 @@ describe('TodayBriefing', () => {
     expect(screen.getByText('No reply from Vance in 4 days')).toBeInTheDocument()
     expect(screen.getByText('A frontier model shipped today')).toBeInTheDocument()
     expect(screen.getByText('due in 1h 0m')).toBeInTheDocument()      // deadline countdown
+  })
+
+  it('passes the score reason through to ranked items', async () => {
+    renderModal()
+    await screen.findByText('Ship it')
+    const badge = screen.getAllByText('92')[0]
+    await userEvent.hover(badge)
+    expect(await screen.findByText(/Priority 1 → 92\./)).toBeInTheDocument()
   })
 
   it('click-to-nav closes modal and routes', async () => {
@@ -147,6 +156,36 @@ describe('TodayBriefing', () => {
     const conditionFX = await screen.findByTestId('condition-rain')
     expect(conditionFX).toBeInTheDocument()
     expect(weatherBand.contains(conditionFX)).toBe(false)
+  })
+
+  it('Escape closes the score popover, not the modal, when a popover is open', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText('Ship it')
+    const badges = screen.getAllByLabelText(/Impact score 92 explanation/)
+    badges[0].focus()
+    expect(await screen.findByText(/Impact 92 \/ 100/)).toBeInTheDocument()
+    await userEvent.keyboard('{Escape}')
+    expect(screen.queryByText(/Impact 92 \/ 100/)).not.toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
+  it('Escape still closes the modal when no popover is open', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    await screen.findByText('Ship it')
+    await userEvent.keyboard('{Escape}')
+    expect(onClose).toHaveBeenCalled()
   })
 
   it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
