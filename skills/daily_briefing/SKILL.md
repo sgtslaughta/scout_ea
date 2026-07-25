@@ -44,6 +44,11 @@ For each suggestion, call `add_signal`:
   (deadline pressure, revenue/relationship at stake, reach). The briefing ranks
   risks/opportunities by this, so score honestly and spread the range (a routine
   FYI ~30, a slipping renewal ~85+). Reserve 90+ for genuinely urgent items.
+- `reasoning`: whenever you set `impact`, also set this — one plain-english
+  sentence saying why this item earned that score, in your own words. It is
+  shown to the user verbatim when they hover the score badge in the daily
+  briefing. Write "CEO asked for a decision before Friday's board call", not
+  "high priority email".
 
 ## Write the day summary
 LLM produces ONE natural line summarizing the day (e.g. "3 deadlines — watch the

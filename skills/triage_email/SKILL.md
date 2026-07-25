@@ -27,11 +27,15 @@ For each flagged email, extract:
 - `external_ref`: message-id (required for dedup)
 - `priority`: 1 (critical) for urgent keyword + key person, 2 (high) for events/urgent, 3 (normal) for key person, 4 (low) for other replies
 - `triage_rank`: sequential order by time-sensitivity (most urgent first)
+- `impact`/`reasoning`: if you also score `impact` (0-100), set `reasoning` alongside
+  it — one plain-english sentence saying why this email earned that score, shown
+  to the user verbatim on hover in the briefing. Write "CEO asked for a decision
+  before Friday's board call", not "high priority email".
 
 ## Write signals
 For each email, compute `external_ref = message-id`. Then call the **`add_signal`** tool:
 
-`add_signal(type="email", source="email", external_ref=…, title=…, summary=…, who=…, what=…, when_rel=…, why=…, person_id=…, priority=…, triage_rank=…, occurred_at=…, url=…)`
+`add_signal(type="email", source="email", external_ref=…, title=…, summary=…, who=…, what=…, when_rel=…, why=…, person_id=…, priority=…, triage_rank=…, impact=…, reasoning=…, occurred_at=…, url=…)`
 
 `status` defaults to `'new'`; the tool dedups on `external_ref` and returns the row id (1 new / 0 duplicate). Leave `topic_id` unset.
 

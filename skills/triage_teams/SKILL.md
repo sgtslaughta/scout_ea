@@ -28,11 +28,15 @@ For each flagged message, extract:
 - `priority`: 1 (critical) for urgent keyword + @me, 2 (high) for urgent/@mention/new chat, 3 (normal) for key person, 4 (low) for other replies
 - `triage_rank`: sequential order by time-sensitivity (most urgent first)
 - `url`: deep-link to the Teams chat/thread
+- `impact`/`reasoning`: if you also score `impact` (0-100), set `reasoning` alongside
+  it — one plain-english sentence saying why this message earned that score, shown
+  to the user verbatim on hover in the briefing. Write "CEO asked for a decision
+  before Friday's board call", not "high priority email".
 
 ## Write signals
 For each message, compute `external_ref = <chat-id>:<message-id>`. Then call the **`add_signal`** tool:
 
-`add_signal(type="teams", source="teams", external_ref=…, title=…, summary=…, who=…, what=…, when_rel=…, why=…, person_id=…, priority=…, triage_rank=…, occurred_at=…, url=…)`
+`add_signal(type="teams", source="teams", external_ref=…, title=…, summary=…, who=…, what=…, when_rel=…, why=…, person_id=…, priority=…, triage_rank=…, impact=…, reasoning=…, occurred_at=…, url=…)`
 
 `status` defaults to `'new'`; the tool dedups on `external_ref` and returns the row id (1 new / 0 duplicate). Leave `topic_id` unset.
 

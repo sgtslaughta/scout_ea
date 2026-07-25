@@ -130,6 +130,11 @@ All skills follow these rules from the design spec:
 5. **No-op is valid**: If nothing new, still log a `skill_runs` row with `items_created=0`.
 6. **Raise alerts** for priority ≤ 2 items: insert an `alerts` row.
 7. **End with `log_skill_run`**: Always call this tool at the end, even if no-op.
+8. **Justify `impact`**: whenever a skill sets `impact` on a signal, it must also set
+   `reasoning` — one plain-english sentence saying why the item earned that score.
+   It is shown to the user verbatim when they hover the score badge in the daily
+   briefing. Write "CEO asked for a decision before Friday's board call", not
+   "high priority email".
 
 ---
 
