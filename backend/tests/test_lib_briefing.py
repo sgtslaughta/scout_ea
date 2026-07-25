@@ -184,3 +184,66 @@ def test_rank_attaches_score_reason():
     ranked = _briefing._rank(rows)
     assert ranked[0]["score_reason"]
     assert ranked[0]["score"] == 92
+
+
+def test_score_reason_handles_null_priority_like_score_of():
+    row = {"priority": None}
+    assert _briefing._score_of(row) == 55
+    out = _briefing._score_reason(row)          # must not raise
+    assert "55" in out
+
+
+def test_score_reason_falls_through_null_impact_to_priority():
+    out = _briefing._score_reason({"impact": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_falls_through_null_relevance_to_priority():
+    out = _briefing._score_reason({"relevance": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_falls_through_null_importance_to_priority():
+    out = _briefing._score_reason({"importance": None, "priority": 2})
+    assert "2" in out and "76" in out
+
+
+def test_score_reason_number_always_matches_score_of():
+    rows = [
+        {"impact": 91},
+        {"relevance": 0.5},
+        {"importance": 3},
+        {"priority": 4},
+        {"priority": None},
+        {"impact": None, "priority": 1},
+        {"relevance": None, "importance": None, "priority": 5},
+        {},
+    ]
+    for row in rows:
+        expected = _briefing._score_of(row)
+        assert str(expected) in _briefing._score_reason(row)
+
+
+def test_assemble_grids_all_carry_nonempty_score_reason():
+    out = _briefing.assemble(
+        now=NOW,
+        deadlines=[{"id": 5, "title": "D", "due_at": "2026-06-21T17:00:00+00:00", "priority": 1}],
+        tasks=[{"id": 7, "title": "T", "due_at": "2026-06-21T12:00:00+00:00", "priority": None}],
+        signals=[
+            {"id": 9, "title": "S", "type": "email", "priority": 1, "status": "new", "impact": 80},
+            {"id": 1, "title": "r", "type": "proactive", "status": "new", "polarity": "risk"},
+            {"id": 2, "title": "o", "type": "proactive", "status": "new", "polarity": "opportunity"},
+        ],
+        news=[{"id": 1, "title": "a", "topic_id": 10, "relevance": 0.2, "status": "new"}],
+        learning=[],
+        topics=[{"id": 10, "name": "AI", "priority": 1}],
+        people=[{"id": 2, "name": "Hi", "importance": 5}],
+        people_signals={},
+        summary=None,
+    )
+    for key in ("critical", "risks", "opportunities", "people"):
+        for row in out[key]:
+            assert row["score_reason"]
+    for group in out["news_by_topic"]:
+        for item in group["items"]:
+            assert item["score_reason"]

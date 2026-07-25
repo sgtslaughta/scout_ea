@@ -43,7 +43,10 @@ def _score_reason(row) -> str:
         return f"Topic relevance {rel} → {_score_of(row)}."
     if row.get("importance") is not None:
         return f"Person importance {int(row['importance'])} of 5 → {_score_of(row)}."
-    return f"Priority {int(row.get('priority', 3))} → {_score_of(row)}."
+    priority = row.get("priority", 3)
+    if priority is None:
+        priority = 3
+    return f"Priority {int(priority)} → {_score_of(row)}."
 
 
 def _rank(rows: list) -> list:
