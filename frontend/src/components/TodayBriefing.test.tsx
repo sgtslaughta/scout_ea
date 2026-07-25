@@ -86,4 +86,9 @@ describe('TodayBriefing', () => {
     renderModal()
     expect(await screen.findByText('AAPL')).toBeInTheDocument()
   })
+
+  it('renders the sky backdrop behind the modal content', async () => {
+    renderModal()
+    expect(await screen.findByTestId('sky-backdrop')).toBeInTheDocument()
+  })
 })

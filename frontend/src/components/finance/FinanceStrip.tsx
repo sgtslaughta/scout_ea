@@ -1,4 +1,4 @@
-import { Box, Typography, Tooltip } from '@mui/material'
+import { Box, Typography, Tooltip, alpha } from '@mui/material'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 
@@ -93,7 +93,7 @@ export function FinanceStrip({ finance }: FinanceStripProps) {
 
   return (
     <Box
-      sx={{
+      sx={(theme) => ({
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
@@ -101,10 +101,11 @@ export function FinanceStrip({ finance }: FinanceStripProps) {
         columnGap: { xs: 1.5, md: 3 },
         p: 1.5,
         borderRadius: 1,
-        bgcolor: 'background.paper',
+        backgroundColor: alpha(theme.palette.background.paper, 0.72),
+        backdropFilter: 'blur(8px)',
         border: '1px solid',
         borderColor: 'divider',
-      }}
+      })}
     >
       {finance.watchlist.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
