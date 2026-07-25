@@ -31,7 +31,10 @@ def parse_quote(result: dict) -> dict | None:
     prev = _num(m.get("chartPreviousClose"))
     change = round((price - prev) / prev * 100, 2) if (price is not None and prev) else None
     q = ((result.get("indicators") or {}).get("quote") or [{}])[0]
-    opens = [x for x in (q.get("open") or []) if x is not None]
+    open_vals = q.get("open")
+    if not isinstance(open_vals, (list, tuple)):
+        open_vals = []
+    opens = [x for x in open_vals if x is not None]
     vol = _num(m.get("regularMarketVolume"))
     return {
         "symbol": sym,

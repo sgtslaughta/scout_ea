@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Box, Typography, alpha, IconButton } from '@mui/material'
+import { Box, Typography, IconButton, alpha } from '@mui/material'
 import { ChevronDown } from 'lucide-react'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
@@ -163,7 +163,11 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
         gap: 1,
         p: 1.5,
         borderRadius: 1,
-        backgroundColor: alpha(theme.palette.background.paper, 0.72),
+        // theme.vars is only populated under cssVariables (enabled for this app);
+        // fall back to alpha() for callers/tests without the CSS-vars ThemeProvider.
+        backgroundColor: theme.vars
+          ? `rgba(${theme.vars.palette.background.paperChannel} / 0.72)`
+          : alpha(theme.palette.background.paper, 0.72),
         backdropFilter: 'blur(8px)',
         border: '1px solid',
         borderColor: 'divider',

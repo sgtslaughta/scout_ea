@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { Box, Popover, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { useId, useState } from 'react'
+import { Box, Popover, Typography, ToggleButton, ToggleButtonGroup, useTheme } from '@mui/material'
 import { SparkLineChart } from '@mui/x-charts/SparkLineChart'
+import { ChartsReferenceLine } from '@mui/x-charts/ChartsReferenceLine'
 import { useQuery } from '@tanstack/react-query'
 import { getFinanceHistory, type HistoryRange, type Quote } from '@/api'
 
@@ -17,6 +18,8 @@ export interface TickerPopoverProps {
 }
 
 export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: TickerPopoverProps) {
+  const theme = useTheme()
+  const gradientId = useId().replace(/:/g, '')
   const [range, setRange] = useState<HistoryRange>('1d')
 
   // Lazy: nothing is fetched until the popover actually opens.
@@ -35,6 +38,18 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
   ].filter(Boolean).join(' · ')
 
   const points = data?.points ?? []
+  // Reference baseline is the opening value for the selected range — "above
+  // the line" matches the up/down semantics of change_pct elsewhere in the strip.
+  const baseline = points[0]
+  const min = points.length > 1 ? Math.min(...points) : baseline
+  const max = points.length > 1 ? Math.max(...points) : baseline
+  // Fraction of the plotted range (top = max, bottom = min) at which the
+  // baseline sits — the boundary between the green (above) and red (below)
+  // zones of the gradient. Two stops at the same offset produce a hard
+  // cut rather than a blend. Flat series (max === min) can't divide; treat
+  // them as fully "above" (matches an unchanged/flat series reading as
+  // neither a gain nor a loss, closer to success than error).
+  const baselineOffset = max === min ? 1 : Math.min(1, Math.max(0, (max - baseline) / (max - min)))
 
   return (
     <Popover
@@ -62,7 +77,31 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
 
       <Box sx={{ height: 48, mb: 1 }}>
         {points.length > 1
-          ? <SparkLineChart data={points} height={48} color="var(--color-accent)" />
+          ? (
+            <SparkLineChart
+              data={points}
+              height={48}
+              color={`url(#${gradientId})`}
+              area
+              baseline={baseline}
+              data-testid="finance-sparkline"
+            >
+              <defs>
+                <linearGradient
+                  id={gradientId}
+                  data-testid="finance-sparkline-gradient"
+                  x1={0} y1={0} x2={0} y2={1}
+                >
+                  <stop offset={baselineOffset} stopColor={theme.palette.success.main} />
+                  <stop offset={baselineOffset} stopColor={theme.palette.error.main} />
+                </linearGradient>
+              </defs>
+              <ChartsReferenceLine
+                y={baseline}
+                lineStyle={{ stroke: theme.palette.divider, strokeDasharray: '3 3' }}
+              />
+            </SparkLineChart>
+          )
           : <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>
               No history available
             </Typography>}

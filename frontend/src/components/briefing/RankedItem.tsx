@@ -9,7 +9,9 @@ export interface RankedItemProps {
   scoreReason?: string
   subtitle?: string
   detail?: string
+  why?: string
   meta?: string
+  timestamp?: string
   onClick?: () => void
 }
 
@@ -20,7 +22,7 @@ const scoreStyle = (s: number) =>
   s >= 40 ? { bg: 'info.main', fg: '#fff' } :
             { bg: 'action.selected', fg: 'text.secondary' }
 
-export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, meta, onClick }: RankedItemProps) {
+export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, why, meta, timestamp, onClick }: RankedItemProps) {
   const clickable = !!onClick
   const badge = score != null ? scoreStyle(score) : null
   const [scoreAnchor, setScoreAnchor] = useState<HTMLElement | null>(null)
@@ -29,7 +31,7 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
   // when both anchors are live (the badge sits inside the row's bounds, so
   // hovering/focusing it also fires the row's handlers) — never both open.
   const scoreOpen = !!scoreAnchor
-  const rowOpen = !!rowAnchor && !scoreOpen && !!(detail || subtitle || meta)
+  const rowOpen = !!rowAnchor && !scoreOpen && !!(detail || subtitle || why || meta || timestamp)
   return (
     <Box
       role={clickable ? 'button' : undefined}
@@ -128,8 +130,17 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, 
         {(detail || subtitle) && (
           <Typography sx={{ fontSize: '0.8rem', mb: 0.5 }}>{detail || subtitle}</Typography>
         )}
+        {why && (
+          <Typography sx={{ fontSize: '0.8rem', mb: 0.5 }}>
+            <Typography component="span" sx={{ fontWeight: 700 }}>Why: </Typography>
+            {why}
+          </Typography>
+        )}
         {meta && (
           <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{meta}</Typography>
+        )}
+        {timestamp && (
+          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{timestamp}</Typography>
         )}
       </HoverCard>
     </Box>
