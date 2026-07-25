@@ -86,4 +86,49 @@ describe('TodayBriefing', () => {
     renderModal()
     expect(await screen.findByText('AAPL')).toBeInTheDocument()
   })
+
+  it('renders the sky backdrop behind the modal content', async () => {
+    renderModal()
+    expect(await screen.findByTestId('sky-backdrop')).toBeInTheDocument()
+  })
+
+  it('re-paints the sky backdrop when the live clock crosses a phase boundary', async () => {
+    vi.useFakeTimers()
+    // 50 min before sunset — still 'day' (twilight window is 45 min).
+    vi.setSystemTime(new Date('2026-06-21T19:10:00Z'))
+    vi.spyOn(api, 'getConfig').mockResolvedValue(
+      { weather_lat: '40.71', weather_lon: '-74.01', weather_label: 'NYC' } as never)
+    vi.spyOn(api, 'getWeather').mockResolvedValue(
+      { condition: 'clear', temp: 20, is_day: true,
+        sunrise: '2026-06-21T06:00:00Z', sunset: '2026-06-21T20:00:00Z', label: 'NYC' } as never)
+
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={() => {}} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    // Two SkyBackdrop instances render (modal-level + WeatherBand's own) — the modal's
+    // is the first in DOM order since it's a sibling rendered ahead of the content.
+    const modalBackdrop = () => screen.getAllByTestId('sky-backdrop')[0]
+
+    // Flush the mocked query promises without relying on real-timer polling.
+    await vi.waitFor(() => expect(modalBackdrop()).toHaveAttribute('data-phase', 'day'))
+
+    // Advance the live clock 10 minutes — now 40 min before sunset, inside dusk window.
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+
+    expect(modalBackdrop()).toHaveAttribute('data-phase', 'dusk')
+    vi.useRealTimers()
+  })
+
+  it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
+    renderModal()
+    const backdrop = await screen.findByTestId('sky-backdrop')
+    const closeButton = screen.getByLabelText('Close briefing')
+    // The backdrop must live on a non-scrolling layer (the Dialog's Paper),
+    // a sibling of the scrollable content box — not nested inside it.
+    expect(backdrop.parentElement).not.toBe(closeButton.parentElement)
+  })
 })

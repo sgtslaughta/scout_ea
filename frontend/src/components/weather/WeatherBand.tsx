@@ -1,39 +1,27 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { WeatherResponse } from '@/api'
-import { skyPhase, arcFraction } from './sky'
+import { arcFraction } from './sky'
+import { SkyBackdrop } from './SkyBackdrop'
+import { useSkyPhase } from './useSkyPhase'
 
 export interface WeatherBandProps {
   weather: WeatherResponse
   now?: Date
 }
 
-/** Sky gradient presets by phase */
-const skyGradients: Record<string, string> = {
-  dawn: 'linear-gradient(180deg, #ffc2a6 0%, #ffb380 50%, #a8d8ff 100%)',
-  day: 'linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%)',
-  dusk: 'linear-gradient(180deg, #ff9a56 0%, #c66dd4 50%, #2a1b4d 100%)',
-  night: 'linear-gradient(180deg, #0a0e27 0%, #1a1f3a 50%, #0d0a1a 100%)',
-}
-
 export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
   // Live clock so the sun/moon advances across the arc in real time.
   // A fixed `now` prop (tests / controlled render) freezes it; otherwise tick each minute.
-  const [clock, setClock] = useState<Date>(() => nowProp ?? new Date())
-  useEffect(() => {
-    if (nowProp) return
-    const id = setInterval(() => setClock(new Date()), 60_000)
-    return () => clearInterval(id)
-  }, [nowProp])
-  const now = nowProp ?? clock
+  const { now, phase } = useSkyPhase(weather.sunrise, weather.sunset, nowProp)
 
-  const phase = useMemo(
-    () => skyPhase(now, weather.sunrise || new Date(), weather.sunset || new Date()),
-    [now, weather.sunrise, weather.sunset],
-  )
+  // The gradient uses the live clock, so the celestial body must too — `weather.is_day`
+  // is a server-cached snapshot (30 min TTL) and disagrees near sunrise/sunset.
+  const isNight = phase === 'night'
+
   const arcPos = useMemo(
-    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), weather.is_day ?? true),
-    [now, weather.sunrise, weather.sunset, weather.is_day],
+    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), !isNight),
+    [now, weather.sunrise, weather.sunset, isNight],
   )
 
   // Early return if error or missing condition
@@ -83,17 +71,12 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
       }}
     >
       {/* SkyBackdrop */}
-      <Box
-        sx={{
-          position: 'absolute',
-          inset: 0,
-          background: skyGradients[phase] || skyGradients.day,
-        }}
-      />
+      <SkyBackdrop phase={phase} />
 
       {/* CelestialArc */}
       <svg
         viewBox="0 0 100 40"
+        preserveAspectRatio="none"
         style={{
           position: 'absolute',
           inset: 0,
@@ -110,7 +93,7 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
           fill="none"
         />
         {/* Celestial body */}
-        {weather.is_day ? (
+        {!isNight ? (
           <circle
             cx={celestialX}
             cy={celestialY}
@@ -137,6 +120,19 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
 
       {/* ConditionFX Layer */}
       <ConditionFX condition={weather.condition} isDay={weather.is_day ?? true} />
+
+      {/* Scrim — keeps white text legible against a bright daytime sky */}
+      <Box
+        aria-hidden
+        data-testid="weather-scrim"
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background:
+            'linear-gradient(90deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.18) 45%, transparent 75%)',
+        }}
+      />
 
       {/* Content Overlay */}
       <Box
@@ -166,19 +162,33 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
 
       {/* Forecast strip (next few days) */}
       {upcoming.length > 0 && (
-        <Box
-          data-testid="weather-forecast"
-          sx={{
-            position: 'absolute',
-            bottom: 12,
-            right: 12,
-            zIndex: 10,
-            display: 'flex',
-            gap: 1.5,
-            color: '#fff',
-            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
-          }}
-        >
+        <>
+          {/* Local scrim — the main scrim fades to transparent by 75% width, which
+              leaves this bottom-right block unprotected against bright daytime skies. */}
+          <Box
+            aria-hidden
+            data-testid="weather-forecast-scrim"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background:
+                'linear-gradient(270deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.18) 30%, transparent 60%)',
+            }}
+          />
+          <Box
+            data-testid="weather-forecast"
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              zIndex: 10,
+              display: 'flex',
+              gap: 1.5,
+              color: '#fff',
+              textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+            }}
+          >
           {upcoming.map((d) => (
             <Box key={d.date} sx={{ textAlign: 'center', minWidth: 34 }}>
               <Typography sx={{ fontSize: '0.7rem', opacity: 0.9 }}>
@@ -192,7 +202,8 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
               </Typography>
             </Box>
           ))}
-        </Box>
+          </Box>
+        </>
       )}
 
       {/* Global animation keyframes */}

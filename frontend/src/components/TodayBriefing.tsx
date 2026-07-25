@@ -9,10 +9,13 @@ import {
   Paper,
   IconButton,
   Skeleton,
+  alpha,
 } from '@mui/material'
 import { X } from 'lucide-react'
 import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
+import { SkyBackdrop } from './weather/SkyBackdrop'
+import { useSkyPhase } from './weather/useSkyPhase'
 import { FinanceStrip } from './finance/FinanceStrip'
 import { RankedItem } from './briefing/RankedItem'
 import { useWeatherLocation } from '@/lib/useWeatherLocation'
@@ -32,7 +35,16 @@ const SubLabel = ({ text }: { text: string }) => (
 function Section({ title, empty, emptyText, children }:
   { title: string; empty: boolean; emptyText: string; children: ReactNode }) {
   return (
-    <Paper sx={{ p: 2, bgcolor: 'action.hover' }}>
+    <Paper
+      sx={(theme) => ({
+        p: 2,
+        // Translucent so the sky reads through; blur keeps text contrast.
+        backgroundColor: alpha(theme.palette.background.paper, 0.72),
+        backdropFilter: 'blur(8px)',
+        border: '1px solid',
+        borderColor: 'divider',
+      })}
+    >
       <Typography variant="overline" sx={{ fontWeight: 700, display: 'block', mb: 1, color: 'text.secondary' }}>
         {title}
       </Typography>
@@ -71,6 +83,10 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
     enabled: open,
   })
 
+  // Sky phase drives the whole modal background, not just the weather band —
+  // shares the same live-tick hook as WeatherBand so both agree at phase boundaries.
+  const { phase } = useSkyPhase(weather?.sunrise, weather?.sunset)
+
   const go = (view: string) => {
     onClose()
     navigate(view)
@@ -86,8 +102,11 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
   if (!open) return null
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { position: 'relative', height: '92vh', m: 'auto' } } }}>
-      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto' }}>
+    <Dialog open={open} onClose={onClose} maxWidth="xl" fullWidth slotProps={{ paper: { sx: { position: 'relative', height: '92vh', m: 'auto', overflow: 'hidden' } } }}>
+      {/* Pinned to the Paper (non-scrolling layer) so the sky stays behind
+          below-the-fold content instead of scrolling away with it. */}
+      <SkyBackdrop phase={phase} fade />
+      <Box sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'auto', position: 'relative', zIndex: 1 }}>
         {/* Close button */}
         <IconButton
           ref={closeButtonRef}
@@ -98,84 +117,86 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
           <X size={20} />
         </IconButton>
 
-        {/* Weather band */}
-        {weather ? <Box sx={{ mb: 2 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 2 }} />}
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          {/* Weather band */}
+          {weather ? <Box sx={{ mb: 2 }}><WeatherBand weather={weather} /></Box> : <Box sx={{ height: 120, mb: 2 }} />}
 
-        {/* Finance strip — horizontal, directly below weather */}
-        {finance && <Box sx={{ mb: 3 }}><FinanceStrip finance={finance} /></Box>}
+          {/* Finance strip — horizontal, directly below weather */}
+          {finance && <Box sx={{ mb: 3 }}><FinanceStrip finance={finance} /></Box>}
 
-        {isLoading ? (
-          <Stack spacing={2}>
-            <Skeleton variant="text" height={40} />
-            <Skeleton variant="rounded" height={200} />
-            <Skeleton variant="rounded" height={200} />
-          </Stack>
-        ) : (
-          <>
-            {/* Summary headline */}
-            {briefing?.summary && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 600 }}>
-                  {briefing.summary}
-                </Typography>
+          {isLoading ? (
+            <Stack spacing={2}>
+              <Skeleton variant="text" height={40} />
+              <Skeleton variant="rounded" height={200} />
+              <Skeleton variant="rounded" height={200} />
+            </Stack>
+          ) : (
+            <>
+              {/* Summary headline */}
+              {briefing?.summary && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 600 }}>
+                    {briefing.summary}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Grid of 4 section cards — ranked, scored, with context */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
+                {/* Critical */}
+                <Section title="Critical" empty={!briefing?.critical?.length}
+                  emptyText="No critical items — clear morning">
+                  {briefing?.critical?.map((item) => (
+                    <RankedItem key={`c-${item.id}`} rank={item.rank ?? 0} title={item.title}
+                      score={item.score} subtitle={item.summary || item.detail}
+                      meta={item.kind === 'deadline' ? fmtCountdown(item.countdown_seconds) : undefined}
+                      onClick={() => item.nav && go(item.nav.view)} />
+                  ))}
+                </Section>
+
+                {/* Risks & Opportunities */}
+                <Section title="Risks & Opportunities"
+                  empty={!briefing?.risks?.length && !briefing?.opportunities?.length}
+                  emptyText="Nothing flagged">
+                  {!!briefing?.risks?.length && <SubLabel text="Risks" />}
+                  {briefing?.risks?.map((s) => (
+                    <RankedItem key={`r-${s.id}`} rank={s.rank ?? 0} title={s.title}
+                      score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
+                  ))}
+                  {!!briefing?.opportunities?.length && <SubLabel text="Opportunities" />}
+                  {briefing?.opportunities?.map((s) => (
+                    <RankedItem key={`o-${s.id}`} rank={s.rank ?? 0} title={s.title}
+                      score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
+                  ))}
+                </Section>
+
+                {/* Topics News */}
+                <Section title="Topics News" empty={!briefing?.news_by_topic?.length}
+                  emptyText="No topics today">
+                  {briefing?.news_by_topic?.map((topic) => (
+                    <Box key={topic.topic_id}>
+                      <SubLabel text={topic.topic_name} />
+                      {topic.items?.map((item) => (
+                        <RankedItem key={`n-${item.id}`} rank={item.rank ?? 0} title={item.title}
+                          score={item.score} subtitle={item.synopsis} onClick={() => go('/feed')} />
+                      ))}
+                    </Box>
+                  ))}
+                </Section>
+
+                {/* Key People */}
+                <Section title="Key People" empty={!briefing?.people?.length}
+                  emptyText="No key people">
+                  {briefing?.people?.map((p) => (
+                    <RankedItem key={`p-${p.id}`} rank={p.rank ?? 0} title={p.name} score={p.score}
+                      subtitle={p.notes} meta={[p.role, p.org].filter(Boolean).join(' · ') || undefined}
+                      onClick={() => go('/people')} />
+                  ))}
+                </Section>
               </Box>
-            )}
-
-            {/* Grid of 4 section cards — ranked, scored, with context */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2, mb: 3 }}>
-              {/* Critical */}
-              <Section title="Critical" empty={!briefing?.critical?.length}
-                emptyText="No critical items — clear morning">
-                {briefing?.critical?.map((item) => (
-                  <RankedItem key={`c-${item.id}`} rank={item.rank ?? 0} title={item.title}
-                    score={item.score} subtitle={item.summary || item.detail}
-                    meta={item.kind === 'deadline' ? fmtCountdown(item.countdown_seconds) : undefined}
-                    onClick={() => item.nav && go(item.nav.view)} />
-                ))}
-              </Section>
-
-              {/* Risks & Opportunities */}
-              <Section title="Risks & Opportunities"
-                empty={!briefing?.risks?.length && !briefing?.opportunities?.length}
-                emptyText="Nothing flagged">
-                {!!briefing?.risks?.length && <SubLabel text="Risks" />}
-                {briefing?.risks?.map((s) => (
-                  <RankedItem key={`r-${s.id}`} rank={s.rank ?? 0} title={s.title}
-                    score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
-                ))}
-                {!!briefing?.opportunities?.length && <SubLabel text="Opportunities" />}
-                {briefing?.opportunities?.map((s) => (
-                  <RankedItem key={`o-${s.id}`} rank={s.rank ?? 0} title={s.title}
-                    score={s.score} subtitle={s.summary} onClick={() => go('/feed')} />
-                ))}
-              </Section>
-
-              {/* Topics News */}
-              <Section title="Topics News" empty={!briefing?.news_by_topic?.length}
-                emptyText="No topics today">
-                {briefing?.news_by_topic?.map((topic) => (
-                  <Box key={topic.topic_id}>
-                    <SubLabel text={topic.topic_name} />
-                    {topic.items?.map((item) => (
-                      <RankedItem key={`n-${item.id}`} rank={item.rank ?? 0} title={item.title}
-                        score={item.score} subtitle={item.synopsis} onClick={() => go('/feed')} />
-                    ))}
-                  </Box>
-                ))}
-              </Section>
-
-              {/* Key People */}
-              <Section title="Key People" empty={!briefing?.people?.length}
-                emptyText="No key people">
-                {briefing?.people?.map((p) => (
-                  <RankedItem key={`p-${p.id}`} rank={p.rank ?? 0} title={p.name} score={p.score}
-                    subtitle={p.notes} meta={[p.role, p.org].filter(Boolean).join(' · ') || undefined}
-                    onClick={() => go('/people')} />
-                ))}
-              </Section>
-            </Box>
-          </>
-        )}
+            </>
+          )}
+        </Box>
       </Box>
     </Dialog>
   )

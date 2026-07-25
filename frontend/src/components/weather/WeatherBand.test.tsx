@@ -31,4 +31,61 @@ describe('WeatherBand', () => {
     expect(fc).toHaveTextContent('82°')   // tomorrow shown
     expect(fc).not.toHaveTextContent('80°')  // today omitted
   })
+  it('stretches the celestial arc across the full band width', () => {
+    const { container } = render(
+      <WeatherBand
+        weather={{
+          temp: 20, condition: 'clear', is_day: true, unit: 'C', label: 'Test',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T13:00:00Z')}
+      />,
+    )
+    const svg = container.querySelector('svg')
+    // Without this, xMidYMid meet letterboxes the arc into a narrow centered strip.
+    expect(svg?.getAttribute('preserveAspectRatio')).toBe('none')
+  })
+  it('renders the moon at night even when cached is_day is stale-true', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 12, condition: 'clear',
+          is_day: true,  // stale: server cached this up to 30 min ago
+          unit: 'C', label: 'Test',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T23:00:00Z')}  // clearly night
+      />,
+    )
+    expect(screen.getByTestId('celestial-moon')).toBeInTheDocument()
+    expect(screen.queryByTestId('celestial-sun')).not.toBeInTheDocument()
+  })
+  it('renders a scrim behind the location and temperature', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 30, condition: 'clear', is_day: true, unit: 'F', label: 'Austin',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+        }}
+        now={new Date('2026-07-25T12:00:00Z')}
+      />,
+    )
+    expect(screen.getByTestId('weather-scrim')).toBeInTheDocument()
+  })
+  it('renders a local scrim protecting the forecast strip', () => {
+    render(
+      <WeatherBand
+        weather={{
+          temp: 30, condition: 'clear', is_day: true, unit: 'F', label: 'Austin',
+          sunrise: '2026-07-25T06:00:00Z', sunset: '2026-07-25T20:00:00Z',
+          forecast: [
+            { date: '2026-07-25', hi: 95, lo: 75, condition: 'clear' },
+            { date: '2026-07-26', hi: 96, lo: 76, condition: 'clear' },
+          ],
+        }}
+        now={new Date('2026-07-25T12:00:00Z')}
+      />,
+    )
+    expect(screen.getByTestId('weather-forecast-scrim')).toBeInTheDocument()
+  })
 })
