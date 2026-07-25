@@ -8,6 +8,7 @@ export interface RankedItemProps {
   score?: number
   scoreReason?: string
   subtitle?: string
+  detail?: string
   meta?: string
   onClick?: () => void
 }
@@ -19,16 +20,21 @@ const scoreStyle = (s: number) =>
   s >= 40 ? { bg: 'info.main', fg: '#fff' } :
             { bg: 'action.selected', fg: 'text.secondary' }
 
-export function RankedItem({ rank, title, score, scoreReason, subtitle, meta, onClick }: RankedItemProps) {
+export function RankedItem({ rank, title, score, scoreReason, subtitle, detail, meta, onClick }: RankedItemProps) {
   const clickable = !!onClick
   const badge = score != null ? scoreStyle(score) : null
   const [scoreAnchor, setScoreAnchor] = useState<HTMLElement | null>(null)
+  const [rowAnchor, setRowAnchor] = useState<HTMLElement | null>(null)
   return (
     <Box
       role={clickable ? 'button' : undefined}
-      tabIndex={clickable ? 0 : undefined}
+      tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => { if (clickable && e.key === 'Enter') onClick?.() }}
+      onMouseEnter={(e) => setRowAnchor(e.currentTarget)}
+      onMouseLeave={() => setRowAnchor(null)}
+      onFocus={(e) => setRowAnchor(e.currentTarget)}
+      onBlur={() => setRowAnchor(null)}
       sx={{
         display: 'flex',
         gap: 1.25,
@@ -56,12 +62,17 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, meta, on
           {badge && (
             <>
               <Box
+                role="button"
+                tabIndex={0}
+                aria-label={`Impact score ${score} explanation`}
                 onMouseEnter={(e) => setScoreAnchor(e.currentTarget)}
                 onMouseLeave={() => setScoreAnchor(null)}
+                onFocus={(e) => setScoreAnchor(e.currentTarget)}
+                onBlur={() => setScoreAnchor(null)}
                 sx={{ px: 0.75, py: '1px', borderRadius: 0.75, fontSize: '0.7rem', fontWeight: 700,
                       fontVariantNumeric: 'tabular-nums', color: badge.fg, bgcolor: badge.bg,
                       lineHeight: 1.7, minWidth: 26, textAlign: 'center', flexShrink: 0,
-                      cursor: 'help' }}
+                      cursor: 'help', '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' } }}
               >
                 {score}
               </Box>
@@ -95,6 +106,19 @@ export function RankedItem({ rank, title, score, scoreReason, subtitle, meta, on
           <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.25 }}>{meta}</Typography>
         )}
       </Box>
+      <HoverCard
+        anchorEl={rowAnchor}
+        open={!!rowAnchor && !scoreAnchor && !!(detail || subtitle || meta)}
+        onClose={() => setRowAnchor(null)}
+      >
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', mb: 0.5 }}>{title}</Typography>
+        {(detail || subtitle) && (
+          <Typography sx={{ fontSize: '0.8rem', mb: 0.5 }}>{detail || subtitle}</Typography>
+        )}
+        {meta && (
+          <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{meta}</Typography>
+        )}
+      </HoverCard>
     </Box>
   )
 }

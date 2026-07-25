@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Popover } from '@mui/material'
+import { Paper, Popper } from '@mui/material'
 
 export interface HoverCardProps {
   anchorEl: HTMLElement | null
@@ -8,25 +8,26 @@ export interface HoverCardProps {
   children: ReactNode
 }
 
-/** Hover popover whose paper is itself hoverable, and which never steals focus. */
+/**
+ * Hover popover whose paper is itself hoverable, and which never steals focus.
+ * Built on Popper (not Popover/Modal) — Popper has no focus trap and does not
+ * mark the rest of the page aria-hidden, so a keyboard user can focus the
+ * anchor and still read the card without the anchor itself being hidden.
+ */
 export function HoverCard({ anchorEl, open, onClose, children }: HoverCardProps) {
   return (
-    <Popover
+    <Popper
       open={open}
       anchorEl={anchorEl}
-      onClose={onClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      sx={{ pointerEvents: 'none' }}
-      slotProps={{
-        paper: {
-          onMouseLeave: onClose,
-          sx: { pointerEvents: 'auto', p: 1.5, maxWidth: 380 },
-        },
-      }}
-      disableRestoreFocus
+      placement="bottom-start"
+      sx={{ zIndex: (theme) => theme.zIndex.tooltip, pointerEvents: 'none' }}
     >
-      {children}
-    </Popover>
+      <Paper
+        onMouseLeave={onClose}
+        sx={{ pointerEvents: 'auto', p: 1.5, maxWidth: 380 }}
+      >
+        {children}
+      </Paper>
+    </Popper>
   )
 }
