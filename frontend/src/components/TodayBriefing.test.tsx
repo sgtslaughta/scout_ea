@@ -188,6 +188,24 @@ describe('TodayBriefing', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('close button sits above the content wrapper and is clickable', async () => {
+    const onClose = vi.fn()
+    const qc = new QueryClient()
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter><TodayBriefing open onClose={onClose} /></MemoryRouter>
+      </QueryClientProvider>,
+    )
+    const closeButton = await screen.findByLabelText('Close briefing')
+    const contentWrapper = closeButton.nextElementSibling as HTMLElement
+    const buttonZ = Number(getComputedStyle(closeButton).zIndex)
+    const contentZ = Number(getComputedStyle(contentWrapper).zIndex)
+    expect(buttonZ).toBeGreaterThan(contentZ)
+
+    await userEvent.click(closeButton)
+    expect(onClose).toHaveBeenCalled()
+  })
+
   it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
     renderModal()
     const backdrop = await screen.findByTestId('sky-backdrop')

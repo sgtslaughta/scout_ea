@@ -91,7 +91,17 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
         <IconButton
           ref={closeButtonRef}
           onClick={onClose}
-          sx={{ position: 'absolute', top: 16, right: 16, zIndex: 1 }}
+          sx={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            // Must beat the content wrapper below (zIndex: 1) within this Dialog's
+            // own stacking context — theme.zIndex.appBar (1100) is a recognizable
+            // MUI tier, decisively above local siblings but still well under the
+            // portaled popovers (theme.zIndex.tooltip, 1500) which live in a
+            // separate stacking context anyway.
+            zIndex: (theme) => theme.zIndex.appBar,
+          }}
           aria-label="Close briefing"
         >
           <X size={20} />
