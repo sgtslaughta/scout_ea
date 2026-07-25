@@ -594,7 +594,9 @@ WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_windo
                    "reminder_enabled", "reminder_lead_minutes",
                    "alert_loud_threshold", "alert_sound_enabled", "daily_summary",
                    "weather_lat", "weather_lon", "weather_label", "weather_unit",
-                   "finance_watchlist"}
+                   "finance_watchlist",
+                   # wizard: user-chosen MCP name, completion flag, MCP last-seen stamp
+                   "mcp_name", "wizard_done", "mcp_last_seen"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:

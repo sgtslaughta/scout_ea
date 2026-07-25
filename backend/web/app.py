@@ -1,6 +1,7 @@
 """FastAPI app over EA_DB — browser-facing surface."""
 from __future__ import annotations
 import json
+import os
 import sqlite3
 import uuid
 import urllib.request
@@ -188,6 +189,21 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
     def get_config(conn=Depends(get_db)):
         rows = conn.execute("SELECT key, value FROM config").fetchall()
         return {r["key"]: r["value"] for r in rows}
+
+    @app.get("/api/mcp/config")
+    def get_mcp_config():
+        # ponytail: token shown to the authenticated local dashboard user on
+        # purpose — they must paste it into Scout's MCP dialog. Localhost-scoped.
+        token = os.environ.get("EA_MCP_TOKEN", "")
+        host = os.environ.get("EA_MCP_PUBLIC_HOST", "localhost")
+        port = os.environ.get("EA_MCP_PORT", "8766")
+        return {"url": f"http://{host}:{port}/mcp", "token": token,
+                "configured": bool(token)}
+
+    @app.get("/api/mcp/status")
+    def get_mcp_status(conn=Depends(get_db)):
+        row = conn.execute("SELECT value FROM config WHERE key='mcp_last_seen'").fetchone()
+        return {"last_seen": row["value"] if row else None}
 
     @app.get("/api/signals")
     def get_signals(status: str | None = None, conn=Depends(get_db)):
