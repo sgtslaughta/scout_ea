@@ -139,10 +139,6 @@ export function WeatherBand({ weather }: WeatherBandProps) {
 
       {/* Global animation keyframes */}
       <style>{`
-        @keyframes celestialGlow {
-          0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4)); }
-          50% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)); }
-        }
         @keyframes driftClouds {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }
