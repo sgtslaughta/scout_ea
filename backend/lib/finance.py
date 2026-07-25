@@ -52,8 +52,11 @@ def parse_history(result: dict) -> list[float]:
     cannot render those, so they are dropped rather than interpolated.
     """
     q = (((result or {}).get("indicators") or {}).get("quote") or [{}])[0]
+    closes = q.get("close")
+    if not isinstance(closes, (list, tuple)):
+        closes = []
     out = []
-    for v in (q.get("close") or []):
+    for v in closes:
         n = _num(v)
         if n is not None:
             out.append(n)

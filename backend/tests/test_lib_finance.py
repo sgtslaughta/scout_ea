@@ -66,3 +66,11 @@ def test_parse_history_handles_unusable_input():
 def test_parse_history_coerces_ints_and_skips_junk():
     result = {"indicators": {"quote": [{"close": [1, "bad", 3.5]}]}}
     assert finance.parse_history(result) == [1.0, 3.5]
+
+
+def test_parse_history_rejects_non_list_close():
+    assert finance.parse_history({"indicators": {"quote": [{"close": 5}]}}) == []
+    assert finance.parse_history({"indicators": {"quote": [{"close": 5.0}]}}) == []
+    assert finance.parse_history({"indicators": {"quote": [{"close": True}]}}) == []
+    assert finance.parse_history({"indicators": {"quote": [{"close": "abc"}]}}) == []
+    assert finance.parse_history({"indicators": {"quote": [{"close": {"a": 1}}]}}) == []
