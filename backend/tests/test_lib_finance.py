@@ -44,3 +44,25 @@ def test_parse_quote_defensive():
     q2 = finance.parse_quote({"meta": {"symbol": "BAR", "regularMarketPrice": 1,
                                        "chartPreviousClose": 0}})
     assert q2["change_pct"] is None
+
+
+def test_parse_history_extracts_close_series():
+    result = {"indicators": {"quote": [{"close": [1.0, 2.5, 3.25]}]}}
+    assert finance.parse_history(result) == [1.0, 2.5, 3.25]
+
+
+def test_parse_history_drops_nulls():
+    result = {"indicators": {"quote": [{"close": [1.0, None, 3.0, None]}]}}
+    assert finance.parse_history(result) == [1.0, 3.0]
+
+
+def test_parse_history_handles_unusable_input():
+    assert finance.parse_history({}) == []
+    assert finance.parse_history(None) == []
+    assert finance.parse_history({"indicators": {}}) == []
+    assert finance.parse_history({"indicators": {"quote": []}}) == []
+
+
+def test_parse_history_coerces_ints_and_skips_junk():
+    result = {"indicators": {"quote": [{"close": [1, "bad", 3.5]}]}}
+    assert finance.parse_history(result) == [1.0, 3.5]
