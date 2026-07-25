@@ -43,13 +43,24 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
   const baseline = points[0]
   const min = points.length > 1 ? Math.min(...points) : baseline
   const max = points.length > 1 ? Math.max(...points) : baseline
-  // Fraction of the plotted range (top = max, bottom = min) at which the
-  // baseline sits — the boundary between the green (above) and red (below)
-  // zones of the gradient. Two stops at the same offset produce a hard
-  // cut rather than a blend. Flat series (max === min) can't divide; treat
-  // them as fully "above" (matches an unchanged/flat series reading as
-  // neither a gain nor a loss, closer to success than error).
-  const baselineOffset = max === min ? 1 : Math.min(1, Math.max(0, (max - baseline) / (max - min)))
+  // MUI's area SparkLineChart anchors the y-domain at 0 by default. Financial
+  // series vary by a tiny fraction of their absolute value, so an unconstrained
+  // domain renders the line as visually flat. Constrain the axis to the series'
+  // own range, padded 10% so the extremes aren't flush against the chart edges.
+  const domainPad = max === min ? 0 : (max - min) * 0.1
+  const domainMin = min - domainPad
+  const domainMax = max + domainPad
+  // Fraction of the plotted range (top = domainMax, bottom = domainMin) at which
+  // the baseline sits — the boundary between the green (above) and red (below)
+  // zones of the gradient. This MUST be computed against the same padded domain
+  // passed to `yAxis` below, or the gradient cut and the ChartsReferenceLine will
+  // disagree on where the baseline pixel is. Two stops at the same offset produce
+  // a hard cut rather than a blend. Flat series (domainMax === domainMin) can't
+  // divide; treat them as fully "above" (matches an unchanged/flat series reading
+  // as neither a gain nor a loss, closer to success than error).
+  const baselineOffset = domainMax === domainMin
+    ? 1
+    : Math.min(1, Math.max(0, (domainMax - baseline) / (domainMax - domainMin)))
 
   return (
     <Popover
@@ -84,6 +95,7 @@ export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: 
               color={`url(#${gradientId})`}
               area
               baseline={baseline}
+              yAxis={{ min: domainMin, max: domainMax }}
               data-testid="finance-sparkline"
             >
               <defs>
