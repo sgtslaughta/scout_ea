@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { WeatherResponse } from '@/api'
-import { skyPhase, arcFraction } from './sky'
+import { arcFraction } from './sky'
 import { SkyBackdrop } from './SkyBackdrop'
+import { useSkyPhase } from './useSkyPhase'
 
 export interface WeatherBandProps {
   weather: WeatherResponse
@@ -12,18 +13,7 @@ export interface WeatherBandProps {
 export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
   // Live clock so the sun/moon advances across the arc in real time.
   // A fixed `now` prop (tests / controlled render) freezes it; otherwise tick each minute.
-  const [clock, setClock] = useState<Date>(() => nowProp ?? new Date())
-  useEffect(() => {
-    if (nowProp) return
-    const id = setInterval(() => setClock(new Date()), 60_000)
-    return () => clearInterval(id)
-  }, [nowProp])
-  const now = nowProp ?? clock
-
-  const phase = useMemo(
-    () => skyPhase(now, weather.sunrise || new Date(), weather.sunset || new Date()),
-    [now, weather.sunrise, weather.sunset],
-  )
+  const { now, phase } = useSkyPhase(weather.sunrise, weather.sunset, nowProp)
 
   // The gradient uses the live clock, so the celestial body must too — `weather.is_day`
   // is a server-cached snapshot (30 min TTL) and disagrees near sunrise/sunset.

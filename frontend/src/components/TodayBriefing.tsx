@@ -15,7 +15,7 @@ import { X } from 'lucide-react'
 import { getBriefing, getWeather, getFinance } from '@/api'
 import { WeatherBand } from './weather/WeatherBand'
 import { SkyBackdrop } from './weather/SkyBackdrop'
-import { skyPhase } from './weather/sky'
+import { useSkyPhase } from './weather/useSkyPhase'
 import { FinanceStrip } from './finance/FinanceStrip'
 import { RankedItem } from './briefing/RankedItem'
 import { useWeatherLocation } from '@/lib/useWeatherLocation'
@@ -83,10 +83,9 @@ export function TodayBriefing({ open, onClose }: TodayBriefingProps) {
     enabled: open,
   })
 
-  // Sky phase drives the whole modal background, not just the weather band.
-  const phase = weather?.sunrise && weather?.sunset
-    ? skyPhase(new Date(), weather.sunrise, weather.sunset)
-    : 'day'
+  // Sky phase drives the whole modal background, not just the weather band —
+  // shares the same live-tick hook as WeatherBand so both agree at phase boundaries.
+  const { phase } = useSkyPhase(weather?.sunrise, weather?.sunset)
 
   const go = (view: string) => {
     onClose()
