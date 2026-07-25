@@ -15,7 +15,9 @@ export interface SkyBackdropProps {
   fade?: boolean
 }
 
-const FADE_MASK = 'linear-gradient(180deg, #000 0%, #000 45%, transparent 100%)'
+// Keep the sky perceptible for the full modal height (never fully transparent) while
+// dimming it toward the bottom so card text over the lower quadrants stays legible.
+const FADE_MASK = 'linear-gradient(180deg, #000 0%, #000 45%, rgba(0,0,0,0.35) 100%)'
 
 export function SkyBackdrop({ phase, fade = false }: SkyBackdropProps) {
   return (

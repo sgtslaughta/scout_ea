@@ -1,29 +1,11 @@
-import { useMemo } from 'react'
 import { Box, Typography } from '@mui/material'
 import type { WeatherResponse } from '@/api'
-import { arcFraction } from './sky'
-import { SkyBackdrop } from './SkyBackdrop'
-import { useSkyPhase } from './useSkyPhase'
 
 export interface WeatherBandProps {
   weather: WeatherResponse
-  now?: Date
 }
 
-export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
-  // Live clock so the sun/moon advances across the arc in real time.
-  // A fixed `now` prop (tests / controlled render) freezes it; otherwise tick each minute.
-  const { now, phase } = useSkyPhase(weather.sunrise, weather.sunset, nowProp)
-
-  // The gradient uses the live clock, so the celestial body must too — `weather.is_day`
-  // is a server-cached snapshot (30 min TTL) and disagrees near sunrise/sunset.
-  const isNight = phase === 'night'
-
-  const arcPos = useMemo(
-    () => arcFraction(now, weather.sunrise || new Date(), weather.sunset || new Date(), !isNight),
-    [now, weather.sunrise, weather.sunset, isNight],
-  )
-
+export function WeatherBand({ weather }: WeatherBandProps) {
   // Early return if error or missing condition
   if (weather.error || !weather.condition) {
     return (
@@ -51,9 +33,6 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
     )
   }
 
-  const celestialX = arcPos * 100
-  const celestialY = 40 - Math.sin(arcPos * Math.PI) * 34
-
   const unit = weather.unit || 'C'
   const ariaLabel = `${weather.label}: ${weather.condition}, ${Math.round(weather.temp || 0)} degrees ${unit}`
   // forecast[0] is today; show the next few days
@@ -70,54 +49,6 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
         borderRadius: 1,
       }}
     >
-      {/* SkyBackdrop */}
-      <SkyBackdrop phase={phase} />
-
-      {/* CelestialArc */}
-      <svg
-        viewBox="0 0 100 40"
-        preserveAspectRatio="none"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          width: '100%',
-          height: '100%',
-          pointerEvents: 'none',
-        }}
-      >
-        {/* Arc path (faint) */}
-        <path
-          d="M 0 40 Q 50 6 100 40"
-          stroke="rgba(255, 255, 255, 0.15)"
-          strokeWidth="0.5"
-          fill="none"
-        />
-        {/* Celestial body */}
-        {!isNight ? (
-          <circle
-            cx={celestialX}
-            cy={celestialY}
-            r="4"
-            fill="#fdb813"
-            data-testid="celestial-sun"
-            style={{
-              animation: 'celestialGlow 3s ease-in-out infinite',
-            }}
-          />
-        ) : (
-          <circle
-            cx={celestialX}
-            cy={celestialY}
-            r="3.5"
-            fill="#f5f5f5"
-            data-testid="celestial-moon"
-            style={{
-              animation: 'celestialGlow 3s ease-in-out infinite',
-            }}
-          />
-        )}
-      </svg>
-
       {/* ConditionFX Layer */}
       <ConditionFX condition={weather.condition} isDay={weather.is_day ?? true} />
 
@@ -208,10 +139,6 @@ export function WeatherBand({ weather, now: nowProp }: WeatherBandProps) {
 
       {/* Global animation keyframes */}
       <style>{`
-        @keyframes celestialGlow {
-          0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4)); }
-          50% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7)); }
-        }
         @keyframes driftClouds {
           0% { transform: translateX(-100%); }
           100% { transform: translateX(100%); }

@@ -123,6 +123,19 @@ describe('TodayBriefing', () => {
     vi.useRealTimers()
   })
 
+  it('renders the celestial arc at modal level, not nested inside the weather band', async () => {
+    vi.spyOn(api, 'getConfig').mockResolvedValue(
+      { weather_lat: '40.71', weather_lon: '-74.01', weather_label: 'NYC' } as never)
+    vi.spyOn(api, 'getWeather').mockResolvedValue(
+      { condition: 'clear', temp: 20, is_day: true,
+        sunrise: '2026-06-21T06:00:00Z', sunset: '2026-06-21T20:00:00Z', label: 'NYC' } as never)
+    renderModal()
+    const weatherBand = await screen.findByLabelText(/NYC/i)
+    const celestial = await screen.findByTestId(/celestial-(sun|moon)/)
+    expect(celestial).toBeInTheDocument()
+    expect(weatherBand.contains(celestial)).toBe(false)
+  })
+
   it('pins the sky backdrop outside the scrollable content so it does not scroll away', async () => {
     renderModal()
     const backdrop = await screen.findByTestId('sky-backdrop')
