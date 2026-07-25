@@ -83,23 +83,33 @@ def _critical(now, today, deadlines, tasks, signals):
 
 
 def _news_by_topic(topics, news, learning):
-    by_topic = {}
-    for n in news:
-        if n.get("status") in ("new", "suggested"):
-            by_topic.setdefault(n.get("topic_id"), []).append({**n, "category": "news"})
-    for l in learning:
-        if l.get("status") in ("new", "suggested"):
-            by_topic.setdefault(l.get("topic_id"), []).append({**l, "category": "learning"})
-
     tmap = {t["id"]: t for t in topics}
+    all_items = []
+    for n in news:
+        if n.get("status") in ("new", "suggested") and n.get("topic_id") in tmap:
+            all_items.append({**n, "category": "news"})
+    for l in learning:
+        if l.get("status") in ("new", "suggested") and l.get("topic_id") in tmap:
+            all_items.append({**l, "category": "learning"})
+
+    # Cap the whole quadrant at GRID_CAP items TOTAL (consistent with the other
+    # three quadrants), selected by score globally — not GRID_CAP per topic,
+    # which used to blow the quadrant up to 5 x (number of topics) rows.
+    all_items.sort(key=lambda i: i.get("relevance") or 0, reverse=True)
+    top = _rank(all_items[:GRID_CAP])   # global 1..5 ranks: items are grouped under
+                                         # topic headings, not re-ranked per group, so
+                                         # a reader sees one consistent 1-5 ordering
+                                         # for "today's top news" across all topics.
+
+    by_topic = {}
+    for item in top:
+        by_topic.setdefault(item["topic_id"], []).append(item)
+
     groups = []
     for tid, items in by_topic.items():
-        if tid not in tmap:
-            continue
-        items.sort(key=lambda i: i.get("relevance") or 0, reverse=True)
         groups.append({"topic_id": tid, "topic_name": tmap[tid]["name"],
                        "topic_priority": tmap[tid].get("priority", 3),
-                       "items": _rank(items[:GRID_CAP])})
+                       "items": items})
     groups.sort(key=lambda g: g["topic_priority"])
     return groups
 

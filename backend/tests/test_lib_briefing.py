@@ -137,7 +137,7 @@ def test_grids_are_sorted_by_score_descending():
     assert [r["score"] for r in out["risks"]] == [95, 60, 30]
 
 
-def test_news_items_cap_at_five_per_topic():
+def test_news_quadrant_caps_at_five_total_single_topic():
     topics = [{"id": 1, "name": "AI", "priority": 1}]
     news = [{"id": i, "title": f"n{i}", "topic_id": 1, "status": "new",
              "relevance": (100 - i) / 100} for i in range(10)]
@@ -146,6 +146,32 @@ def test_news_items_cap_at_five_per_topic():
         news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
     )
     assert len(out["news_by_topic"][0]["items"]) == 5
+
+
+def test_news_quadrant_caps_at_five_total_across_multiple_topics():
+    """The bug: capping per-topic instead of per-quadrant produced 5 x N rows.
+    Two topics, each with 10 candidate items -> the quadrant must still show 5
+    items TOTAL (globally top-scored), grouped under whichever topics they
+    belong to; a topic contributing no surviving item must not appear at all."""
+    topics = [{"id": 1, "name": "AI", "priority": 1}, {"id": 2, "name": "Markets", "priority": 2}]
+    news = (
+        [{"id": i, "title": f"ai{i}", "topic_id": 1, "status": "new",
+          "relevance": (100 - i) / 100} for i in range(10)]
+        + [{"id": 100 + i, "title": f"mk{i}", "topic_id": 2, "status": "new",
+            "relevance": (50 - i) / 100} for i in range(10)]
+    )
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=[],
+        news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
+    )
+    total = sum(len(g["items"]) for g in out["news_by_topic"])
+    assert total == 5
+    # All 5 highest-relevance candidates come from topic AI (relevance 0.99..0.90
+    # beats Markets' best of 0.5) -> Markets group should be absent entirely.
+    assert [g["topic_id"] for g in out["news_by_topic"]] == [1]
+    assert [i["id"] for i in out["news_by_topic"][0]["items"]] == [0, 1, 2, 3, 4]
+    # Ranks are global across the quadrant (1..5), not restarted per topic group.
+    assert [i["rank"] for i in out["news_by_topic"][0]["items"]] == [1, 2, 3, 4, 5]
 
 
 def test_score_reason_prefers_skill_authored_reasoning():
