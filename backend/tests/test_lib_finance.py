@@ -46,6 +46,24 @@ def test_parse_quote_defensive():
     assert q2["change_pct"] is None
 
 
+def test_parse_quote_rejects_non_list_open():
+    base_meta = {
+        "symbol": "AAPL", "shortName": "Apple Inc.",
+        "regularMarketPrice": 102.0, "chartPreviousClose": 100.0,
+        "regularMarketDayHigh": 105.0, "regularMarketDayLow": 99.0,
+        "regularMarketVolume": 50000000,
+    }
+
+    def make(open_value):
+        return {"meta": base_meta, "indicators": {"quote": [{"open": open_value}]}}
+
+    assert finance.parse_quote(make(5))["open"] is None
+    assert finance.parse_quote(make(5.0))["open"] is None
+    assert finance.parse_quote(make(True))["open"] is None
+    assert finance.parse_quote(make("abc"))["open"] is None
+    assert finance.parse_quote(make({"a": 1}))["open"] is None
+
+
 def test_parse_history_extracts_close_series():
     result = {"indicators": {"quote": [{"close": [1.0, 2.5, 3.25]}]}}
     assert finance.parse_history(result) == [1.0, 2.5, 3.25]
