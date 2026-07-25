@@ -11,9 +11,12 @@ export interface TickerPopoverProps {
   anchorEl: HTMLElement | null
   open: boolean
   onClose: () => void
+  /** Called when the pointer enters the popover paper — lets the caller
+   *  cancel a pending close-on-leave timer scheduled from the anchor chip. */
+  onPaperEnter?: () => void
 }
 
-export function TickerPopover({ quote, anchorEl, open, onClose }: TickerPopoverProps) {
+export function TickerPopover({ quote, anchorEl, open, onClose, onPaperEnter }: TickerPopoverProps) {
   const [range, setRange] = useState<HistoryRange>('1d')
 
   // Lazy: nothing is fetched until the popover actually opens.
@@ -43,6 +46,7 @@ export function TickerPopover({ quote, anchorEl, open, onClose }: TickerPopoverP
       sx={{ pointerEvents: 'none' }}
       slotProps={{
         paper: {
+          onMouseEnter: onPaperEnter,
           onMouseLeave: onClose,
           sx: { pointerEvents: 'auto', p: 1.5, minWidth: 240 },
         },

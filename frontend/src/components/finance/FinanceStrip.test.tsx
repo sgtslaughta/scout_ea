@@ -4,6 +4,11 @@ import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FinanceStrip } from './FinanceStrip'
 
+vi.mock('@/api', async () => ({
+  ...(await vi.importActual<any>('@/api')),
+  getFinanceHistory: vi.fn().mockResolvedValue({ symbol: 'x', range: '1d', points: [] }),
+}))
+
 // FinanceStrip mounts a TickerPopover (react-query) on chip hover, so every
 // render needs a QueryClient in scope.
 function wrap(ui: React.ReactNode) {
@@ -128,4 +133,48 @@ it('advances when the manual button is pressed', async () => {
   const btn = screen.getByRole('button', { name: /next tickers/i })
   await userEvent.click(btn)
   expect(screen.getByTestId('finance-row')).toBeInTheDocument()
+})
+
+// Regression: reviewer-reported bug. `hovered` was only ever cleared by the
+// popover paper's onMouseLeave. If the pointer left a chip without crossing
+// onto the (portaled) paper — moving sideways along the row, or straight off
+// the strip — nothing cleared `hovered`, so rotation stayed pinned forever.
+it('resumes rotation after the pointer leaves a chip without reaching the popover paper', () => {
+  const restore = stubLayout({ chip: 100, row: 250 })
+  vi.useFakeTimers()
+  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
+  const row = () => screen.getByTestId('finance-row')
+
+  fireEvent.mouseEnter(screen.getByTestId('quote-^IDX0'))
+  fireEvent.mouseLeave(row().parentElement!)   // leaves the container; never touches the paper
+
+  // Two acts: the first lets the close-delay timeout fire and its effect
+  // (re-)register the rotation interval; the second gives that interval
+  // room to actually tick. A single big advance would register the new
+  // interval only after the whole window has already elapsed.
+  act(() => { vi.advanceTimersByTime(200) })
+  act(() => { vi.advanceTimersByTime(9800) })
+  expect(row()).not.toHaveAttribute('data-page', '0')
+
+  vi.useRealTimers()
+  restore()
+})
+
+it('stays open (and keeps rotation paused) when the pointer moves from the chip onto the popover paper', () => {
+  const restore = stubLayout({ chip: 100, row: 250 })
+  vi.useFakeTimers()
+  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
+  const row = () => screen.getByTestId('finance-row')
+
+  fireEvent.mouseEnter(screen.getByTestId('quote-^IDX0'))
+  fireEvent.mouseLeave(row().parentElement!)   // pointer leaves the container en route to the paper
+
+  const rangeToggle = screen.getByRole('button', { name: '1d' })
+  fireEvent.mouseEnter(rangeToggle.closest('.MuiPopover-paper')!)
+
+  act(() => { vi.advanceTimersByTime(10000) })
+  expect(row()).toHaveAttribute('data-page', '0')   // still pinned — popover never closed
+
+  vi.useRealTimers()
+  restore()
 })

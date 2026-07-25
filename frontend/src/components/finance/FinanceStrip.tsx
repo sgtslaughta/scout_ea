@@ -46,7 +46,8 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
           data-dir={dir}
           onClick={() => handleChipClick(q.symbol)}
           onKeyDown={(e) => handleChipKeyDown(e, q.symbol)}
-          onMouseEnter={(e) => setHovered({ q, el: e.currentTarget })}
+          onMouseEnter={(e) => { clearCloseTimer(); setHovered({ q, el: e.currentTarget }) }}
+          onMouseLeave={scheduleClose}
           role="button"
           tabIndex={0}
           sx={{
@@ -96,6 +97,26 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
   const [paused, setPaused] = useState(false)
   const [hovered, setHovered] = useState<{ q: Quote; el: HTMLElement } | null>(null)
 
+  // The popover paper is portaled outside the chip/container DOM, so a chip's
+  // onMouseLeave can't tell whether the pointer landed on the paper or left
+  // the strip entirely. Close on a short delay instead of immediately, and
+  // let the paper's onMouseEnter cancel it if the pointer made it across the
+  // gap. Without this, moving off a chip without touching the paper (e.g.
+  // sideways along the row, or straight off the strip) would leave `hovered`
+  // set forever, since nothing else ever clears it.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearCloseTimer = () => {
+    if (closeTimer.current != null) {
+      clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+  useEffect(() => clearCloseTimer, [])
+  const scheduleClose = () => {
+    clearCloseTimer()
+    closeTimer.current = setTimeout(() => setHovered(null), 120)
+  }
+
   // Measure chips + container, and re-measure on resize.
   useLayoutEffect(() => {
     const el = rowRef.current
@@ -135,7 +156,7 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
   return (
     <Box
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
+      onMouseLeave={() => { setPaused(false); scheduleClose() }}
       sx={(theme) => ({
         display: 'flex',
         alignItems: 'center',
@@ -177,6 +198,7 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
           anchorEl={hovered.el}
           open
           onClose={() => setHovered(null)}
+          onPaperEnter={clearCloseTimer}
         />
       )}
 
