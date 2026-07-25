@@ -95,3 +95,54 @@ def test_people_ordered_by_importance_with_signals():
     assert [p["id"] for p in out["people"]] == [2, 1]
     assert out["people"][0]["signals"][0]["id"] == 8
     assert out["people"][1]["signals"] == []
+
+
+from lib import briefing as _briefing
+
+
+def _sig(i, impact, polarity=None, type_="proactive"):
+    return {"id": i, "title": f"s{i}", "type": type_, "status": "new",
+            "impact": impact, "polarity": polarity, "priority": 3}
+
+
+def test_every_grid_caps_at_five():
+    signals = [_sig(i, 90 - i, "risk") for i in range(10)]
+    signals += [_sig(100 + i, 90 - i, "opportunity") for i in range(10)]
+    people = [{"id": i, "name": f"p{i}", "importance": 1} for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=signals,
+        news=[], learning=[], topics=[], people=people, people_signals={}, summary=None,
+    )
+    assert len(out["risks"]) == 5
+    assert len(out["opportunities"]) == 5
+    assert len(out["people"]) == 5
+
+
+def test_critical_caps_at_five():
+    tasks = [{"id": i, "title": f"t{i}", "due_at": "2026-07-25T12:00:00Z", "priority": 1}
+             for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=tasks, signals=[],
+        news=[], learning=[], topics=[], people=[], people_signals={}, summary=None,
+    )
+    assert len(out["critical"]) == 5
+
+
+def test_grids_are_sorted_by_score_descending():
+    signals = [_sig(1, 30, "risk"), _sig(2, 95, "risk"), _sig(3, 60, "risk")]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=signals,
+        news=[], learning=[], topics=[], people=[], people_signals={}, summary=None,
+    )
+    assert [r["score"] for r in out["risks"]] == [95, 60, 30]
+
+
+def test_news_items_cap_at_five_per_topic():
+    topics = [{"id": 1, "name": "AI", "priority": 1}]
+    news = [{"id": i, "title": f"n{i}", "topic_id": 1, "status": "new",
+             "relevance": (100 - i) / 100} for i in range(10)]
+    out = _briefing.assemble(
+        "2026-07-25T09:00:00Z", deadlines=[], tasks=[], signals=[],
+        news=news, learning=[], topics=topics, people=[], people_signals={}, summary=None,
+    )
+    assert len(out["news_by_topic"][0]["items"]) == 5

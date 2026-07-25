@@ -2,7 +2,7 @@
 from __future__ import annotations
 from lib import deadlines as _deadlines
 
-CRITICAL_CAP = 8
+GRID_CAP = 5           # every briefing grid shows its top 5
 PEOPLE_SIGNAL_CAP = 3
 
 # priority (1=highest .. 5=lowest) -> 0-100 score, when no explicit impact is set
@@ -54,7 +54,7 @@ def _critical(now, today, deadlines, tasks, signals):
 
     # rank by impact score desc; soonest countdown breaks ties (deadlines beat undated rows)
     rows.sort(key=lambda r: (-_score_of(r), r.get("countdown_seconds", 1 << 62)))
-    return _rank(rows[:CRITICAL_CAP])
+    return _rank(rows[:GRID_CAP])
 
 
 def _news_by_topic(topics, news, learning):
@@ -73,7 +73,8 @@ def _news_by_topic(topics, news, learning):
             continue
         items.sort(key=lambda i: i.get("relevance") or 0, reverse=True)
         groups.append({"topic_id": tid, "topic_name": tmap[tid]["name"],
-                       "topic_priority": tmap[tid].get("priority", 3), "items": _rank(items)})
+                       "topic_priority": tmap[tid].get("priority", 3),
+                       "items": _rank(items[:GRID_CAP])})
     groups.sort(key=lambda g: g["topic_priority"])
     return groups
 
@@ -95,10 +96,10 @@ def assemble(now, deadlines, tasks, signals, news, learning, topics, people,
         "date": today,
         "summary": summary,
         "critical": _critical(now, today, deadlines, tasks, signals),
-        "risks": _rank(risks),
-        "opportunities": _rank(opps),
+        "risks": _rank(risks[:GRID_CAP]),
+        "opportunities": _rank(opps[:GRID_CAP]),
         "news_by_topic": _news_by_topic(topics, news, learning),
-        "people": _rank(people_out),
+        "people": _rank(people_out[:GRID_CAP]),
         "weather": None,   # SP2
         "finance": None,   # SP3
     }
