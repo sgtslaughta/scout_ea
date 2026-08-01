@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { getNews, getTopics, type NewsItem, type Topic } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { RowTaskButton } from '@/components/RowTaskButton'
 import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 
 const MAX_ROWS = 5
@@ -69,9 +70,21 @@ function IndustryRow({ item, friendly }: { item: NewsItem; friendly: (iso: strin
         borderBottom: '1px solid', borderColor: 'divider',
         '&:hover': { bgcolor: 'action.hover' },
         '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -2 },
+        '&:hover .row-task-action, &:focus-within .row-task-action': { opacity: 1 },
       }}
     >
-      <Typography variant="body1" sx={{ fontWeight: 600 }}>{item.title}</Typography>
+      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <Typography variant="body1" sx={{ fontWeight: 600 }}>{item.title}</Typography>
+        <Box onClick={(e) => e.stopPropagation()}>
+          <RowTaskButton
+            draft={{
+              title: item.title,
+              detail: item.synopsis,
+              source: `Industry Feed — ${item.event_at ? friendly(item.event_at) : 'undated'}`,
+            }}
+          />
+        </Box>
+      </Stack>
       <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
         <Typography variant="body2" color="text.secondary">{item.source || 'Unknown source'}</Typography>
         {item.event_at && (

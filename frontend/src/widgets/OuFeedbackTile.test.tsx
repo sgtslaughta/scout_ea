@@ -76,4 +76,22 @@ describe('OuFeedbackTile', () => {
     expect(screen.queryByRole('button', { name: /add to my to-do list/i })).not.toBeInTheDocument()
     expect(mockCreateTask).not.toHaveBeenCalled()
   })
+
+  it('offers a row task button that opens a modal prefilled from the row', async () => {
+    mockGetRecords.mockResolvedValueOnce([records[0]])
+    wrap(<OuFeedbackTile />)
+
+    const button = await screen.findByRole('button', { name: /create a task from this/i })
+    fireEvent.click(button)
+
+    expect(await screen.findByRole('textbox', { name: 'Title' })).toHaveValue('Follow up: Jamie Lee')
+  })
+
+  it('shows the already-added variant once taskCreated is set, still enabled', async () => {
+    mockGetRecords.mockResolvedValueOnce([{ ...records[0], data: { ...records[0].data, taskCreated: true } }])
+    wrap(<OuFeedbackTile />)
+
+    const button = await screen.findByRole('button', { name: /task already created — add another\?/i })
+    expect(button).toBeEnabled()
+  })
 })

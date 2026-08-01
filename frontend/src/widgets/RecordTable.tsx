@@ -7,6 +7,8 @@ import TableCell from '@mui/material/TableCell'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
+import { RowTaskButton } from '@/components/RowTaskButton'
+import type { TaskDraft } from '@/components/TaskDraftModal'
 
 /**
  * One column of a RecordTable. `compact` columns show in both the narrow
@@ -29,6 +31,12 @@ export interface RecordTableProps<T> {
   emptyMessage?: string
   /** container width, in px, at/above which non-compact columns also render */
   wideAt?: number
+  /**
+   * When supplied, every body row gets a trailing "create a task" cell.
+   * Returning null means no button for that row. Shown in both the narrow
+   * tile view and the wide modal view — not subject to `compact` filtering.
+   */
+  rowTask?: (row: T) => (TaskDraft & { alreadyAdded?: boolean }) | null
 }
 
 const DEFAULT_WIDE_AT = 520
@@ -39,7 +47,7 @@ const DEFAULT_WIDE_AT = 520
  * Carries no domain knowledge — callers supply column config and rows.
  */
 export function RecordTable<T>({
-  rows, columns, getRowId, emptyMessage = 'Nothing to show yet.', wideAt = DEFAULT_WIDE_AT,
+  rows, columns, getRowId, emptyMessage = 'Nothing to show yet.', wideAt = DEFAULT_WIDE_AT, rowTask,
 }: RecordTableProps<T>) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [wide, setWide] = useState(false)
@@ -72,16 +80,29 @@ export function RecordTable<T>({
             {visibleColumns.map((c) => (
               <TableCell key={c.key} align={c.align ?? 'left'}>{c.header}</TableCell>
             ))}
+            {rowTask && <TableCell padding="checkbox" />}
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row) => (
-            <TableRow key={getRowId(row)} hover>
-              {visibleColumns.map((c) => (
-                <TableCell key={c.key} align={c.align ?? 'left'}>{c.render(row, { dense: !wide })}</TableCell>
-              ))}
-            </TableRow>
-          ))}
+          {rows.map((row) => {
+            const draft = rowTask?.(row) ?? null
+            return (
+              <TableRow
+                key={getRowId(row)}
+                hover
+                sx={{ '&:hover .row-task-action, &:focus-within .row-task-action': { opacity: 1 } }}
+              >
+                {visibleColumns.map((c) => (
+                  <TableCell key={c.key} align={c.align ?? 'left'}>{c.render(row, { dense: !wide })}</TableCell>
+                ))}
+                {rowTask && (
+                  <TableCell padding="checkbox">
+                    {draft && <RowTaskButton draft={draft} alreadyAdded={draft.alreadyAdded} />}
+                  </TableCell>
+                )}
+              </TableRow>
+            )
+          })}
         </TableBody>
       </Table>
     </Box>

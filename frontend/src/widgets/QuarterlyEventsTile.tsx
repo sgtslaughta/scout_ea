@@ -210,6 +210,11 @@ export default function QuarterlyEventsTile() {
           columns={columns}
           getRowId={(r) => r.id}
           emptyMessage="No events on the list yet. Add your first CXO engagement."
+          rowTask={(r) => ({
+            title: `Prep ${r.eventName}`,
+            dueAt: r.date,
+            source: `Quarterly Events — ${r.eventName}`,
+          })}
         />
       </Box>
     </Box>
