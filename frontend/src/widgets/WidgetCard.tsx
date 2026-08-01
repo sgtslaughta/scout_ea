@@ -2,6 +2,7 @@ import { Component, createContext, useContext, useEffect, useState } from 'react
 import type { ComponentType, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paper from '@mui/material/Paper'
+import { alpha } from '@mui/material/styles'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
@@ -17,6 +18,18 @@ import type { LucideIcon } from 'lucide-react'
 import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 
 const CountContext = createContext<(n: number | undefined) => void>(() => {})
+
+const ExpandedContext = createContext(false)
+
+/**
+ * True while the tile is rendering inside its expand dialog rather than in the
+ * grid. Tiles that cap their list for the compact view use this to show the
+ * full set when expanded — without it, expanding shows the same truncated list
+ * and the action is pointless.
+ */
+export function useWidgetExpanded(): boolean {
+  return useContext(ExpandedContext)
+}
 
 /** Child widgets publish their live item count into the chrome chip. */
 export function useWidgetCount(count: number | undefined) {
@@ -127,21 +140,65 @@ export function WidgetCard({ title, drillDown, onRefresh, onHide, dragHandle, em
 
   return (
     <CountContext.Provider value={setCount}>
-      <Paper variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%', '&:hover .widget-actions': { opacity: 1 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, pt: 2, minHeight: 48 }}>
+      <Paper
+        variant="outlined"
+        sx={(t) => ({
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          overflow: 'hidden',
+          borderColor: 'divider',
+          transition: 'box-shadow 160ms, border-color 160ms, transform 160ms',
+          // Lift toward the theme's own accent on hover rather than a grey
+          // shadow, so each theme keeps its character.
+          '&:hover': {
+            borderColor: 'primary.main',
+            boxShadow: `0 6px 20px -8px ${t.vars ? `rgba(${t.vars.palette.primary.mainChannel} / 0.45)` : alpha(t.palette.primary.main, 0.45)}`,
+          },
+          '&:hover .widget-actions': { opacity: 1 },
+        })}
+      >
+        <Box
+          sx={(t) => ({
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            px: 2.5,
+            pt: 2,
+            pb: 1.5,
+            minHeight: 48,
+            // Tinted header band + accent underline, both derived from the
+            // active theme's primary so all five themes read differently.
+            background: t.vars
+              ? `linear-gradient(180deg, rgba(${t.vars.palette.primary.mainChannel} / 0.07), rgba(${t.vars.palette.primary.mainChannel} / 0))`
+              : `linear-gradient(180deg, ${alpha(t.palette.primary.main, 0.07)}, transparent)`,
+            borderBottom: '1px solid',
+            borderColor: t.vars
+              ? `rgba(${t.vars.palette.primary.mainChannel} / 0.22)`
+              : alpha(t.palette.primary.main, 0.22),
+          })}
+        >
+          <Box
+            aria-hidden
+            sx={{ width: 3, height: 18, borderRadius: 1, bgcolor: 'primary.main', flexShrink: 0 }}
+          />
           <Typography variant="h6" color="text.primary" sx={{ lineHeight: 1.2 }}>{title}</Typography>
           {count !== undefined && <Chip size="small" label={count} sx={{ height: 22, fontSize: 13 }} />}
           <Box sx={{ flex: 1 }} />
           {actions}
         </Box>
         <Box sx={{ flex: 1, minHeight: 0, p: 2.5 }}>
-          <WidgetErrorBoundary title={title}>{body}</WidgetErrorBoundary>
+          <WidgetErrorBoundary title={title}>
+            <ExpandedContext.Provider value={false}>{body}</ExpandedContext.Provider>
+          </WidgetErrorBoundary>
         </Box>
       </Paper>
       <Dialog open={expanded} onClose={() => setExpanded(false)} maxWidth="lg" fullWidth>
         <DialogTitle>{title}</DialogTitle>
         <DialogContent>
-          <WidgetErrorBoundary title={title}>{expanded && body}</WidgetErrorBoundary>
+          <WidgetErrorBoundary title={title}>
+            {expanded && <ExpandedContext.Provider value>{body}</ExpandedContext.Provider>}
+          </WidgetErrorBoundary>
         </DialogContent>
       </Dialog>
       {Settings && (

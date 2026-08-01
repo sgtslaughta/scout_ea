@@ -21,6 +21,10 @@ EXPECTED = {
     "trending_search",
     "email_preferred",
     "chat_preferred",
+    "pipeline_tracker",
+    "ou_feedback",
+    "territory_review",
+    "ebc_innovation_hub",
 }
 MCP_TOOLS = {
     "add_signal",

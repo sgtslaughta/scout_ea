@@ -3,7 +3,8 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
-import { GripVertical, Circle, CheckCircle2, CircleDashed } from 'lucide-react'
+import Chip from '@mui/material/Chip'
+import { GripVertical, Circle, CheckCircle2, CircleDashed, Eye, EyeOff, ArrowDownWideNarrow } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -169,9 +170,32 @@ function TaskRow({
   )
 }
 
+/** Sort weight for "by status": in progress first, then not started, done last. */
+const STATUS_RANK: Record<RailTask['status'], number> = {
+  in_progress: 0,
+  open: 1,
+  done: 2,
+}
+
+/**
+ * Applies the rail's view options. Manual drag order is the default; sorting by
+ * status is a view over the same list and deliberately doesn't rewrite `sort`,
+ * so switching back restores the user's own ordering.
+ */
+export function applyView(
+  tasks: RailTask[],
+  opts: { hideDone: boolean; sortByStatus: boolean },
+): RailTask[] {
+  const visible = opts.hideDone ? tasks.filter((t) => t.status !== 'done') : tasks
+  if (!opts.sortByStatus) return visible
+  return [...visible].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status])
+}
+
 export function RightRail() {
   const qc = useQueryClient()
   const [newTitle, setNewTitle] = useState('')
+  const [hideDone, setHideDone] = useState(false)
+  const [sortByStatus, setSortByStatus] = useState(false)
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -208,7 +232,12 @@ export function RightRail() {
     },
   })
 
-  const ids = tasks.map((t) => t.id)
+  const shown = applyView(tasks, { hideDone, sortByStatus })
+  const doneCount = tasks.filter((t) => t.status === 'done').length
+
+  // Dragging reorders the real list, so it only makes sense while the rail is
+  // showing that list — sorting by status is a temporary view on top of it.
+  const ids = shown.map((t) => t.id)
   const handleDragEnd = createDragEndHandler(ids, (nextIds) => reorderMutation.mutate(nextIds))
 
   const handleAddKeyDown = (e: React.KeyboardEvent) => {
@@ -227,16 +256,44 @@ export function RightRail() {
         variant="standard"
         fullWidth
         slotProps={{ htmlInput: { 'aria-label': 'Add a task' } }}
-        sx={{ mb: 2 }}
+        sx={{ mb: 1.5 }}
       />
-      {tasks.length === 0 ? (
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5, flexWrap: 'wrap' }}>
+        <Tooltip title={sortByStatus ? 'Back to your own order' : 'Group by status: in progress, then not started, then done'}>
+          <Chip
+            size="medium"
+            icon={<ArrowDownWideNarrow size={16} />}
+            label="By status"
+            onClick={() => setSortByStatus((v) => !v)}
+            color={sortByStatus ? 'primary' : 'default'}
+            variant={sortByStatus ? 'filled' : 'outlined'}
+            aria-pressed={sortByStatus}
+          />
+        </Tooltip>
+        <Tooltip title={hideDone ? 'Show finished tasks again' : 'Hide anything already done'}>
+          <Chip
+            size="medium"
+            icon={hideDone ? <EyeOff size={16} /> : <Eye size={16} />}
+            label={doneCount > 0 ? `Hide done (${doneCount})` : 'Hide done'}
+            onClick={() => setHideDone((v) => !v)}
+            color={hideDone ? 'primary' : 'default'}
+            variant={hideDone ? 'filled' : 'outlined'}
+            aria-pressed={hideDone}
+          />
+        </Tooltip>
+      </Box>
+
+      {shown.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
-          Nothing to do yet. Add your first task.
+          {tasks.length === 0
+            ? 'Nothing to do yet. Add your first task.'
+            : 'Everything here is done. Nice.'}
         </Typography>
       ) : (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-            {tasks.map((task) => (
+            {shown.map((task) => (
               <TaskRow
                 key={task.id}
                 task={task}

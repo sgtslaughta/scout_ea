@@ -4,7 +4,7 @@ import type { DragEndEvent } from '@dnd-kit/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
 import { theme } from '../theme'
-import { RightRail, reorderIds, createDragEndHandler } from './RightRail'
+import { RightRail, reorderIds, createDragEndHandler, applyView } from './RightRail'
 import * as api from '@/api'
 
 // The real DndContext requires pointer events jsdom can't simulate. We
@@ -108,5 +108,39 @@ describe('RightRail', () => {
     const handleDragEnd = createDragEndHandler([1, 2], onReorder)
     handleDragEnd({ active: { id: 1 }, over: { id: 2 } } as DragEndEvent)
     expect(onReorder).toHaveBeenCalledWith([2, 1])
+  })
+})
+
+describe('applyView', () => {
+  const tasks = [
+    { id: 1, title: 'a', status: 'done' as const },
+    { id: 2, title: 'b', status: 'open' as const },
+    { id: 3, title: 'c', status: 'in_progress' as const },
+  ]
+
+  it('keeps the user\'s own order by default', () => {
+    expect(applyView(tasks, { hideDone: false, sortByStatus: false }).map((t) => t.id))
+      .toEqual([1, 2, 3])
+  })
+
+  it('hides done tasks when asked', () => {
+    expect(applyView(tasks, { hideDone: true, sortByStatus: false }).map((t) => t.id))
+      .toEqual([2, 3])
+  })
+
+  it('sorts in progress first, then not started, then done', () => {
+    expect(applyView(tasks, { hideDone: false, sortByStatus: true }).map((t) => t.id))
+      .toEqual([3, 2, 1])
+  })
+
+  it('combines both options', () => {
+    expect(applyView(tasks, { hideDone: true, sortByStatus: true }).map((t) => t.id))
+      .toEqual([3, 2])
+  })
+
+  it('does not mutate the input', () => {
+    const before = tasks.map((t) => t.id)
+    applyView(tasks, { hideDone: false, sortByStatus: true })
+    expect(tasks.map((t) => t.id)).toEqual(before)
   })
 })

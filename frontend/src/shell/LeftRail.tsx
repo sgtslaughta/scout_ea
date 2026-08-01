@@ -1,11 +1,15 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
+import IconButton from '@mui/material/IconButton'
+import Tooltip from '@mui/material/Tooltip'
+import { ExternalLink } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { getEvents, type EventItem } from '@/api'
 import { useClockFormat } from '@/lib/timePrefs'
 import { RailCard } from './RailCard'
 import { teamsJoinUrl } from './teamsJoinUrl'
+import { outlookCalendarUrl } from './outlookDeepLink'
 
 // Upcoming, chosen-time meetings only — proposals awaiting a chosen_time
 // aren't "on the calendar" yet, so they don't belong in this rail.
@@ -21,6 +25,7 @@ function dayLabel(iso: string): string {
 
 function MeetingRow({ event }: { event: EventItem }) {
   const clock = useClockFormat()
+  const gotoUrl = outlookCalendarUrl(event.chosen_time)
   const joinUrl = teamsJoinUrl(event)
 
   return (
@@ -48,15 +53,33 @@ function MeetingRow({ event }: { event: EventItem }) {
       <Typography variant="body1" sx={{ flex: 1 }}>
         {event.title}
       </Typography>
-      {joinUrl && (
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => window.open(joinUrl, '_blank', 'noopener')}
-        >
-          Join
-        </Button>
-      )}
+      <Box sx={{ display: 'flex', gap: 0.75, flexShrink: 0 }}>
+        {gotoUrl && (
+          // Icon-only: two labelled buttons squeeze the meeting title in a
+          // 320px rail. The tooltip and aria-label carry the meaning.
+          <Tooltip title="Go to this day in Outlook">
+            <IconButton
+              size="small"
+              onClick={() => window.open(gotoUrl, '_blank', 'noopener')}
+              aria-label={`Go to ${event.title} in Outlook`}
+              sx={{ color: 'primary.main' }}
+            >
+              <ExternalLink size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        {joinUrl && (
+          <Button
+            size="small"
+            variant="contained"
+            disableElevation
+            onClick={() => window.open(joinUrl, '_blank', 'noopener')}
+            aria-label={`Join ${event.title}`}
+          >
+            Join
+          </Button>
+        )}
+      </Box>
     </Box>
   )
 }

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
 import { theme } from '../theme'
-import { WidgetCard, useWidgetCount } from './WidgetCard'
+import { WidgetCard, useWidgetCount, useWidgetExpanded } from './WidgetCard'
 
 function wrap(ui: React.ReactNode) {
   return render(
@@ -163,5 +163,30 @@ describe('WidgetCard', () => {
     const gear = screen.getByRole('button', { name: /settings/i })
     fireEvent.click(gear)
     expect(screen.getByText('settings-panel')).toBeInTheDocument()
+  })
+})
+
+describe('useWidgetExpanded', () => {
+  function Probe() {
+    useWidgetCount(1)
+    return <div>{useWidgetExpanded() ? 'expanded' : 'compact'}</div>
+  }
+
+  it('reports compact in the grid and expanded inside the dialog', () => {
+    wrap(
+      <WidgetCard title="Feed" onRefresh={noop} onHide={noop}>
+        <Probe />
+      </WidgetCard>,
+    )
+    // Only the in-grid copy exists until the dialog is opened.
+    expect(screen.getByText('compact')).toBeInTheDocument()
+    expect(screen.queryByText('expanded')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: /expand feed/i }))
+
+    // Both copies are mounted once expanded; the dialog's reports expanded so a
+    // capped tile can render its full list there.
+    expect(screen.getByText('expanded')).toBeInTheDocument()
+    expect(screen.getByText('compact')).toBeInTheDocument()
   })
 })

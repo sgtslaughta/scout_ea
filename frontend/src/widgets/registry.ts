@@ -5,6 +5,8 @@ import {
   CalendarDays, MessageCircle, Map, Lightbulb,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { getConfig } from '@/api'
+import { safeHttpUrl } from '@/lib/url'
 
 export type WidgetSize = 'sm' | 'lg'
 
@@ -30,6 +32,21 @@ export interface WidgetDef {
 const Placeholder = lazy(() => import('./PlaceholderTile'))
 const EmailTile = lazy(() => import('./EmailTile'))
 const ChatTile = lazy(() => import('./ChatTile'))
+const PipelineTile = lazy(() => import('./PipelineTile'))
+const IndustryFeedTile = lazy(() => import('./IndustryFeedTile'))
+const EbcTile = lazy(() => import('./EbcTile'))
+const OuFeedbackTile = lazy(() => import('./OuFeedbackTile'))
+const QuarterlyEventsTile = lazy(() => import('./QuarterlyEventsTile'))
+const TerritoryTile = lazy(() => import('./TerritoryTile'))
+
+// The GRACE-built MSX dashboard has no fixed URL — it lives in config
+// (same pattern as quick_links), so fetch it fresh on click rather than
+// hardcoding a guessed address.
+async function openMsxDashboard() {
+  const cfg = await getConfig()
+  const url = safeHttpUrl(cfg.msx_dashboard_url)
+  if (url) window.open(url, '_blank', 'noopener')
+}
 
 export const WIDGETS: WidgetDef[] = [
   {
@@ -60,7 +77,8 @@ export const WIDGETS: WidgetDef[] = [
     key: 'pipeline',
     title: 'Pipeline',
     size: 'sm',
-    component: Placeholder,
+    component: PipelineTile,
+    drillDown: openMsxDashboard,
     queryKeys: [['records', 'pipeline']],
     emptyState: { icon: GitBranch, message: 'No opportunities tracked yet. Add a TPID or opportunity ID and Scout fills in the rest.' },
   },
@@ -68,15 +86,15 @@ export const WIDGETS: WidgetDef[] = [
     key: 'industryFeed',
     title: 'Industry feed',
     size: 'sm',
-    component: Placeholder,
-    queryKeys: [['news'], ['trends']],
+    component: IndustryFeedTile,
+    queryKeys: [['news'], ['topics']],
     emptyState: { icon: Newspaper, message: 'Nothing new in the industry yet. Scout watches email, Teams communities, and the web.' },
   },
   {
     key: 'qtrEvent',
     title: 'Quarterly events',
     size: 'sm',
-    component: Placeholder,
+    component: QuarterlyEventsTile,
     queryKeys: [['records', 'qtr_event']],
     emptyState: { icon: CalendarDays, message: 'No events on the list yet. Add your first CXO engagement.' },
   },
@@ -84,7 +102,7 @@ export const WIDGETS: WidgetDef[] = [
     key: 'ouFeedback',
     title: 'OU feedback',
     size: 'sm',
-    component: Placeholder,
+    component: OuFeedbackTile,
     queryKeys: [['records', 'ou_feedback']],
     emptyState: { icon: MessageCircle, message: 'No feedback captured yet. Ask Scout to gather some when you need it.' },
   },
@@ -92,7 +110,7 @@ export const WIDGETS: WidgetDef[] = [
     key: 'territory',
     title: 'Territory reviews',
     size: 'sm',
-    component: Placeholder,
+    component: TerritoryTile,
     queryKeys: [['records', 'territory']],
     emptyState: { icon: Map, message: 'No reviews on the schedule yet.' },
   },
@@ -100,7 +118,7 @@ export const WIDGETS: WidgetDef[] = [
     key: 'ebc',
     title: 'EBC & Innovation Hub',
     size: 'sm',
-    component: Placeholder,
+    component: EbcTile,
     queryKeys: [['records', 'ebc']],
     emptyState: { icon: Lightbulb, message: 'No sessions booked yet. Scout will pull these from MSXI.' },
   },

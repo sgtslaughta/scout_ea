@@ -1,6 +1,6 @@
 # Scout EA Skills
 
-This directory contains the 19 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
+This directory contains the 22 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
 
 ## Base Skills (7)
 
@@ -80,31 +80,53 @@ This directory contains the 19 Scout automation skills that orchestrate the Exec
 **Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
 **MCP Tools:** `query`, `upsert_record`, `list_records`, `log_skill_run`
 
+## Dashboard Records (4)
+
+### 15. `pipeline_tracker`
+**Description:** Look up user-tracked opportunities (by TPID or opportunity ID) in MSX and fill in the Pipeline dashboard tile; refresh status monthly. Always merges into the existing record — never overwrites the user's hand-entered Sales tag ID.  
+**Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST; monthly status refresh on the 1st at 07:00 EST  
+**MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
+
+### 16. `territory_review`
+**Description:** Find the master territory review schedule and enrich each review with its Teams recording, decks, and recap as they become available. Always merges into the existing record — new artefacts never overwrite ones already attached.  
+**Schedule:** Heartbeat 30 min, workdays 07:00–18:00 EST  
+**MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
+
+### 17. `ou_feedback`
+**Description:** Catalogue feedback about the user's OU from email, Teams, and meeting notes — who said it, what it was, and whether it needs action. A catalogue, not a feed: infrequent, no alerts.  
+**Schedule:** Automation, daily 06:00 EST  
+**MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
+
+### 18. `ebc_innovation_hub`
+**Description:** Pull EBC and Innovation Hub session bookings from the MSXI MCP server (on the user's host machine) and fill in the EBC & Innovation Hub dashboard tile. MSXI's field shape is unknown, so it stores what it gets rather than forcing a schema. Always merges into the existing record — never overwrites the user's hand-entered Lead planner or My action.  
+**Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
+**MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
+
 ## Outgoing Actions (5)
 
 Scout's closed-loop action pipeline: `scout_actions` drafts, the four `run_*` executors claim and execute approved (or auto-mode) actions and write results back.
 
-### 15. `scout_actions`
+### 19. `scout_actions`
 **Description:** Scan recent signals/deadlines/people and draft outgoing actions for review; report each run. Does not execute.  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_rows`, `list_guidance`, `has_open_action`, `add_action`, `log_skill_run`
 
-### 16. `run_comms`
+### 20. `run_comms`
 **Description:** Execute approved email + status actions via M365; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_send_mail`, `log_skill_run`
 
-### 17. `run_teams`
+### 21. `run_teams`
 **Description:** Execute approved Teams chat + group + channel actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`
 
-### 18. `run_calendar`
+### 22. `run_calendar`
 **Description:** Execute approved calendar invite actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_create_event`, `log_skill_run`
 
-### 19. `run_cowork`
+### 23. `run_cowork`
 **Description:** Execute collaboration doc/gather actions; write results back with access URLs  
 **Schedule:** Heartbeat 10 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`

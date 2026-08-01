@@ -519,3 +519,6 @@ export const getRecords = (kind: string, status?: string) =>
   fetchJson<RecordItem[]>(
     `/api/records?kind=${encodeURIComponent(kind)}${status ? `&status=${encodeURIComponent(status)}` : ''}`,
   )
+
+export const addRecord = (kind: string, external_ref: string, data: Record<string, unknown>, status = 'active', sort = 0) =>
+  postJson<{ id: number }>('/api/records', { kind, external_ref, data, status, sort })

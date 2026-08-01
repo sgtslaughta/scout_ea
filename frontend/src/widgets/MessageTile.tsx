@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography'
 import { getRecords, type RecordItem } from '@/api'
 import { useFriendlyTime } from '@/lib/timePrefs'
 import { ActionMenu } from '@/components/actions/ActionMenu'
-import { useWidgetCount } from './WidgetCard'
+import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 
 const MAX_ROWS = 5
 
@@ -123,7 +123,9 @@ export function MessageTile({ kind }: { kind: 'email' | 'chat' }) {
   useWidgetCount(messages.length)
 
   const counts = computeCounts(messages)
-  const rows = messages.slice(0, MAX_ROWS)
+  const expanded = useWidgetExpanded()
+  // The expand dialog shows everything; the grid tile stays scannable.
+  const rows = expanded ? messages : messages.slice(0, MAX_ROWS)
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 1.5 }}>
