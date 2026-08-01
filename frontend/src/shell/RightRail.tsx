@@ -47,11 +47,12 @@ export interface RailTask {
   priority: number
 }
 
-// Cycle order per spec: blank (open) -> green (done) -> orange (in_progress) -> open
+// Follows how work actually moves: not started -> in progress -> done, then
+// back round to not started for a task you need to reopen.
 const NEXT_STATUS: Record<RailTask['status'], RailTask['status']> = {
-  open: 'done',
-  done: 'in_progress',
-  in_progress: 'open',
+  open: 'in_progress',
+  in_progress: 'done',
+  done: 'open',
 }
 
 /** What the current state means, in the user's words. Shown on hover. */
@@ -63,9 +64,9 @@ const STATUS_MEANING: Record<RailTask['status'], string> = {
 
 /** What clicking does next, for the accessible name. */
 const STATUS_ACTION: Record<RailTask['status'], string> = {
-  open: 'Mark as done',
-  done: 'Mark as in progress',
-  in_progress: 'Mark as not started',
+  open: 'Mark as in progress',
+  in_progress: 'Mark as done',
+  done: 'Mark as not started',
 }
 
 const STATUS_ICON: Record<RailTask['status'], LucideIcon> = {

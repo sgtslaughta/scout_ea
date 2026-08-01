@@ -62,13 +62,18 @@ describe('RightRail', () => {
     expect(screen.getByText('Review PR')).toBeInTheDocument()
   })
 
-  it('cycles the status box and PATCHes the new status', async () => {
+  // The cycle follows how work moves: not started -> in progress -> done.
+  it.each([
+    ['open', /mark as in progress/i, 'in_progress'],
+    ['in_progress', /mark as done/i, 'done'],
+    ['done', /mark as not started/i, 'open'],
+  ] as const)('cycles %s to the next status', async (from, label, to) => {
     vi.spyOn(api, 'getTasks').mockResolvedValue([
-      { id: 1, title: 'Write report', status: 'open', priority: 3, sort: 0 },
+      { id: 1, title: 'Write report', status: from, priority: 3, sort: 0 },
     ])
     renderRail()
-    fireEvent.click(await screen.findByRole('button', { name: /mark as done/i }))
-    await waitFor(() => expect(api.updateTask).toHaveBeenCalledWith(1, { status: 'done' }))
+    fireEvent.click(await screen.findByRole('button', { name: label }))
+    await waitFor(() => expect(api.updateTask).toHaveBeenCalledWith(1, { status: to }))
   })
 
   it('clicking the bucket glyph cycles priority and PATCHes 2/3/4', async () => {
