@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
@@ -119,5 +119,63 @@ describe('TopBar', () => {
     renderBar()
     await userEvent.click(await screen.findByRole('button', { name: 'Timers' }))
     // No throw / stub renders — proves TopBar wires TimerPills.onOpen through.
+  })
+})
+
+const weatherWithForecast: api.WeatherResponse = {
+  temp: 87, unit: 'F', condition: 'clouds',
+  forecast: [
+    { date: '2026-08-01', hi: 87, lo: 70, condition: 'clouds' },
+    { date: '2026-08-02', hi: 85, lo: 68, condition: 'clear' },
+    { date: '2026-08-03', hi: 90, lo: 72, condition: 'storm' },
+    { date: '2026-08-04', hi: 80, lo: 65, condition: 'rain' },
+    { date: '2026-08-05', hi: 78, lo: 60, condition: 'snow' },
+  ],
+}
+
+describe('weather popover', () => {
+  it('opens on hover, shows the location and 5-day forecast, and closes on pointer-leave', async () => {
+    vi.mocked(api.getQuickLinks).mockResolvedValue([])
+    vi.mocked(api.getWeather).mockResolvedValue(weatherWithForecast)
+    renderBar()
+
+    const trigger = await screen.findByRole('button', { name: /weather/i })
+    fireEvent.mouseEnter(trigger)
+    expect(await screen.findByText('Home')).toBeInTheDocument()
+
+    const dayRows = weatherWithForecast.forecast!.map((d) => new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' }))
+    dayRows.forEach((name) => expect(screen.getAllByText(name).length).toBeGreaterThan(0))
+
+    vi.useFakeTimers()
+    try {
+      fireEvent.mouseLeave(trigger)
+      act(() => { vi.advanceTimersByTime(200) })
+      expect(screen.queryByText('Home')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('opens on keyboard focus and on click', async () => {
+    vi.mocked(api.getQuickLinks).mockResolvedValue([])
+    vi.mocked(api.getWeather).mockResolvedValue(weatherWithForecast)
+    renderBar()
+
+    const trigger = await screen.findByRole('button', { name: /weather/i })
+    fireEvent.focus(trigger)
+    expect(await screen.findByText('Home')).toBeInTheDocument()
+    fireEvent.blur(trigger)
+
+    fireEvent.click(trigger)
+    expect(await screen.findByText('Home')).toBeInTheDocument()
+  })
+
+  it('does not offer a popover when the forecast is missing or empty', async () => {
+    vi.mocked(api.getQuickLinks).mockResolvedValue([])
+    vi.mocked(api.getWeather).mockResolvedValue({ temp: 87, unit: 'F', condition: 'clouds', forecast: [] })
+    renderBar()
+
+    await screen.findByText('87°F')
+    expect(screen.queryByRole('button', { name: /weather/i })).not.toBeInTheDocument()
   })
 })

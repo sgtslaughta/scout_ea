@@ -6,6 +6,14 @@ import path from 'path'
 // EA_API_TARGET when 8765 is taken by another instance.
 const apiTarget = process.env.EA_API_TARGET ?? 'http://127.0.0.1:8765'
 
+// Hostnames Vite will serve to. It rejects unknown Host headers by default,
+// which is what makes a tunnelled request fail with "Blocked request".
+// Add more with EA_ALLOWED_HOSTS=a.example,b.example
+const allowedHosts = [
+  'scoutdb.jmolabs.dev',
+  ...(process.env.EA_ALLOWED_HOSTS?.split(',').map((h) => h.trim()).filter(Boolean) ?? []),
+]
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -15,6 +23,11 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts,
+    // Behind a Cloudflare tunnel the browser reaches the page over https:443,
+    // so the HMR socket has to be told that — it defaults to the local port
+    // and would otherwise fail to connect through the tunnel.
+    hmr: { clientPort: 443, protocol: 'wss' },
     proxy: {
       '/api': {
         target: apiTarget,
@@ -23,6 +36,7 @@ export default defineConfig({
     },
   },
   preview: {
+    allowedHosts,
     proxy: {
       '/api': {
         target: apiTarget,

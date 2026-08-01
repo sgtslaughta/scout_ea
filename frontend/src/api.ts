@@ -135,6 +135,8 @@ export interface EventItem {
   status: string
 }
 
+export interface PersonHandle { channel: string; handle: string }
+
 export interface Person {
   id: number
   name: string
@@ -143,6 +145,8 @@ export interface Person {
   importance: number
   notes?: string
   active: number
+  /** channel handles (email/teams) this person can be matched against; lowercased on write */
+  handles?: PersonHandle[]
 }
 
 export interface Topic {
@@ -382,8 +386,15 @@ export const getPeople = (includeInactive?: boolean) => {
   return fetchJson<Person[]>(`/api/people${qs}`)
 }
 
-export const addPerson = (body: Partial<Person>) =>
-  postJson<{ id: number }>('/api/people', body)
+export interface PersonCreate extends Partial<Person> {
+  /** not a people column — written as a person_handles row (channel "email") */
+  email?: string
+  /** not a people column — written as a person_handles row (channel "teams") */
+  teams_handle?: string
+}
+
+export const addPerson = (body: PersonCreate) =>
+  postJson<{ id: number; existing?: boolean }>('/api/people', body as unknown as Record<string, unknown>)
 
 export const updatePerson = (id: number, body: Partial<Person>) =>
   patchJson<{ updated: number }>(`/api/people/${id}`, body)

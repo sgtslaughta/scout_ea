@@ -1,6 +1,6 @@
 # Scout EA Skills
 
-This directory contains the 22 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
+This directory contains the 24 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
 
 ## Base Skills (7)
 
@@ -80,7 +80,7 @@ This directory contains the 22 Scout automation skills that orchestrate the Exec
 **Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
 **MCP Tools:** `query`, `upsert_record`, `list_records`, `log_skill_run`
 
-## Dashboard Records (4)
+## Dashboard Records (5)
 
 ### 15. `pipeline_tracker`
 **Description:** Look up user-tracked opportunities (by TPID or opportunity ID) in MSX and fill in the Pipeline dashboard tile; refresh status monthly. Always merges into the existing record — never overwrites the user's hand-entered Sales tag ID.  
@@ -102,31 +102,36 @@ This directory contains the 22 Scout automation skills that orchestrate the Exec
 **Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
 **MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
 
+### 19. `revops_meeting`
+**Description:** Find the monthly RevOps meeting on the calendar, gather topic speakers from transcripts/calendar/SharePoint/Teams chats, and draft post-meeting action items from the transcript for the RevOps dashboard tile. Always merges into the existing record — never overwrites a manually-set meeting time, a user-typed speaker, or a user's own action items.  
+**Schedule:** Automation, daily 06:00 EST  
+**MCP Tools:** `list_records`, `upsert_record`, `log_skill_run`
+
 ## Outgoing Actions (5)
 
 Scout's closed-loop action pipeline: `scout_actions` drafts, the four `run_*` executors claim and execute approved (or auto-mode) actions and write results back.
 
-### 19. `scout_actions`
+### 20. `scout_actions`
 **Description:** Scan recent signals/deadlines/people and draft outgoing actions for review; report each run. Does not execute.  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_rows`, `list_guidance`, `has_open_action`, `add_action`, `log_skill_run`
 
-### 20. `run_comms`
+### 21. `run_comms`
 **Description:** Execute approved email + status actions via M365; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_send_mail`, `log_skill_run`
 
-### 21. `run_teams`
+### 22. `run_teams`
 **Description:** Execute approved Teams chat + group + channel actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`
 
-### 22. `run_calendar`
+### 23. `run_calendar`
 **Description:** Execute approved calendar invite actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_create_event`, `log_skill_run`
 
-### 23. `run_cowork`
+### 24. `run_cowork`
 **Description:** Execute collaboration doc/gather actions; write results back with access URLs  
 **Schedule:** Heartbeat 10 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`

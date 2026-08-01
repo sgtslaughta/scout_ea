@@ -7,6 +7,7 @@ import type { SelectChangeEvent } from '@mui/material/Select'
 import TextField from '@mui/material/TextField'
 import { toast } from 'sonner'
 import { addRecord, getRecords, type RecordItem } from '@/api'
+import { PersonName } from '@/components/PersonName'
 import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 import { RecordTable } from './RecordTable'
 import type { RecordColumn } from './RecordTable'
@@ -119,7 +120,10 @@ export default function EbcTile() {
         </Select>
       ),
     },
-    { key: 'accountExec', header: 'Account exec', render: (r) => dash(r.accountExec) },
+    {
+      key: 'accountExec', header: 'Account exec',
+      render: (r) => (r.accountExec ? <PersonName name={r.accountExec} /> : dash(r.accountExec)),
+    },
     {
       key: 'leadPlanner', header: 'Lead planner',
       render: (r) => (

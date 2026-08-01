@@ -10,6 +10,7 @@ import { ExternalLink, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { addRecord, getConfig, getRecords, type RecordItem } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
+import { PersonName } from '@/components/PersonName'
 import { useWidgetCount } from './WidgetCard'
 import { RecordTable } from './RecordTable'
 import type { RecordColumn } from './RecordTable'
@@ -90,7 +91,10 @@ const columns: RecordColumn<PipelineRow>[] = [
     ),
   },
   { key: 'status', header: 'Status', compact: true, render: (r) => dash(r.dealStatus ?? (r.recordStatus === 'pending' ? 'pending lookup' : undefined)) },
-  { key: 'accountExec', header: 'Account exec', render: (r) => dash(r.accountExec) },
+  {
+    key: 'accountExec', header: 'Account exec',
+    render: (r) => (r.accountExec ? <PersonName name={r.accountExec} /> : dash(r.accountExec)),
+  },
   { key: 'tpid', header: 'TPID', render: (r) => dash(r.tpid) },
   { key: 'opportunityId', header: 'Opportunity ID', render: (r) => dash(r.opportunityId) },
   { key: 'salesTagId', header: 'Sales tag ID', render: (r) => dash(r.salesTagId) },

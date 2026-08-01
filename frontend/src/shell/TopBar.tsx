@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Box, IconButton, Tooltip, Typography } from '@mui/material'
 import { Plus, Sun, Cloud, CloudRain, CloudSnow, CloudFog, CloudLightning } from 'lucide-react'
@@ -11,13 +11,14 @@ import { useQuickLinks } from './useQuickLinks'
 import { QuickLinkTile } from './QuickLinkTile'
 import { QuickLinksOverflow } from './QuickLinksOverflow'
 import { QuickLinkEditorDialog } from './QuickLinkEditorDialog'
+import { WeatherPopover } from './WeatherPopover'
 import { DRAWERS } from './drawerRegistry'
 import type { DrawerDef } from './drawerRegistry'
 
 // Mirrors WeatherBand's condition->icon mapping (not exported from there —
 // that component is coupled to the sky FX stack being deleted separately;
 // this bar needs its own compact, theme-token-only readout instead).
-const CONDITION_ICON: Record<ForecastDay['condition'], typeof Sun> = {
+export const CONDITION_ICON: Record<ForecastDay['condition'], typeof Sun> = {
   clear: Sun, clouds: Cloud, rain: CloudRain, snow: CloudSnow, fog: CloudFog, storm: CloudLightning,
 }
 
@@ -29,25 +30,74 @@ function CompactWeather() {
     enabled: !!loc,
   })
 
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+
+  // The popover paper is portaled outside this trigger, so a mouseLeave on
+  // the trigger can't tell whether the pointer landed on the paper or left
+  // for good — close on a short delay, cancelled by the paper's onMouseEnter.
+  // Mirrors FinanceStrip's TickerPopover close-timer pattern.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearCloseTimer = () => {
+    if (closeTimer.current != null) {
+      clearTimeout(closeTimer.current)
+      closeTimer.current = null
+    }
+  }
+  useEffect(() => clearCloseTimer, [])
+  const scheduleClose = () => {
+    clearCloseTimer()
+    closeTimer.current = setTimeout(() => setAnchorEl(null), 120)
+  }
+
   if (!weather || weather.error || !weather.condition) return null
 
   const Icon = CONDITION_ICON[weather.condition]
   const unit = weather.unit || 'C'
+  // No forecast data (e.g. still loading, or the API had nothing to give) —
+  // degrade to the plain readout rather than offering a popover with nothing in it.
+  const hasForecast = !!weather.forecast && weather.forecast.length > 0
+
+  const openAt = (el: HTMLElement) => { clearCloseTimer(); setAnchorEl(el) }
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-      <Icon size={24} role="img" aria-label={weather.condition} />
-      <Typography
-        sx={{
-          fontFamily: '"JetBrains Mono", monospace',
-          fontVariantNumeric: 'tabular-nums',
-          fontSize: '1.25rem',
-          fontWeight: 600,
-          color: 'text.primary',
-        }}
+    <>
+      <Box
+        role={hasForecast ? 'button' : undefined}
+        tabIndex={hasForecast ? 0 : undefined}
+        aria-label={hasForecast ? 'Weather forecast' : undefined}
+        aria-haspopup={hasForecast ? 'dialog' : undefined}
+        aria-expanded={hasForecast ? !!anchorEl : undefined}
+        onMouseEnter={hasForecast ? (e) => openAt(e.currentTarget) : undefined}
+        onMouseLeave={hasForecast ? scheduleClose : undefined}
+        onFocus={hasForecast ? (e) => openAt(e.currentTarget) : undefined}
+        onBlur={hasForecast ? scheduleClose : undefined}
+        onClick={hasForecast ? (e) => openAt(e.currentTarget) : undefined}
+        sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: hasForecast ? 'pointer' : 'default' }}
       >
-        {Math.round(weather.temp ?? 0)}°{unit}
-      </Typography>
-    </Box>
+        <Icon size={24} role="img" aria-label={weather.condition} />
+        <Typography
+          sx={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontVariantNumeric: 'tabular-nums',
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: 'text.primary',
+          }}
+        >
+          {Math.round(weather.temp ?? 0)}°{unit}
+        </Typography>
+      </Box>
+      {anchorEl && (
+        <WeatherPopover
+          weather={weather}
+          label={loc?.label ?? 'Weather'}
+          anchorEl={anchorEl}
+          open
+          onClose={() => setAnchorEl(null)}
+          onPaperEnter={clearCloseTimer}
+        />
+      )}
+    </>
   )
 }
 
