@@ -7,6 +7,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { getConfig } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
+import { toast } from 'sonner'
 
 export type WidgetSize = 'sm' | 'lg'
 
@@ -29,13 +30,13 @@ export interface WidgetDef {
 // Adding a dashboard = build the tile component, then swap it in for
 // PlaceholderTile on the matching entry below. Nothing else in the shell
 // changes: the grid, drag ordering, and card chrome all read from here.
-const Placeholder = lazy(() => import('./PlaceholderTile'))
 const EmailTile = lazy(() => import('./EmailTile'))
 const ChatTile = lazy(() => import('./ChatTile'))
 const PipelineTile = lazy(() => import('./PipelineTile'))
 const IndustryFeedTile = lazy(() => import('./IndustryFeedTile'))
 const EbcTile = lazy(() => import('./EbcTile'))
 const OuFeedbackTile = lazy(() => import('./OuFeedbackTile'))
+const RevOpsTile = lazy(() => import('./RevOpsTile'))
 const QuarterlyEventsTile = lazy(() => import('./QuarterlyEventsTile'))
 const TerritoryTile = lazy(() => import('./TerritoryTile'))
 
@@ -45,7 +46,13 @@ const TerritoryTile = lazy(() => import('./TerritoryTile'))
 async function openMsxDashboard() {
   const cfg = await getConfig()
   const url = safeHttpUrl(cfg.msx_dashboard_url)
-  if (url) window.open(url, '_blank', 'noopener')
+  if (url) {
+    window.open(url, '_blank', 'noopener')
+    return
+  }
+  // A control that silently does nothing is worse than one that explains
+  // itself — the URL is a config key the user hasn't set yet.
+  toast.info('No MSX dashboard link set yet. Add msx_dashboard_url in Settings to jump straight there.')
 }
 
 export const WIDGETS: WidgetDef[] = [
@@ -69,9 +76,9 @@ export const WIDGETS: WidgetDef[] = [
     key: 'revops',
     title: 'RevOps',
     size: 'sm',
-    component: Placeholder,
-    queryKeys: [['records', 'revops']],
-    emptyState: { icon: TrendingUp, message: 'No revenue numbers yet. Scout will pull these from MSX.' },
+    component: RevOpsTile,
+    queryKeys: [['records', 'revops_meeting']],
+    emptyState: { icon: TrendingUp, message: 'No topics ticked for this meeting yet.' },
   },
   {
     key: 'pipeline',

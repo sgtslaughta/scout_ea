@@ -6,6 +6,7 @@ import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import { toast } from 'sonner'
 import { addRecord, createTask, getRecords, type RecordItem } from '@/api'
+import { PersonName } from '@/components/PersonName'
 import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 import { RecordTable } from './RecordTable'
 import type { RecordColumn } from './RecordTable'
@@ -96,7 +97,10 @@ export default function OuFeedbackTile() {
   })
 
   const columns: RecordColumn<OuFeedbackRow>[] = [
-    { key: 'who', header: 'Who', compact: true, render: (r) => dash(r.who) },
+    {
+      key: 'who', header: 'Who', compact: true,
+      render: (r) => (r.who ? <PersonName name={r.who} /> : dash(r.who)),
+    },
     {
       key: 'text', header: 'Feedback', compact: true,
       render: (r, { dense }) => <Typography component="span">{dense ? excerpt(r.text, 60) : r.text}</Typography>,

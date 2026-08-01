@@ -25,6 +25,7 @@ EXPECTED = {
     "ou_feedback",
     "territory_review",
     "ebc_innovation_hub",
+    "revops_meeting",
 }
 MCP_TOOLS = {
     "add_signal",

@@ -85,6 +85,10 @@ class PersonBody(BaseModel):
     org: str | None = None
     importance: int = 3
     notes: str | None = None
+    # Not a people column — stored as a person_handles row, which is what the
+    # triage skills match incoming mail and chat against.
+    email: str | None = None
+    teams_handle: str | None = None
 
 
 class PersonPatch(BaseModel):
@@ -668,11 +672,26 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
 
     @app.get("/api/people")
     def list_people(include_inactive: bool = False, conn=Depends(get_db)):
-        return [dict(r) for r in db.list_people(conn, include_inactive=include_inactive)]
+        return db.list_people_with_handles(conn, include_inactive=include_inactive)
 
     @app.post("/api/people")
     def create_person(body: PersonBody, conn=Depends(get_db)):
-        pid = db.add_person(conn, **body.model_dump(exclude_none=True))
+        fields = body.model_dump(exclude_none=True)
+        email = fields.pop("email", None)
+        teams_handle = fields.pop("teams_handle", None)
+
+        # Tracking someone we already know by address should not create a
+        # second row — return the existing one instead.
+        if email:
+            existing = db.find_person_by_handle(conn, email)
+            if existing:
+                return {"id": existing["id"], "existing": True}
+
+        pid = db.add_person(conn, **fields)
+        if email:
+            db.add_person_handle(conn, pid, "email", email)
+        if teams_handle:
+            db.add_person_handle(conn, pid, "teams", teams_handle)
         return {"id": pid}
 
     @app.patch("/api/people/{person_id}")

@@ -9,6 +9,7 @@ import type { LucideIcon } from 'lucide-react'
 import { getRecords, type RecordItem } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
 import { useFriendlyTime } from '@/lib/timePrefs'
+import { PersonName } from '@/components/PersonName'
 import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 import { RecordTable } from './RecordTable'
 import type { RecordColumn } from './RecordTable'
@@ -100,8 +101,14 @@ function ArtefactLinks({ attachments }: { attachments: TerritoryAttachment[] }) 
 
 const makeColumns = (friendly: (iso: string) => string): RecordColumn<TerritoryRow>[] => [
   { key: 'date', header: 'Date', compact: true, render: (r) => (r.date ? friendly(r.date) : '—') },
-  { key: 'manager', header: 'Manager', compact: true, render: (r) => dash(r.manager) },
-  { key: 'presenter', header: 'Presenting', compact: true, render: (r) => dash(r.presenter) },
+  {
+    key: 'manager', header: 'Manager', compact: true,
+    render: (r) => (r.manager ? <PersonName name={r.manager} /> : dash(r.manager)),
+  },
+  {
+    key: 'presenter', header: 'Presenting', compact: true,
+    render: (r) => (r.presenter ? <PersonName name={r.presenter} /> : dash(r.presenter)),
+  },
   {
     key: 'customerPlan', header: 'Customer plan',
     render: (r) => {

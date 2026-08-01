@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import { getRecords, type RecordItem } from '@/api'
 import { useFriendlyTime } from '@/lib/timePrefs'
 import { ActionMenu } from '@/components/actions/ActionMenu'
+import { PersonName } from '@/components/PersonName'
 import { useWidgetCount, useWidgetExpanded } from './WidgetCard'
 
 const MAX_ROWS = 5
@@ -29,6 +30,7 @@ export interface Message {
   id: number
   external_ref: string
   from: string
+  fromEmail?: string
   subject: string
   preview?: string
   receivedAt: string
@@ -52,6 +54,7 @@ function parseMessage(kind: 'email' | 'chat', r: RecordItem): Message | null {
     id: r.id,
     external_ref: r.external_ref,
     from,
+    fromEmail: typeof d.fromEmail === 'string' ? d.fromEmail : undefined,
     subject,
     preview: typeof d.preview === 'string' ? d.preview : undefined,
     receivedAt,
@@ -84,7 +87,9 @@ function MessageRow({ kind, message, friendly }: {
     <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, py: 1 }}>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
-          <Typography variant="body1" sx={{ fontWeight: message.isUnread ? 700 : 500 }}>{message.from}</Typography>
+          <Typography component="span" variant="body1" sx={{ fontWeight: message.isUnread ? 700 : 500 }}>
+            <PersonName name={message.from} email={message.fromEmail} />
+          </Typography>
           {message.isMention && <Chip size="small" color="warning" label="@mention" />}
           <Box sx={{ flex: 1 }} />
           <Typography variant="caption" color="text.secondary" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>

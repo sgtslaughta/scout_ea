@@ -778,6 +778,41 @@ def list_people(conn: sqlite3.Connection, include_inactive: bool = False) -> lis
     return conn.execute("SELECT * FROM people WHERE active=1 ORDER BY importance, name").fetchall()
 
 
+def add_person_handle(conn: sqlite3.Connection, person_id: int, channel: str, handle: str) -> None:
+    """Attach a channel handle (email/teams) to a person, ignoring duplicates.
+
+    Skills match incoming mail and chat against person_handles, so a person
+    tracked without one is invisible to them.
+    """
+    conn.execute(
+        "INSERT OR IGNORE INTO person_handles(person_id, channel, handle) VALUES(?,?,?)",
+        (person_id, channel, handle.strip().lower()),
+    )
+    conn.commit()
+
+
+def list_people_with_handles(conn: sqlite3.Connection, include_inactive: bool = False) -> list[dict]:
+    """People, each with a `handles` list, so callers can match on address."""
+    people = [dict(r) for r in list_people(conn, include_inactive=include_inactive)]
+    by_person: dict[int, list[dict]] = {}
+    for row in conn.execute("SELECT person_id, channel, handle FROM person_handles"):
+        by_person.setdefault(row["person_id"], []).append(
+            {"channel": row["channel"], "handle": row["handle"]}
+        )
+    for p in people:
+        p["handles"] = by_person.get(p["id"], [])
+    return people
+
+
+def find_person_by_handle(conn: sqlite3.Connection, handle: str) -> sqlite3.Row | None:
+    """Look a person up by any channel handle, case-insensitively."""
+    return conn.execute(
+        "SELECT p.* FROM people p JOIN person_handles h ON h.person_id = p.id "
+        "WHERE lower(h.handle) = lower(?) LIMIT 1",
+        (handle.strip(),),
+    ).fetchone()
+
+
 def add_person(conn: sqlite3.Connection, **fields) -> int:
     """Insert a person row; returns the new id. Columns validated against _PERSON_COLS."""
     bad = set(fields) - _PERSON_COLS

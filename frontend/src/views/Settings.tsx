@@ -430,7 +430,9 @@ export function SettingsView() {
               }}
               renderInput={(params) => (
                 <TextField {...params} label="Search city"
-                  helperText={weatherLabel ? `Fallback location: ${weatherLabel}` : 'Fallback when browser geolocation is unavailable'} />
+                  helperText={weatherLabel
+                    ? `Saved — showing weather for ${weatherLabel}`
+                    : 'Pick your city. Until you do, your browser location is used.'} />
               )}
             />
             <Box>

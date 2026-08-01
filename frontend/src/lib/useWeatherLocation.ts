@@ -8,14 +8,38 @@ export interface WeatherLocation {
 /** Seed default (backend/ea/seed.sql) used when config itself fails to load. */
 const FALLBACK_CONFIG = { weather_lat: '40.71', weather_lon: '-74.01', weather_label: 'New York' }
 
-/** Pure choice: geolocation position (or null) + config dict -> location. */
+/** True when the user has actually chosen a city in Settings. */
+export function hasConfiguredCity(cfg: Record<string, string>): boolean {
+  return Boolean(cfg.weather_label && cfg.weather_lat && cfg.weather_lon)
+}
+
+/**
+ * Pure choice: geolocation position (or null) + config dict -> location.
+ *
+ * A city picked in Settings WINS over browser geolocation. Geolocation is
+ * only a convenience for users who never chose one — previously it silently
+ * overrode the explicit setting, so picking a city appeared to do nothing.
+ */
 export function chooseLocation(
   geo: GeolocationPosition | null,
   cfg: Record<string, string>,
 ): WeatherLocation {
   const label = cfg.weather_label || 'Weather'
+  if (hasConfiguredCity(cfg)) {
+    return {
+      lat: Number(cfg.weather_lat),
+      lon: Number(cfg.weather_lon),
+      label, source: 'config',
+    }
+  }
   if (geo) {
-    return { lat: geo.coords.latitude, lon: geo.coords.longitude, label, source: 'geo' }
+    // No city chosen, so there's no label to show — say where it came from.
+    return {
+      lat: geo.coords.latitude,
+      lon: geo.coords.longitude,
+      label: cfg.weather_label || 'Nearby',
+      source: 'geo',
+    }
   }
   return {
     lat: Number(cfg.weather_lat ?? 0),
@@ -38,6 +62,9 @@ export function useWeatherLocation(enabled: boolean): WeatherLocation | null {
     getConfig().then((cfg) => {
       if (cancelled) return
       setLoc(chooseLocation(null, cfg))
+      // Don't even ask for geolocation once a city is set — asking implies it
+      // might override the choice, and it must not.
+      if (hasConfiguredCity(cfg)) return
       if (!navigator.geolocation) return
       navigator.geolocation.getCurrentPosition(
         (pos) => { if (!cancelled) setLoc(chooseLocation(pos, cfg)) },
