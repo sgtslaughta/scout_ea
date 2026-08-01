@@ -128,3 +128,19 @@ CREATE TABLE IF NOT EXISTS news_items (
 CREATE INDEX IF NOT EXISTS idx_news_status ON news_items(status, created_at);
 CREATE TRIGGER IF NOT EXISTS trg_news_touch AFTER UPDATE ON news_items
 BEGIN UPDATE news_items SET updated_at = datetime('now') WHERE id = NEW.id; END;
+
+-- Feature migration 008: generic soft-dashboard records (qtr_event, ou_feedback,
+-- territory, ebc, revops, pipeline - no per-kind schema, data lives in JSON).
+CREATE TABLE IF NOT EXISTS records (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind         TEXT NOT NULL,
+  external_ref TEXT UNIQUE,
+  data         TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'active',
+  sort         INTEGER NOT NULL DEFAULT 0,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_records_kind ON records(kind, status, sort);
+CREATE TRIGGER IF NOT EXISTS trg_records_touch AFTER UPDATE ON records
+BEGIN UPDATE records SET updated_at = datetime('now') WHERE id = NEW.id; END;

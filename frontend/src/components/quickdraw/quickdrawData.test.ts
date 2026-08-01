@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildApproaching, buildNeedsResponse, formatCountdown, URGENCY_CHIP } from './quickdrawData'
+import { buildApproaching, buildNeedsResponse, formatCountdown, urgencyOf, URGENCY_CHIP } from './quickdrawData'
 import type { Deadline, Task, EventItem, Signal, Alert } from '@/api'
 
 const now = new Date('2026-07-11T12:00:00Z')
@@ -8,6 +8,19 @@ const iso = (ms: number) => new Date(now.getTime() + ms).toISOString()
 function dl(p: Partial<Deadline>): Deadline {
   return { id: 1, title: 'D', due_at: iso(3600_000), countdown_seconds: 3600, detail: '', source: 'manual', status: 'open', visible: 1, ...p }
 }
+
+describe('urgencyOf', () => {
+  it('classifies by countdown boundaries', () => {
+    expect(urgencyOf(-10)).toBe('critical')
+    expect(urgencyOf(0)).toBe('critical')
+    expect(urgencyOf(900)).toBe('critical')
+    expect(urgencyOf(901)).toBe('urgent')
+    expect(urgencyOf(7200)).toBe('urgent')
+    expect(urgencyOf(7201)).toBe('soon')
+    expect(urgencyOf(86400)).toBe('soon')
+    expect(urgencyOf(86401)).toBe('normal')
+  })
+})
 
 describe('formatCountdown', () => {
   it('overdue → now', () => expect(formatCountdown(0)).toBe('now'))

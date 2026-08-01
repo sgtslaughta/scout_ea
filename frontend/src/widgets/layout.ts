@@ -28,12 +28,18 @@ export function saveLayout(layout: DashboardLayout): void {
   localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout))
 }
 
-export function moveWidget(layout: DashboardLayout, key: string, dir: -1 | 1): DashboardLayout {
-  const i = layout.order.indexOf(key)
-  const j = i + dir
-  if (i < 0 || j < 0 || j >= layout.order.length) return layout
+export function reorderWidgets(
+  layout: DashboardLayout,
+  activeKey: string,
+  overKey: string,
+): DashboardLayout {
+  if (activeKey === overKey) return layout
+  const from = layout.order.indexOf(activeKey)
+  const to = layout.order.indexOf(overKey)
+  if (from < 0 || to < 0) return layout
   const order = [...layout.order]
-  ;[order[i], order[j]] = [order[j], order[i]]
+  order.splice(from, 1)
+  order.splice(to, 0, activeKey)
   return { ...layout, order }
 }
 

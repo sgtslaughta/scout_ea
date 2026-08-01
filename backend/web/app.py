@@ -116,6 +116,7 @@ class TaskPatch(BaseModel):
     priority: int | None = None
     status: str | None = None
     board_column_id: int | None = None
+    sort: int | None = None
 
 
 class TaskCreate(BaseModel):
@@ -163,6 +164,14 @@ _FINANCE_INDICES = ["^GSPC", "^DJI", "^IXIC"]
 class SubscribeBody(BaseModel):
     endpoint: str
     keys: dict
+
+
+class RecordBody(BaseModel):
+    kind: str
+    external_ref: str
+    data: dict
+    status: str = "active"
+    sort: int = 0
 
 
 def _rows(conn, sql, params=()):
@@ -215,7 +224,7 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
 
     @app.get("/api/tasks")
     def list_tasks(conn=Depends(get_db)):
-        return _rows(conn, "SELECT * FROM tasks ORDER BY created_at DESC, id DESC")
+        return _rows(conn, "SELECT * FROM tasks ORDER BY sort ASC, id ASC")
 
     @app.post("/api/tasks")
     def create_task(body: TaskCreate, conn=Depends(get_db)):
@@ -777,6 +786,16 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="column not found")
         return {"deleted": n}
+
+    @app.get("/api/records")
+    def list_records_endpoint(kind: str, status: str | None = None, conn=Depends(get_db)):
+        return db.list_records(conn, kind, status=status)
+
+    @app.post("/api/records")
+    def create_record(body: RecordBody, conn=Depends(get_db)):
+        rid = db.upsert_record(conn, body.kind, body.external_ref, body.data,
+                               status=body.status, sort=body.sort)
+        return {"id": rid}
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", SPAStaticFiles(directory=str(static_dir), html=True), name="static")

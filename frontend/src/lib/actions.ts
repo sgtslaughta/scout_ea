@@ -1,4 +1,4 @@
-export type EntityType = 'email' | 'signal' | 'news' | 'person' | 'task' | 'deadline'
+export type EntityType = 'email' | 'chat' | 'signal' | 'news' | 'person' | 'task' | 'deadline'
 export interface ActionField { key: string; label: string; type: 'text' | 'textarea'; required?: boolean }
 export interface ActionSpec { type: string; label: string; mode: 'review' | 'auto'; fields: ActionField[] }
 
@@ -16,6 +16,11 @@ export const ACTION_SPECS: Record<string, ActionSpec> = {
   email_reply: { type: 'email_reply', label: 'Reply', mode: 'review', fields: emailFields },
   email_forward: { type: 'email_forward', label: 'Forward', mode: 'review', fields: emailFields },
   email_new: { type: 'email_new', label: 'Email', mode: 'review', fields: emailFields },
+  // Destructive and irreversible from the user's side once Scout executes it,
+  // so it stays in review mode — never auto.
+  email_delete: { type: 'email_delete', label: 'Delete', mode: 'review', fields: [] },
+  email_move_folder: { type: 'email_move_folder', label: 'Move to folder', mode: 'review',
+    fields: [{ key: 'folder', label: 'Folder', type: 'text', required: true }] },
   teams_dm: { type: 'teams_dm', label: 'Teams DM', mode: 'review', fields: teamsFields },
   teams_group: { type: 'teams_group', label: 'Group chat', mode: 'review', fields: teamsFields },
   teams_post: { type: 'teams_post', label: 'Teams post', mode: 'review', fields: teamsFields },
@@ -34,7 +39,8 @@ export const ACTION_SPECS: Record<string, ActionSpec> = {
 }
 
 const ENTITY_ACTIONS: Record<EntityType, string[]> = {
-  email: ['email_reply', 'email_forward', 'email_new'],
+  email: ['email_reply', 'email_forward', 'email_new', 'email_move_folder', 'email_delete'],
+  chat: ['teams_dm', 'teams_group'],
   signal: ['email_new', 'teams_post', 'cowork_gather'],
   news: ['email_new', 'teams_post', 'cowork_gather'],
   person: ['teams_dm', 'teams_group', 'email_new', 'calendar_invite'],

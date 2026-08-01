@@ -1,29 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Command } from 'cmdk'
 import { Box } from '@mui/material'
-import { useQuery } from '@tanstack/react-query'
-import { search } from '@/api'
-import { NAV } from '@/nav'
+import { DRAWERS, type DrawerDef } from '@/shell/drawerRegistry'
+import { useQuickLinks } from '@/shell/useQuickLinks'
+import { safeHttpUrl } from '@/lib/url'
 
 interface CommandPaletteProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onViewChange: (view: string) => void
+  onOpenDrawer: (id: DrawerDef['id']) => void
   onRefresh: () => void
-}
-
-// nav destinations, derived from the single route registry
-const VIEWS = NAV.map((n) => ({ path: n.path, label: n.label }))
-
-// Result entity kind -> section heading + the PATH to navigate to.
-const KIND_ORDER = ['task', 'signal', 'deadline', 'event', 'person', 'topic', 'trend'] as const
-const KIND_LABEL: Record<string, string> = {
-  task: 'Tasks', signal: 'Signals', deadline: 'Deadlines', event: 'Events',
-  person: 'People', topic: 'Topics', trend: 'Trends',
-}
-const KIND_VIEW: Record<string, string> = {
-  task: '/tasks', signal: '/feed?view=inbox', deadline: '/schedule', event: '/schedule?tab=calendar',
-  person: '/people', topic: '/feed?view=topics', trend: '/feed?view=trending',
 }
 
 const itemStyle: React.CSSProperties = {
@@ -33,14 +19,9 @@ const itemStyle: React.CSSProperties = {
 const hoverOn = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.backgroundColor = 'var(--mui-palette-action-hover)')
 const hoverOff = (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.backgroundColor = 'transparent')
 
-export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: CommandPaletteProps) {
+export function CommandPalette({ open, onOpenChange, onOpenDrawer, onRefresh }: CommandPaletteProps) {
   const [value, setValue] = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(value.trim()), 250)
-    return () => clearTimeout(t)
-  }, [value])
+  const { links } = useQuickLinks()
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => { if (e.key === 'Escape') onOpenChange(false) }
@@ -50,21 +31,19 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
     }
   }, [open, onOpenChange])
 
-  const { data: results = [] } = useQuery({
-    queryKey: ['search', debouncedQ],
-    queryFn: () => search(debouncedQ),
-    enabled: open && debouncedQ.length >= 2,
-  })
-
   if (!open) return null
 
-  const close = () => { onOpenChange(false); setValue(''); setDebouncedQ('') }
+  const close = () => { onOpenChange(false); setValue('') }
   const q = value.trim().toLowerCase()
-  const navMatch = (label: string) => !q || label.toLowerCase().includes(q)
-  const filteredViews = VIEWS.filter((v) => navMatch(v.label))
-  const grouped = KIND_ORDER
-    .map((k) => [k, results.filter((r) => r.kind === k)] as const)
-    .filter(([, rs]) => rs.length > 0)
+  const matches = (label: string) => !q || label.toLowerCase().includes(q)
+  const filteredDrawers = DRAWERS.filter((d) => matches(d.label))
+  const filteredLinks = links.filter((l) => matches(l.name))
+
+  const openLink = (url: string) => {
+    const safe = safeHttpUrl(url)
+    if (safe) window.open(safe, '_blank', 'noopener')
+    close()
+  }
 
   return (
     <Box
@@ -91,62 +70,46 @@ export function CommandPalette({ open, onOpenChange, onViewChange, onRefresh }: 
         </Box>
 
         <Command.List style={{ maxHeight: 360, overflow: 'auto' }}>
-          {/* live entity results (grouped by kind) */}
-          {grouped.map(([kind, rs]) => (
-            <Command.Group key={kind} heading={KIND_LABEL[kind]} style={{ padding: '8px 16px' }}>
-              {rs.map((r) => (
-                <Command.Item
-                  key={`${kind}-${r.ref_id}`}
-                  value={`${kind}-${r.ref_id}`}
-                  style={itemStyle}
-                  onMouseEnter={hoverOn}
-                  onMouseLeave={hoverOff}
-                  onSelect={() => { onViewChange(KIND_VIEW[kind]); close() }}
-                >
-                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <span>{r.title}</span>
-                    {r.snippet && (
-                      <Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>{r.snippet}</Box>
-                    )}
-                  </Box>
-                </Command.Item>
-              ))}
-            </Command.Group>
-          ))}
-
-          {debouncedQ.length >= 2 && grouped.length === 0 && (
-            <Box sx={{ px: 2, py: 1.5, fontSize: 13, color: 'text.secondary' }}>No matches for “{debouncedQ}”.</Box>
+          {filteredDrawers.length === 0 && filteredLinks.length === 0 && q !== '' && (
+            <Box sx={{ px: 2, py: 1.5, fontSize: 13, color: 'text.secondary' }}>No matches for “{value.trim()}”.</Box>
           )}
 
-          {/* navigation (filtered by typed text) */}
-          {filteredViews.length > 0 && (
-            <Command.Group heading="Navigation" style={{ padding: '8px 16px' }}>
-              {filteredViews.map((view) => (
+          {filteredDrawers.length > 0 && (
+            <Command.Group heading="Go to" style={{ padding: '8px 16px' }}>
+              {filteredDrawers.map((d) => (
                 <Command.Item
-                  key={view.path}
-                  value={`nav-${view.path}`}
+                  key={d.id}
+                  value={`drawer-${d.id}`}
                   style={itemStyle}
                   onMouseEnter={hoverOn}
                   onMouseLeave={hoverOff}
-                  onSelect={() => { onViewChange(view.path); close() }}
+                  onSelect={() => { onOpenDrawer(d.id); close() }}
                 >
-                  {view.label}
+                  {d.label}
                 </Command.Item>
               ))}
             </Command.Group>
           )}
 
-          {/* quick actions (only when not actively searching) */}
+          {filteredLinks.length > 0 && (
+            <Command.Group heading="Quick Links" style={{ padding: '8px 16px' }}>
+              {filteredLinks.map((l) => (
+                <Command.Item
+                  key={l.name}
+                  value={`link-${l.name}`}
+                  style={itemStyle}
+                  onMouseEnter={hoverOn}
+                  onMouseLeave={hoverOff}
+                  onSelect={() => openLink(l.url)}
+                >
+                  {l.name}
+                </Command.Item>
+              ))}
+            </Command.Group>
+          )}
+
           {q === '' && (
             <Command.Group heading="Quick Actions" style={{ padding: '8px 16px' }}>
-              <Command.Item value="add-deadline" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onSelect={() => { onViewChange('/schedule'); close() }}>
-                Add deadline
-              </Command.Item>
-              <Command.Item value="go-to-inbox" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
-                onSelect={() => { onViewChange('/feed?view=inbox'); close() }}>
-                Go to Inbox
-              </Command.Item>
               <Command.Item value="refresh" style={itemStyle} onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                 onSelect={() => { onRefresh(); close() }}>
                 Refresh data

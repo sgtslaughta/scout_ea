@@ -85,6 +85,7 @@ export interface Task {
   status: string
   board_column_id?: number | null
   created_at?: string
+  sort?: number
 }
 
 export interface BoardColumn {
@@ -479,3 +480,45 @@ export const addGuidance = (scope: string, text: string) =>
   postJson<{ id: number }>('/api/guidance', { scope, text })
 export const deleteGuidance = (id: number) =>
   del<{ deleted: number }>(`/api/guidance/${id}`)
+
+export interface QuickLink { name: string; url: string }
+
+function isQuickLink(x: unknown): x is QuickLink {
+  return !!x && typeof x === 'object' &&
+    typeof (x as QuickLink).name === 'string' && typeof (x as QuickLink).url === 'string'
+}
+
+export async function getQuickLinks(): Promise<QuickLink[]> {
+  try {
+    const cfg = await getConfig()
+    const raw = cfg.quick_links
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(isQuickLink)
+  } catch {
+    return []
+  }
+}
+
+export const saveQuickLinks = (links: QuickLink[]) =>
+  setConfig('quick_links', JSON.stringify(links)).then(() => undefined)
+
+export interface RecordItem {
+  id: number
+  kind: string
+  external_ref: string
+  data: Record<string, unknown>
+  status: string
+  sort: number
+  created_at: string
+  updated_at: string
+}
+
+export const getRecords = (kind: string, status?: string) =>
+  fetchJson<RecordItem[]>(
+    `/api/records?kind=${encodeURIComponent(kind)}${status ? `&status=${encodeURIComponent(status)}` : ''}`,
+  )
+
+export const addRecord = (kind: string, external_ref: string, data: Record<string, unknown>, status = 'active', sort = 0) =>
+  postJson<{ id: number }>('/api/records', { kind, external_ref, data, status, sort })

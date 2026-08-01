@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+// Backend origin the dev/preview servers proxy /api to. Override with
+// EA_API_TARGET when 8765 is taken by another instance.
+const apiTarget = process.env.EA_API_TARGET ?? 'http://127.0.0.1:8765'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -13,7 +17,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8765',
+        target: apiTarget,
         changeOrigin: true,
       },
     },
@@ -21,7 +25,7 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8765',
+        target: apiTarget,
         changeOrigin: true,
       },
     },

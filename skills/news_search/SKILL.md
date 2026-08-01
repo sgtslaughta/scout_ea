@@ -4,6 +4,12 @@ description: Search current headlines per topic; add news_items (deduped), tagge
 schedule: automation, daily 06:30 EST
 ---
 
+## Scope
+Covers general industry headlines, **competitive intelligence** (competitor moves, product
+launches, funding, wins/losses), and **Teams community feed digests that arrive via email**
+(channel/community summary emails forwarded or delivered to the inbox). Treat all three as
+the same news pipeline — same extraction, dedup, and relevance rules below.
+
 ## MCP server
 This skill runs entirely through the **{{mcp_name}}** MCP server. Every read and write goes through an MCP
 tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
@@ -14,10 +20,17 @@ Read active topics with the **`query`** tool: `query("topics", filters=[["active
 
 ## Search current headlines
 Perform a news/web search for recent articles in the topic area (last 3 days where the
-engine supports date filtering). Extract the top results (respect `topics.max_suggest`,
+engine supports date filtering), **including competitor-focused queries** (e.g. "<topic>
+competitor" or a tracked competitor's name) so competitive-intelligence items surface
+alongside general headlines. Extract the top results (respect `topics.max_suggest`,
 default 5, per topic per run).
 
-For each article, extract: `title`, `url`, `synopsis` (first 2–3 sentences),
+Also check the mailbox for **Teams community/channel digest emails** (subject lines like
+"Community digest", "Channel summary", weekly community roundups) received since the last
+run. Extract each linked article/post the same way as a search result below — these count
+toward the same per-topic cap.
+
+For each article or digest link, extract: `title`, `url`, `synopsis` (first 2–3 sentences),
 `event_at` (publish time if known), `relevance` (1 exact → 5 tangential).
 
 ## Deconflict + insert

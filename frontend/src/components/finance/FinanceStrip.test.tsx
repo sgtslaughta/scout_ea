@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, act, fireEvent } from '@testing-library/react'
+import { render, screen, within, fireEvent, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FinanceStrip } from './FinanceStrip'
@@ -29,19 +29,19 @@ afterEach(() => vi.restoreAllMocks())
 describe('FinanceStrip', () => {
   it('renders watchlist + indices chips with direction', () => {
     wrap(<FinanceStrip finance={fin} />)
-    expect(screen.getByText('AAPL')).toBeInTheDocument()
-    expect(screen.getByText('S&P 500')).toBeInTheDocument()   // index shows friendly name
-    expect(screen.getByTestId('quote-AAPL').getAttribute('data-dir')).toBe('up')
-    expect(screen.getByTestId('quote-MSFT').getAttribute('data-dir')).toBe('down')
+    expect(screen.getAllByText('AAPL').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('S&P 500').length).toBeGreaterThan(0)   // index shows friendly name
+    expect(screen.getAllByTestId('quote-AAPL')[0].getAttribute('data-dir')).toBe('up')
+    expect(screen.getAllByTestId('quote-MSFT')[0].getAttribute('data-dir')).toBe('down')
   })
   it('formats the price chip with thousands separators', () => {
     wrap(<FinanceStrip finance={fin} />)
-    expect(screen.getByText('5,010.00')).toBeInTheDocument()
+    expect(screen.getAllByText('5,010.00').length).toBeGreaterThan(0)
   })
   it('click opens Yahoo Finance in a new tab', async () => {
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     wrap(<FinanceStrip finance={fin} />)
-    await userEvent.click(screen.getByTestId('quote-AAPL'))
+    await userEvent.click(screen.getAllByTestId('quote-AAPL')[0])
     expect(openSpy).toHaveBeenCalledWith(
       expect.stringContaining('finance.yahoo.com/quote/AAPL'), '_blank', 'noopener')
   })
@@ -60,125 +60,120 @@ it('renders indices and watchlist in one merged row', () => {
   wrap(<FinanceStrip finance={finance} />)
   expect(screen.getByTestId('finance-row')).toBeInTheDocument()
   // Both groups present, no separate WATCHLIST / MARKETS group rows
-  expect(screen.getByTestId('quote-^GSPC')).toBeInTheDocument()
-  expect(screen.getByTestId('quote-AAPL')).toBeInTheDocument()
+  expect(screen.getAllByTestId('quote-^GSPC')[0]).toBeInTheDocument()
+  expect(screen.getAllByTestId('quote-AAPL')[0]).toBeInTheDocument()
 })
 
-// jsdom has no layout engine: offsetWidth/clientWidth are always 0, and
-// packPages falls back to a single page when `available <= 0`. Rotation can
-// therefore NEVER occur in jsdom unless these are stubbed. Without this
-// helper the rotation test silently passes against a component that does not
-// rotate at all.
-function stubLayout({ chip, row }: { chip: number; row: number }) {
-  const offset = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
-    .mockImplementation(function (this: HTMLElement) {
-      return this.hasAttribute('data-chip') ? chip : row
-    })
-  const client = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get')
-    .mockReturnValue(row)
-  return () => { offset.mockRestore(); client.mockRestore() }
+// jsdom reports scrollWidth as 0 (no layout engine), so trackWidth/durationSec
+// are always 0 and the animation collapses to 'none' regardless of hover
+// state — the established pattern in this file (see the old stubLayout
+// helper) is to stub the relevant dimension so the real branch is exercised.
+function stubScrollWidth(px: number) {
+  const spy = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(px)
+  return () => spy.mockRestore()
 }
 
-const many = {
-  indices: Array.from({ length: 6 }, (_, i) => ({
-    symbol: `^IDX${i}`, name: `Index ${i}`, price: 100 + i, change_pct: 1,
-  })),
-  watchlist: Array.from({ length: 6 }, (_, i) => ({
-    symbol: `SYM${i}`, price: 50 + i, change_pct: -1,
-  })),
-}
+describe('marquee track', () => {
+  it('renders the track as two identical copies for a seamless loop', () => {
+    wrap(<FinanceStrip finance={finance} />)
+    const symbolCount = finance.indices.length + finance.watchlist.length
+    const chips = document.querySelectorAll('[data-chip]')
+    expect(chips.length).toBe(symbolCount * 2)
+  })
 
-it('advances the page on the interval and wraps at the end', () => {
-  // 12 chips of 100px in a 250px row => 3 pages
-  const restore = stubLayout({ chip: 100, row: 250 })
-  vi.useFakeTimers()
-  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
+  it('hides the second copy from the accessibility tree so each symbol has one accessible name', () => {
+    wrap(<FinanceStrip finance={finance} />)
+    const chips = Array.from(document.querySelectorAll('[data-chip]'))
+    const visible = chips.filter((el) => el.getAttribute('aria-hidden') !== 'true')
+    const hidden = chips.filter((el) => el.getAttribute('aria-hidden') === 'true')
+    expect(visible.length).toBe(finance.indices.length + finance.watchlist.length)
+    expect(hidden.length).toBe(finance.indices.length + finance.watchlist.length)
+    // jsdom has no layout, so the accessible-name query naturally resolves to
+    // the single non-hidden copy.
+    expect(screen.getAllByRole('button', { name: /AAPL/ })).toHaveLength(1)
+  })
 
-  const row = () => screen.getByTestId('finance-row')
-  expect(row()).toHaveAttribute('data-page', '0')
+  it('runs idle, pauses on hover, resumes on leave', () => {
+    const restore = stubScrollWidth(800)   // trackWidth = 400 -> durationSec = 10
+    wrap(<FinanceStrip finance={finance} />)
+    const row = screen.getByTestId('finance-row')
+    const track = row.firstElementChild as HTMLElement
+    const strip = row.parentElement!
 
-  act(() => { vi.advanceTimersByTime(1100) })
-  expect(row()).toHaveAttribute('data-page', '1')
+    expect(track).toHaveStyle({ animationPlayState: 'running' })
 
-  // keep advancing until it must have wrapped back to 0
-  const pages = Number(row().getAttribute('data-page-count'))
-  expect(pages).toBeGreaterThan(1)
-  // Total elapsed must be an exact multiple of intervalMs to land on page 0.
-  // After the first 1100ms advance we're mid-interval, so add (pages-1) full
-  // intervals plus the 100ms remainder — NOT 1100*pages, whose 10% buffer
-  // compounds and overshoots by a tick.
-  act(() => { vi.advanceTimersByTime(1000 * (pages - 1) + 100) })
-  expect(row()).toHaveAttribute('data-page', '0')
+    fireEvent.mouseEnter(strip)
+    expect(track).toHaveStyle({ animationPlayState: 'paused' })
 
-  vi.useRealTimers()
-  restore()
-})
+    fireEvent.mouseLeave(strip)
+    expect(track).toHaveStyle({ animationPlayState: 'running' })
 
-it('pauses rotation while hovered', async () => {
-  const restore = stubLayout({ chip: 100, row: 250 })
-  vi.useFakeTimers()
-  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
-  const row = () => screen.getByTestId('finance-row')
+    restore()
+  })
 
-  fireEvent.mouseEnter(row().parentElement!)
-  act(() => { vi.advanceTimersByTime(5000) })
-  expect(row()).toHaveAttribute('data-page', '0')   // frozen while hovered
+  it('keeps the animation paused while a popover is open, even after the strip is left', () => {
+    const restore = stubScrollWidth(800)
+    wrap(<FinanceStrip finance={finance} />)
+    const row = screen.getByTestId('finance-row')
+    const track = row.firstElementChild as HTMLElement
+    const strip = row.parentElement!
 
-  fireEvent.mouseLeave(row().parentElement!)
-  act(() => { vi.advanceTimersByTime(1100) })
-  expect(row()).toHaveAttribute('data-page', '1')   // resumes on leave
+    fireEvent.mouseEnter(within(row).getAllByTestId('quote-AAPL')[0])
+    fireEvent.mouseLeave(strip)
 
-  vi.useRealTimers()
-  restore()
-})
+    expect(track).toHaveStyle({ animationPlayState: 'paused' })
 
-it('advances when the manual button is pressed', async () => {
-  wrap(<FinanceStrip finance={finance} intervalMs={999999} />)
-  const btn = screen.getByRole('button', { name: /next tickers/i })
-  await userEvent.click(btn)
-  expect(screen.getByTestId('finance-row')).toBeInTheDocument()
+    restore()
+  })
+
+  it('computes the animation duration from the measured track width', () => {
+    const restore = stubScrollWidth(800)   // trackWidth = 400 -> durationSec = 10
+    wrap(<FinanceStrip finance={finance} />)
+    const row = screen.getByTestId('finance-row')
+    const track = row.firstElementChild as HTMLElement
+
+    // Emotion emits the animation via a generated class, and jsdom's
+    // getComputedStyle doesn't expand that shorthand — read the emitted CSS.
+    const css = Array.from(document.querySelectorAll('style'))
+      .map((s) => s.textContent ?? '')
+      .join('')
+    const rule = css.split('.').find((r) => track.className.split(' ').some((c) => r.startsWith(c)) && r.includes('animation'))
+    expect(rule).toContain('10s')
+
+    restore()
+  })
 })
 
 // Regression: reviewer-reported bug. `hovered` was only ever cleared by the
 // popover paper's onMouseLeave. If the pointer left a chip without crossing
 // onto the (portaled) paper — moving sideways along the row, or straight off
-// the strip — nothing cleared `hovered`, so rotation stayed pinned forever.
-it('resumes rotation after the pointer leaves a chip without reaching the popover paper', () => {
-  const restore = stubLayout({ chip: 100, row: 250 })
+// the strip — nothing cleared `hovered`, leaving the popover (and the pinned
+// marquee) stuck open forever.
+it('closes the popover after the pointer leaves a chip without reaching the popover paper', () => {
   vi.useFakeTimers()
-  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
-  const row = () => screen.getByTestId('finance-row')
+  wrap(<FinanceStrip finance={finance} />)
+  const row = screen.getByTestId('finance-row')
+  const strip = row.parentElement!
 
-  fireEvent.mouseEnter(screen.getByTestId('quote-^IDX0'))
-  fireEvent.mouseLeave(row().parentElement!)   // leaves the container; never touches the paper
+  fireEvent.mouseEnter(within(row).getAllByTestId('quote-AAPL')[0])
+  fireEvent.mouseLeave(strip)   // leaves the container; never touches the paper
 
-  // Two acts: the first lets the close-delay timeout fire and its effect
-  // (re-)register the rotation interval; the second gives that interval
-  // room to actually tick. A single big advance would register the new
-  // interval only after the whole window has already elapsed.
   act(() => { vi.advanceTimersByTime(200) })
-  act(() => { vi.advanceTimersByTime(9800) })
-  expect(row()).not.toHaveAttribute('data-page', '0')
+
+  expect(screen.queryByRole('button', { name: '1d' })).not.toBeInTheDocument()
 
   vi.useRealTimers()
-  restore()
 })
 
-it('stays open (and keeps rotation paused) when the pointer moves from the chip onto the popover paper', () => {
-  const restore = stubLayout({ chip: 100, row: 250 })
-  vi.useFakeTimers()
-  wrap(<FinanceStrip finance={many} intervalMs={1000} />)
-  const row = () => screen.getByTestId('finance-row')
+it('keeps the popover open when the pointer moves from the chip onto the popover paper', () => {
+  wrap(<FinanceStrip finance={finance} />)
+  const row = screen.getByTestId('finance-row')
 
-  fireEvent.mouseEnter(screen.getByTestId('quote-^IDX0'))
-  fireEvent.mouseLeave(row().parentElement!)   // pointer leaves the container en route to the paper
+  fireEvent.mouseEnter(within(row).getAllByTestId('quote-AAPL')[0])
 
   const rangeToggle = screen.getByRole('button', { name: '1d' })
   fireEvent.mouseEnter(rangeToggle.closest('.MuiPopover-paper')!)
+  fireEvent.mouseLeave(row.parentElement!)
 
-  act(() => { vi.advanceTimersByTime(10000) })
-  expect(row()).toHaveAttribute('data-page', '0')   // still pinned — popover never closed
-
-  vi.useRealTimers()
-  restore()
+  expect(screen.getByRole('button', { name: '1d' })).toBeInTheDocument()
 })

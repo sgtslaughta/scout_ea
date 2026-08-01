@@ -1,0 +1,308 @@
+import { useState } from 'react'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
+import Tooltip from '@mui/material/Tooltip'
+import Chip from '@mui/material/Chip'
+import { GripVertical, Circle, CheckCircle2, CircleDashed, Eye, EyeOff, ArrowDownWideNarrow } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { RailCard } from './RailCard'
+import { getTasks, createTask, updateTask } from '@/api'
+
+export interface RailTask {
+  id: number
+  title: string
+  status: 'open' | 'in_progress' | 'done'
+}
+
+// Cycle order per spec: blank (open) -> green (done) -> orange (in_progress) -> open
+const NEXT_STATUS: Record<RailTask['status'], RailTask['status']> = {
+  open: 'done',
+  done: 'in_progress',
+  in_progress: 'open',
+}
+
+/** What the current state means, in the user's words. Shown on hover. */
+const STATUS_MEANING: Record<RailTask['status'], string> = {
+  open: 'Not started',
+  done: 'Done',
+  in_progress: 'In progress',
+}
+
+/** What clicking does next, for the accessible name. */
+const STATUS_ACTION: Record<RailTask['status'], string> = {
+  open: 'Mark as done',
+  done: 'Mark as in progress',
+  in_progress: 'Mark as not started',
+}
+
+const STATUS_ICON: Record<RailTask['status'], LucideIcon> = {
+  open: Circle,
+  done: CheckCircle2,
+  in_progress: CircleDashed,
+}
+
+// Colour alone can't say what a state means — every status carries its own
+// glyph and a hover tooltip too.
+const STATUS_COLOR: Record<RailTask['status'], string> = {
+  open: 'text.disabled',
+  done: 'success.main',
+  in_progress: 'warning.main',
+}
+
+// Pure mapping from a drag-end (active/over ids) onto the new task order.
+export function reorderIds(ids: number[], activeId: number, overId: number | undefined): number[] {
+  if (overId == null || activeId === overId) return ids
+  const from = ids.indexOf(activeId)
+  const to = ids.indexOf(overId)
+  if (from === -1 || to === -1) return ids
+  const next = ids.slice()
+  next.splice(from, 1)
+  next.splice(to, 0, activeId)
+  return next
+}
+
+// Builds the exact handler passed to DndContext's onDragEnd, so tests can
+// invoke it directly instead of simulating pointer drags in jsdom.
+export function createDragEndHandler(ids: number[], onReorder: (ids: number[]) => void) {
+  return (event: DragEndEvent) => {
+    const activeId = Number(event.active.id)
+    const overId = event.over ? Number(event.over.id) : undefined
+    onReorder(reorderIds(ids, activeId, overId))
+  }
+}
+
+function StatusBox({ status, onClick }: { status: RailTask['status']; onClick: () => void }) {
+  const Icon = STATUS_ICON[status]
+  return (
+    <Tooltip title={`${STATUS_MEANING[status]} — click to ${STATUS_ACTION[status].toLowerCase()}`}>
+      <Box
+        component="button"
+        type="button"
+        onClick={onClick}
+        aria-label={`${STATUS_MEANING[status]}. ${STATUS_ACTION[status]}`}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 32,
+          height: 32,
+          flexShrink: 0,
+          borderRadius: 1,
+          border: 'none',
+          bgcolor: 'transparent',
+          color: STATUS_COLOR[status],
+          cursor: 'pointer',
+          p: 0,
+          '&:hover': { bgcolor: 'action.hover' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
+        }}
+      >
+        <Icon size={22} aria-hidden />
+      </Box>
+    </Tooltip>
+  )
+}
+
+function TaskRow({
+  task,
+  onStatusChange,
+}: {
+  task: RailTask
+  onStatusChange: (id: number, status: RailTask['status']) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
+
+  return (
+    <Box
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        py: 2.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      <StatusBox status={task.status} onClick={() => onStatusChange(task.id, NEXT_STATUS[task.status])} />
+      <Typography variant="body1" sx={{ flex: 1 }}>
+        {task.title}
+      </Typography>
+      <Box
+        component="button"
+        type="button"
+        {...attributes}
+        {...listeners}
+        aria-label={`Reorder ${task.title}`}
+        aria-roledescription="sortable"
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0,
+          border: 'none',
+          bgcolor: 'transparent',
+          color: 'text.secondary',
+          cursor: 'grab',
+          p: 0.5,
+        }}
+      >
+        <GripVertical size={20} />
+      </Box>
+    </Box>
+  )
+}
+
+/** Sort weight for "by status": in progress first, then not started, done last. */
+const STATUS_RANK: Record<RailTask['status'], number> = {
+  in_progress: 0,
+  open: 1,
+  done: 2,
+}
+
+/**
+ * Applies the rail's view options. Manual drag order is the default; sorting by
+ * status is a view over the same list and deliberately doesn't rewrite `sort`,
+ * so switching back restores the user's own ordering.
+ */
+export function applyView(
+  tasks: RailTask[],
+  opts: { hideDone: boolean; sortByStatus: boolean },
+): RailTask[] {
+  const visible = opts.hideDone ? tasks.filter((t) => t.status !== 'done') : tasks
+  if (!opts.sortByStatus) return visible
+  return [...visible].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status])
+}
+
+export function RightRail() {
+  const qc = useQueryClient()
+  const [newTitle, setNewTitle] = useState('')
+  const [hideDone, setHideDone] = useState(false)
+  const [sortByStatus, setSortByStatus] = useState(false)
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
+  const { data: rawTasks = [] } = useQuery({ queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000 })
+  // The rail only cycles open/in_progress/done; dismissed tasks don't appear here.
+  const tasks: RailTask[] = rawTasks
+    .filter((t) => t.status !== 'dismissed')
+    .map((t) => ({ id: t.id, title: t.title, status: t.status as RailTask['status'] }))
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: RailTask['status'] }) => updateTask(id, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  })
+
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedIds: number[]) => {
+      await Promise.all(
+        orderedIds
+          .map((id, index) => ({ id, index }))
+          .filter(({ id, index }) => rawTasks.find((t) => t.id === id)?.sort !== index)
+          .map(({ id, index }) => updateTask(id, { sort: index })),
+      )
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (title: string) => createTask({ title }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      setNewTitle('')
+    },
+  })
+
+  const shown = applyView(tasks, { hideDone, sortByStatus })
+  const doneCount = tasks.filter((t) => t.status === 'done').length
+
+  // Dragging reorders the real list, so it only makes sense while the rail is
+  // showing that list — sorting by status is a temporary view on top of it.
+  const ids = shown.map((t) => t.id)
+  const handleDragEnd = createDragEndHandler(ids, (nextIds) => reorderMutation.mutate(nextIds))
+
+  const handleAddKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newTitle.trim()) {
+      createMutation.mutate(newTitle.trim())
+    }
+  }
+
+  return (
+    <RailCard heading="To do">
+      <TextField
+        placeholder="Add a task…"
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+        onKeyDown={handleAddKeyDown}
+        variant="standard"
+        fullWidth
+        slotProps={{ htmlInput: { 'aria-label': 'Add a task' } }}
+        sx={{ mb: 1.5 }}
+      />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5, flexWrap: 'wrap' }}>
+        <Tooltip title={sortByStatus ? 'Back to your own order' : 'Group by status: in progress, then not started, then done'}>
+          <Chip
+            size="medium"
+            icon={<ArrowDownWideNarrow size={16} />}
+            label="By status"
+            onClick={() => setSortByStatus((v) => !v)}
+            color={sortByStatus ? 'primary' : 'default'}
+            variant={sortByStatus ? 'filled' : 'outlined'}
+            aria-pressed={sortByStatus}
+          />
+        </Tooltip>
+        <Tooltip title={hideDone ? 'Show finished tasks again' : 'Hide anything already done'}>
+          <Chip
+            size="medium"
+            icon={hideDone ? <EyeOff size={16} /> : <Eye size={16} />}
+            label={doneCount > 0 ? `Hide done (${doneCount})` : 'Hide done'}
+            onClick={() => setHideDone((v) => !v)}
+            color={hideDone ? 'primary' : 'default'}
+            variant={hideDone ? 'filled' : 'outlined'}
+            aria-pressed={hideDone}
+          />
+        </Tooltip>
+      </Box>
+
+      {shown.length === 0 ? (
+        <Typography variant="body1" color="text.secondary">
+          {tasks.length === 0
+            ? 'Nothing to do yet. Add your first task.'
+            : 'Everything here is done. Nice.'}
+        </Typography>
+      ) : (
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+            {shown.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      )}
+    </RailCard>
+  )
+}

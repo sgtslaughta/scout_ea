@@ -4,6 +4,11 @@ description: Weekly web/news search for developments in active topics; upsert le
 schedule: automation, weekly Friday 09:00 EST
 ---
 
+## Scope
+Covers deeper weekly developments per topic, including **competitive intelligence** (competitor
+strategy shifts, analyst commentary on competitors) and **Teams community feed content that
+arrives via email** (community/channel digest emails), not just standalone web articles.
+
 ## MCP server
 This skill runs entirely through the **{{mcp_name}}** MCP server. Every read and write goes through an MCP
 tool — never run raw SQL or touch the SQLite database directly. If the MCP server is
@@ -17,9 +22,10 @@ Read active topics with the **`query`** tool: `query("topics", filters=[["active
 
 ## Web search for developments
 For each active topic:
-1. Conduct a **web search** for recent news/articles about the topic (e.g., "AI agents" → search "AI agents 2024" or "latest breakthroughs in AI agents")
-2. Filter to sources published in the last 7 days.
-3. Extract top 5–10 results (by relevance).
+1. Conduct a **web search** for recent news/articles about the topic (e.g., "AI agents" → search "AI agents 2024" or "latest breakthroughs in AI agents"), plus a **competitor-focused search** where the topic maps to a tracked competitor or market (e.g. "<topic> competitor moves").
+2. Check the mailbox for **Teams community/channel digest emails** received in the window and extract any linked articles/posts the same way as web results.
+3. Filter to sources published in the last 7 days.
+4. Extract top 5–10 results (by relevance).
 
 For each result, extract:
 - `title`: article headline

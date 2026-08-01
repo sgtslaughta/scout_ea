@@ -1,27 +1,30 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { CommandPalette } from './CommandPalette'
-import * as api from '@/api'
 
 const onOpenChange = vi.fn()
-const onViewChange = vi.fn()
+const onOpenDrawer = vi.fn()
 const onRefresh = vi.fn()
 
+const links = [
+  { name: 'THS', url: 'https://ths.example.com' },
+  { name: 'MSX Hub', url: 'https://msx.example.com' },
+]
+
+vi.mock('@/shell/useQuickLinks', () => ({
+  useQuickLinks: () => ({ links, addLink: vi.fn(), editLink: vi.fn(), removeLink: vi.fn() }),
+}))
+
 function renderPalette(open = true) {
-  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <QueryClientProvider client={qc}>
-      <CommandPalette open={open} onOpenChange={onOpenChange} onViewChange={onViewChange} onRefresh={onRefresh} />
-    </QueryClientProvider>,
+    <CommandPalette open={open} onOpenChange={onOpenChange} onOpenDrawer={onOpenDrawer} onRefresh={onRefresh} />,
   )
 }
 
 describe('CommandPalette', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
-    onOpenChange.mockClear(); onViewChange.mockClear(); onRefresh.mockClear()
-    vi.spyOn(api, 'search').mockResolvedValue([])
+    onOpenChange.mockClear(); onOpenDrawer.mockClear(); onRefresh.mockClear()
   })
 
   it('does not render when closed', () => {
@@ -29,12 +32,13 @@ describe('CommandPalette', () => {
     expect(screen.queryByPlaceholderText(/search everything/i)).not.toBeInTheDocument()
   })
 
-  it('renders input, nav and quick actions when open', () => {
+  it('renders input, drawer entries, quick links, and refresh action when open', () => {
     renderPalette()
     expect(screen.getByPlaceholderText(/search everything/i)).toBeInTheDocument()
-    expect(screen.getByText('Home')).toBeInTheDocument()
-    expect(screen.getByText('Data Feed')).toBeInTheDocument()
-    expect(screen.getByText('Add deadline')).toBeInTheDocument()
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByText('People')).toBeInTheDocument()
+    expect(screen.getByText('THS')).toBeInTheDocument()
+    expect(screen.getByText('MSX Hub')).toBeInTheDocument()
     expect(screen.getByText('Refresh data')).toBeInTheDocument()
   })
 
@@ -44,17 +48,19 @@ describe('CommandPalette', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('navigates when selecting a view', () => {
+  it('opens the matching drawer when a drawer entry is selected', () => {
     renderPalette()
-    fireEvent.click(screen.getByText('Home'))
-    expect(onViewChange).toHaveBeenCalledWith('/')
+    fireEvent.click(screen.getByText('Settings'))
+    expect(onOpenDrawer).toHaveBeenCalledWith('settings')
     expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
-  it('navigates to a registry path when a nav item is chosen', () => {
+  it('opens a quick link url when one is selected', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     renderPalette()
-    fireEvent.click(screen.getByText('Data Feed'))
-    expect(onViewChange).toHaveBeenCalledWith('/feed')
+    fireEvent.click(screen.getByText('THS'))
+    expect(openSpy).toHaveBeenCalledWith('https://ths.example.com/', '_blank', 'noopener')
+    expect(onOpenChange).toHaveBeenCalledWith(false)
   })
 
   it('calls onRefresh from the refresh action', () => {
@@ -63,21 +69,11 @@ describe('CommandPalette', () => {
     expect(onRefresh).toHaveBeenCalled()
   })
 
-  it('filters nav items by typed text', () => {
+  it('filters drawer entries and quick links by typed text', () => {
     renderPalette()
-    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'feed' } })
-    expect(screen.getByText('Data Feed')).toBeInTheDocument()
-    expect(screen.queryByText('People')).not.toBeInTheDocument()
-  })
-
-  it('shows live search results and navigates to the mapped view', async () => {
-    vi.spyOn(api, 'search').mockResolvedValue([
-      { kind: 'task', ref_id: 5, title: 'Budget review', snippet: 'Q3 [budget]' },
-    ])
-    renderPalette()
-    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'budget' } })
-    const result = await screen.findByText('Budget review')
-    fireEvent.click(result)
-    expect(onViewChange).toHaveBeenCalledWith('/tasks') // task -> /tasks
+    fireEvent.change(screen.getByPlaceholderText(/search everything/i), { target: { value: 'th' } })
+    expect(screen.getByText('THS')).toBeInTheDocument()
+    expect(screen.queryByText('Settings')).not.toBeInTheDocument()
+    expect(screen.queryByText('MSX Hub')).not.toBeInTheDocument()
   })
 })

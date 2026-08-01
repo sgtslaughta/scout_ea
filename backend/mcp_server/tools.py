@@ -16,7 +16,8 @@ _READABLE = {
 # The outgoing action types the executor skills (run_comms/run_teams/run_calendar/
 # run_cowork) know how to run. Keep in sync with those SKILL.md files.
 ACTION_TYPES = (
-    "email_reply", "email_forward", "email_new", "teams_dm", "teams_group",
+    "email_reply", "email_forward", "email_new", "email_delete", "email_move_folder",
+    "teams_dm", "teams_group",
     "teams_post", "calendar_invite", "status_set", "cowork_doc", "cowork_gather",
 )
 
@@ -31,6 +32,14 @@ def add_deadline(conn, **fields) -> int:
 
 def add_task(conn, **fields) -> int:
     return db.add_task(conn, **fields)
+
+
+def upsert_record(conn, **fields) -> int:
+    return db.upsert_record(conn, **fields)
+
+
+def list_records(conn, kind, status=None):
+    return db.list_records(conn, kind, status=status)
 
 
 def update_status(conn, table, row_id, status) -> int:

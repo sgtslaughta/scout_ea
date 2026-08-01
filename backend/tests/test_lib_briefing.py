@@ -87,12 +87,14 @@ def test_news_grouped_by_topic_relevance_desc():
 
 
 def test_people_ordered_by_importance_with_signals():
+    # importance 1 = critical, 5 = info (same ordinal as priority), so the
+    # person with importance 1 leads.
     out = _base(
-        people=[{"id": 1, "name": "Lo", "importance": 1},
-                {"id": 2, "name": "Hi", "importance": 5}],
-        people_signals={2: [{"id": 8, "title": "s"}]},
+        people=[{"id": 1, "name": "Critical", "importance": 1},
+                {"id": 2, "name": "Info", "importance": 5}],
+        people_signals={1: [{"id": 8, "title": "s"}]},
     )
-    assert [p["id"] for p in out["people"]] == [2, 1]
+    assert [p["id"] for p in out["people"]] == [1, 2]
     assert out["people"][0]["signals"][0]["id"] == 8
     assert out["people"][1]["signals"] == []
 
@@ -193,15 +195,13 @@ def test_score_reason_explains_relevance():
 
 
 def test_score_reason_explains_importance():
-    # NOTE: importance is INVERTED relative to priority. `_score_of` computes
-    # `_PRIORITY_SCORE[6 - importance]`, so importance 5 is the most important
-    # person (-> 92) and importance 1 the least (-> 15). Verified against the
-    # live function; do not "correct" these numbers to match priority's scale.
+    # importance shares priority's 1-5 ordinal: 1 = critical (92), 5 = info (15).
+    # This previously asserted the inverse, locking in a bug that scored the
+    # user's most important contacts lowest.
     out = _briefing._score_reason({"importance": 5})
-    assert "5" in out and "92" in out
-
-    low = _briefing._score_reason({"importance": 1})
-    assert "1" in low and "15" in low
+    assert "5" in out and "15" in out
+    critical = _briefing._score_reason({"importance": 1})
+    assert "1" in critical and "92" in critical
 
 
 def test_score_reason_explains_priority():
@@ -311,3 +311,25 @@ def test_news_quadrant_selects_most_relevant_lowest_numbers():
 def test_score_reason_relevance_number_matches_score_of():
     row = {"relevance": 3}
     assert str(_briefing._score_of(row)) in _briefing._score_reason(row)
+
+
+def test_person_importance_is_not_inverted():
+    """people.importance is the same 1-5 ordinal as priority: 1 = critical.
+
+    The pre-fix code scored it as `6 - importance`, which ranked the user's
+    most important contacts lowest.
+    """
+    assert _briefing._score_of({"importance": 1}) == 92   # critical
+    assert _briefing._score_of({"importance": 5}) == 15   # info
+    assert _briefing._score_of({"importance": 0}) == 92   # clamps up to 1
+    assert _briefing._score_of({"importance": 9}) == 15   # clamps down to 5
+
+
+def test_key_people_listed_most_important_first():
+    """Fails against the pre-fix descending sort, which led with importance 5."""
+    people = [
+        {"id": 1, "name": "Least", "importance": 5},
+        {"id": 2, "name": "Most", "importance": 1},
+    ]
+    out = _base(people=people)
+    assert [p["name"] for p in out["people"]] == ["Most", "Least"]

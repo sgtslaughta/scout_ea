@@ -1,5 +1,14 @@
 import type { Deadline, Task, EventItem, Signal, Alert } from '@/api'
-import { urgencyOf, type Urgency } from '@/lib/horizon'
+
+export type Urgency = 'critical' | 'urgent' | 'soon' | 'normal'
+
+/** Urgency tier from seconds-until-due (<=0 is overdue). */
+export function urgencyOf(countdownSeconds: number): Urgency {
+  if (countdownSeconds <= 0 || countdownSeconds <= 900) return 'critical'
+  if (countdownSeconds <= 7200) return 'urgent'
+  if (countdownSeconds <= 86400) return 'soon'
+  return 'normal'
+}
 
 export interface ApproachItem {
   key: string; id: number; title: string; when: string
