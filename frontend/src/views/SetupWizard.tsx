@@ -109,9 +109,9 @@ function Step2Skills({ mcpName }: { mcpName: string }) {
     <Stack spacing={2}>
       <Alert severity="info" sx={{ alignItems: 'flex-start' }}>
         <Typography variant="body2" sx={{ mb: 1 }}>
-          Scout reads skills straight out of <code>~/.copilot/skills/</code> and picks up new ones
-          at the start of each conversation. Paste this one message and it installs all {skills.length}
-          {' '}itself — no need to add them one at a time.
+          Paste this one message into Scout and it does the whole setup itself: writes all
+          {' '}{skills.length} skills into <code>~/.scout/m-skills/</code>, adds their schedules to
+          your automations, and turns on the MCP tools they need. Nothing to add by hand.
         </Typography>
         <Button size="small" variant="contained"
           onClick={() => navigator.clipboard.writeText(

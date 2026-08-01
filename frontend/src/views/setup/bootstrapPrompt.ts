@@ -1,19 +1,25 @@
 /**
- * Builds the one message a user pastes into Scout to install every skill.
+ * Builds the one message a user pastes into Scout to install the whole setup:
+ * skills, scheduled automations, and the MCP tool allow-list.
  *
- * Scout reads custom skills from `~/.copilot/skills/<name>/SKILL.md` and picks
- * them up at the start of each conversation -- no restart, no per-skill UI step
- * (Microsoft Learn, Scout FAQ: "automatically discovers your custom skills").
- * So the whole copy-24-skills-by-hand flow collapses into Scout fetching them
- * from this server and writing the files itself.
+ * Real layout of a Scout install (confirmed by listing one, `C:\Users\<user>\.scout\`
+ * on Windows and `~/.scout/` on macOS):
  *
- * The second half asks Scout where automations and MCP config actually live.
- * Microsoft doesn't publish those paths, and we're not going to guess at the
- * on-disk format of a preview app -- we ask, then decide.
+ *   m-skills/<name>/SKILL.md    user skills, plus skills-metadata.json + disabled-skills.json
+ *   m-automations/automations.json   JSON array of automation definitions
+ *   m-mcp-servers.json          {"servers": {"<key>": {builtin, config, tools[]}}}
+ *
+ * The root is `.scout`, NOT `.copilot`. Microsoft's published docs describe the
+ * Copilot CLI layout; a real Scout install does not use it. Trust the machine.
+ *
+ * Everything here is mergeable plaintext except the MCP access token, which is
+ * encrypted against ~/.scout/m-encryption-key.enc -- so the server entry has to
+ * be created once through the UI, and we only ever extend its `tools` array.
  */
 
-/** Skills folder Scout reads. `~` is left for Scout to expand per-platform. */
-export const SKILLS_DIR = '~/.copilot/skills'
+export const SKILLS_DIR = '~/.scout/m-skills'
+export const AUTOMATIONS_PATH = '~/.scout/m-automations/automations.json'
+export const MCP_SERVERS_PATH = '~/.scout/m-mcp-servers.json'
 
 export interface BootstrapOptions {
   /** Origin the Scout machine can reach this server on. */
@@ -22,42 +28,50 @@ export interface BootstrapOptions {
   mcpName: string
 }
 
-/** Trailing slashes would produce `//api/skills`, which some proxies 404. */
+/** Trailing slashes would produce `//api/...`, which some proxies 404. */
 function normaliseBase(baseUrl: string): string {
   return baseUrl.replace(/\/+$/, '')
 }
 
 export function buildBootstrapPrompt({ baseUrl, mcpName }: BootstrapOptions): string {
   const base = normaliseBase(baseUrl)
-  return `Install my Scout EA skills, then tell me how this machine is set up.
+  return `Set up my Scout EA install. Work through these in order and report what changed.
 
-1. Fetch ${base}/api/skills — it returns a JSON array, one object per skill with
-   "name", "description", "schedule" and "body".
+Fetch ${base}/api/scout/install once. It returns JSON with "skills",
+"automations" and "mcpTools", already rendered for the MCP server named
+"${mcpName}".
 
-2. For each skill, write ${SKILLS_DIR}/<name>/SKILL.md containing YAML
-   frontmatter followed by the body:
+1. SKILLS -> ${SKILLS_DIR}/
+   For each entry in "skills", write its "content" verbatim to
+   ${SKILLS_DIR}/<path>. Create folders as needed and overwrite what's there —
+   this server is the source of truth.
 
-   ---
-   name: <name>
-   description: <description>
-   schedule: <schedule>
-   ---
+   Then open ${SKILLS_DIR}/skills-metadata.json. For any skill that has no
+   entry, add one, copying the field names and shape of the entries already in
+   that file. Don't invent fields it doesn't already use. Check
+   ${SKILLS_DIR}/disabled-skills.json too and make sure none of these are
+   listed there.
 
-   <body>
+2. AUTOMATIONS -> ${AUTOMATIONS_PATH}
+   Read the existing array first and keep a copy of it. For each entry in
+   "automations", match on "id": replace the existing object if that id is
+   already present, otherwise append. Never drop or reorder automations you
+   didn't recognise, and preserve "pinnedSessionId" and "lastExecutedAt" on any
+   entry you replace — those are yours, not ours.
 
-   Replace every occurrence of {{mcp_name}} in the body with ${mcpName}.
-   Create folders as needed and overwrite any file that's already there —
-   this server is the source of truth for these skills.
+3. MCP TOOLS -> ${MCP_SERVERS_PATH}
+   Find the server whose config name matches "${mcpName}". Set its "tools"
+   array to the union of what's there now and the "mcpTools" list. Change
+   nothing else in that file — in particular leave "accessTokenEncrypted"
+   exactly as it is.
 
-3. Tell me how many skills you wrote, and list any that failed.
+   This step is the one that matters most: most of these skills are currently
+   blocked because the tools they call aren't in that allow-list.
 
-4. Then, without changing anything, show me:
-   - a recursive listing of ~/.copilot (folders and file names only)
-   - a listing of your application data folder
-     (%APPDATA%\\Microsoft Scout\\ on Windows,
-      ~/Library/Application Support/Microsoft Scout/ on macOS)
-   - the contents of ~/.copilot/mcp-config.json if it exists
+4. Report back: how many skills you wrote, how many registry entries you added,
+   how many automations were added vs replaced, and which tool names were newly
+   added to the allow-list.
 
-   I want to know where you store automations and MCP server config. Don't edit
-   anything in step 4 — read only.`
+Restart Scout if any of these files need a reload to take effect, and tell me if
+so.`
 }
