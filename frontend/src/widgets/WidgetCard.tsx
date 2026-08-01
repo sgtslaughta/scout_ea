@@ -1,5 +1,5 @@
 import { Component, createContext, useContext, useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Paper from '@mui/material/Paper'
 import Box from '@mui/material/Box'
@@ -11,7 +11,10 @@ import Alert from '@mui/material/Alert'
 import Dialog from '@mui/material/Dialog'
 import DialogTitle from '@mui/material/DialogTitle'
 import DialogContent from '@mui/material/DialogContent'
-import { RefreshCw, Maximize2, ArrowUpRight, EyeOff, ChevronUp, ChevronDown } from 'lucide-react'
+import Popover from '@mui/material/Popover'
+import { RefreshCw, Maximize2, ArrowUpRight, EyeOff, GripVertical, Settings as SettingsIcon } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import type { DraggableAttributes, DraggableSyntheticListeners } from '@dnd-kit/core'
 
 const CountContext = createContext<(n: number | undefined) => void>(() => {})
 
@@ -41,55 +44,113 @@ class WidgetErrorBoundary extends Component<{ title: string; children: ReactNode
   }
 }
 
+/** Props a dnd-kit `useSortable` grid attaches to expose the drag handle. */
+export interface DragHandleProps {
+  attributes?: DraggableAttributes
+  listeners?: DraggableSyntheticListeners
+  setActivatorNodeRef?: (element: HTMLElement | null) => void
+}
+
 interface WidgetCardProps {
   title: string
-  drillDown?: string
+  drillDown?: string | (() => void)
   onRefresh: () => void
-  onMove: (dir: -1 | 1) => void
   onHide: () => void
+  dragHandle?: DragHandleProps
+  emptyState?: { icon?: LucideIcon; message: string }
+  settings?: ComponentType
   children: ReactNode
 }
 
-export function WidgetCard({ title, drillDown, onRefresh, onMove, onHide, children }: WidgetCardProps) {
+export function WidgetCard({ title, drillDown, onRefresh, onHide, dragHandle, emptyState, settings: Settings, children }: WidgetCardProps) {
   const [count, setCount] = useState<number | undefined>(undefined)
   const [expanded, setExpanded] = useState(false)
+  const [settingsAnchor, setSettingsAnchor] = useState<HTMLElement | null>(null)
   const navigate = useNavigate()
 
+  const openDrillDown = () => {
+    if (typeof drillDown === 'function') drillDown()
+    else if (drillDown) navigate(drillDown)
+  }
+
+  const isEmpty = count === 0 && !!emptyState
+  const EmptyIcon = emptyState?.icon
+
   const actions = (
-    <Box
-      className="widget-actions"
-      sx={{ display: 'flex', gap: 0.25, opacity: 0, transition: 'opacity 0.15s', '@media (hover: none)': { opacity: 1 } }}
-    >
-      <Tooltip title="Move up"><IconButton size="small" aria-label={`Move ${title} up`} onClick={() => onMove(-1)}><ChevronUp size={14} /></IconButton></Tooltip>
-      <Tooltip title="Move down"><IconButton size="small" aria-label={`Move ${title} down`} onClick={() => onMove(1)}><ChevronDown size={14} /></IconButton></Tooltip>
-      <Tooltip title="Refresh"><IconButton size="small" aria-label={`Refresh ${title}`} onClick={onRefresh}><RefreshCw size={14} /></IconButton></Tooltip>
-      <Tooltip title="Expand"><IconButton size="small" aria-label={`Expand ${title}`} onClick={() => setExpanded(true)}><Maximize2 size={14} /></IconButton></Tooltip>
-      {drillDown && (
-        <Tooltip title="Open view"><IconButton size="small" aria-label={`Open ${title}`} onClick={() => navigate(drillDown)}><ArrowUpRight size={14} /></IconButton></Tooltip>
-      )}
-      <Tooltip title="Hide"><IconButton size="small" aria-label={`Hide ${title}`} onClick={onHide}><EyeOff size={14} /></IconButton></Tooltip>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Tooltip title="Reorder">
+        <IconButton
+          aria-label={`Reorder ${title}`}
+          aria-roledescription="sortable"
+          ref={dragHandle?.setActivatorNodeRef}
+          {...dragHandle?.attributes}
+          {...dragHandle?.listeners}
+        >
+          <GripVertical size={18} />
+        </IconButton>
+      </Tooltip>
+      <Box
+        className="widget-actions"
+        sx={{ display: 'flex', gap: 0.5, opacity: 0, transition: 'opacity 0.15s', '@media (hover: none)': { opacity: 1 } }}
+      >
+        {Settings && (
+          <Tooltip title="Settings">
+            <IconButton aria-label={`Settings for ${title}`} onClick={(e) => setSettingsAnchor(e.currentTarget)}>
+              <SettingsIcon size={18} />
+            </IconButton>
+          </Tooltip>
+        )}
+        <Tooltip title="Refresh"><IconButton aria-label={`Refresh ${title}`} onClick={onRefresh}><RefreshCw size={18} /></IconButton></Tooltip>
+        <Tooltip title="Expand"><IconButton aria-label={`Expand ${title}`} onClick={() => setExpanded(true)}><Maximize2 size={18} /></IconButton></Tooltip>
+        {drillDown && (
+          <Tooltip title="Open view"><IconButton aria-label={`Open ${title}`} onClick={openDrillDown}><ArrowUpRight size={18} /></IconButton></Tooltip>
+        )}
+        <Tooltip title="Hide"><IconButton aria-label={`Hide ${title}`} onClick={onHide}><EyeOff size={18} /></IconButton></Tooltip>
+      </Box>
     </Box>
+  )
+
+  // Children stay mounted even when isEmpty, just visually hidden: unmounting
+  // them would tear down the effect that reported count === 0 in the first
+  // place, flipping isEmpty back to false and causing a remount/hide loop.
+  const body = (
+    <>
+      {isEmpty && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 1.5, color: 'text.secondary', textAlign: 'center', px: 2 }}>
+          {EmptyIcon && <EmptyIcon size={28} aria-hidden="true" />}
+          <Typography variant="body1" color="text.secondary">{emptyState!.message}</Typography>
+        </Box>
+      )}
+      <Box sx={{ display: isEmpty ? 'none' : 'contents' }}>{children}</Box>
+    </>
   )
 
   return (
     <CountContext.Provider value={setCount}>
       <Paper variant="outlined" sx={{ display: 'flex', flexDirection: 'column', height: '100%', '&:hover .widget-actions': { opacity: 1 } }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, pt: 1, minHeight: 36 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ lineHeight: 1 }}>{title}</Typography>
-          {count !== undefined && <Chip size="small" label={count} sx={{ height: 18, fontSize: 11 }} />}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5, pt: 2, minHeight: 48 }}>
+          <Typography variant="h6" color="text.primary" sx={{ lineHeight: 1.2 }}>{title}</Typography>
+          {count !== undefined && <Chip size="small" label={count} sx={{ height: 22, fontSize: 13 }} />}
           <Box sx={{ flex: 1 }} />
           {actions}
         </Box>
-        <Box sx={{ flex: 1, minHeight: 0, p: 1 }}>
-          <WidgetErrorBoundary title={title}>{children}</WidgetErrorBoundary>
+        <Box sx={{ flex: 1, minHeight: 0, p: 2.5 }}>
+          <WidgetErrorBoundary title={title}>{body}</WidgetErrorBoundary>
         </Box>
       </Paper>
       <Dialog open={expanded} onClose={() => setExpanded(false)} maxWidth="lg" fullWidth>
         <DialogTitle>{title}</DialogTitle>
         <DialogContent>
-          <WidgetErrorBoundary title={title}>{expanded && children}</WidgetErrorBoundary>
+          <WidgetErrorBoundary title={title}>{expanded && body}</WidgetErrorBoundary>
         </DialogContent>
       </Dialog>
+      {Settings && (
+        <Popover open={!!settingsAnchor} anchorEl={settingsAnchor} onClose={() => setSettingsAnchor(null)}>
+          <Box sx={{ p: 2.5, minWidth: 240 }}>
+            <Settings />
+          </Box>
+        </Popover>
+      )}
     </CountContext.Provider>
   )
 }

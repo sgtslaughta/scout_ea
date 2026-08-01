@@ -33,6 +33,14 @@ def add_task(conn, **fields) -> int:
     return db.add_task(conn, **fields)
 
 
+def upsert_record(conn, **fields) -> int:
+    return db.upsert_record(conn, **fields)
+
+
+def list_records(conn, kind, status=None):
+    return db.list_records(conn, kind, status=status)
+
+
 def update_status(conn, table, row_id, status) -> int:
     return db.update_status(conn, table, row_id, status)
 

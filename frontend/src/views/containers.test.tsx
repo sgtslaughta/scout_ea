@@ -4,12 +4,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // Stub the heavy child views so this test only proves tab wiring.
-vi.mock('./Deadlines', () => ({ DeadlinesView: () => <div>DEADLINES VIEW</div> }))
-vi.mock('./Calendar', () => ({ CalendarView: () => <div>CALENDAR VIEW</div> }))
 vi.mock('./Skills', () => ({ SkillsView: () => <div>SKILLS VIEW</div> }))
 vi.mock('./Activity', () => ({ ActivityView: () => <div>ACTIVITY VIEW</div> }))
 
-import { ScheduleView } from './Schedule'
 import { AutomationsView } from './Automations'
 
 function wrap(node: React.ReactNode, path = '/') {
@@ -22,10 +19,6 @@ function wrap(node: React.ReactNode, path = '/') {
 }
 
 describe('container views', () => {
-  it('Schedule defaults to Deadlines and honors ?tab=calendar', async () => {
-    wrap(<ScheduleView />, '/schedule?tab=calendar')
-    expect(await screen.findByText('CALENDAR VIEW')).toBeInTheDocument()
-  })
   it('Automations shows Skills + Activity tabs', () => {
     wrap(<AutomationsView />)
     expect(screen.getByRole('tab', { name: 'Skills' })).toBeInTheDocument()

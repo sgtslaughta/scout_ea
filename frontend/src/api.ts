@@ -479,3 +479,26 @@ export const addGuidance = (scope: string, text: string) =>
   postJson<{ id: number }>('/api/guidance', { scope, text })
 export const deleteGuidance = (id: number) =>
   del<{ deleted: number }>(`/api/guidance/${id}`)
+
+export interface QuickLink { name: string; url: string }
+
+function isQuickLink(x: unknown): x is QuickLink {
+  return !!x && typeof x === 'object' &&
+    typeof (x as QuickLink).name === 'string' && typeof (x as QuickLink).url === 'string'
+}
+
+export async function getQuickLinks(): Promise<QuickLink[]> {
+  try {
+    const cfg = await getConfig()
+    const raw = cfg.quick_links
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(isQuickLink)
+  } catch {
+    return []
+  }
+}
+
+export const saveQuickLinks = (links: QuickLink[]) =>
+  setConfig('quick_links', JSON.stringify(links)).then(() => undefined)

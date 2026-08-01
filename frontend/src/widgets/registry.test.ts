@@ -11,10 +11,25 @@ describe('widget registry', () => {
     for (const w of WIDGETS) {
       expect(w.key).toBeTruthy()
       expect(w.title).toBeTruthy()
-      expect(['sm', 'md', 'lg']).toContain(w.size)
+      expect(['sm', 'lg']).toContain(w.size)
       expect(w.component).toBeTruthy()
       expect(Array.isArray(w.queryKeys)).toBe(true)
-      if (w.drillDown) expect(w.drillDown.startsWith('/')).toBe(true)
+      if (typeof w.drillDown === 'string') expect(w.drillDown.startsWith('/')).toBe(true)
     }
+  })
+
+  it('registers all nine dashboard tiles', () => {
+    const keys = WIDGETS.map((w) => w.key)
+    expect(keys).toEqual([
+      'email',
+      'chat',
+      'revops',
+      'pipeline',
+      'industryFeed',
+      'qtrEvent',
+      'ouFeedback',
+      'territory',
+      'ebc',
+    ])
   })
 })

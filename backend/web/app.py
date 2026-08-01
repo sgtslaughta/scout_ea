@@ -165,6 +165,14 @@ class SubscribeBody(BaseModel):
     keys: dict
 
 
+class RecordBody(BaseModel):
+    kind: str
+    external_ref: str
+    data: dict
+    status: str = "active"
+    sort: int = 0
+
+
 def _rows(conn, sql, params=()):
     return [dict(r) for r in conn.execute(sql, params).fetchall()]
 
@@ -777,6 +785,16 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
         if n == 0:
             raise HTTPException(status_code=404, detail="column not found")
         return {"deleted": n}
+
+    @app.get("/api/records")
+    def list_records_endpoint(kind: str, status: str | None = None, conn=Depends(get_db)):
+        return db.list_records(conn, kind, status=status)
+
+    @app.post("/api/records")
+    def create_record(body: RecordBody, conn=Depends(get_db)):
+        rid = db.upsert_record(conn, body.kind, body.external_ref, body.data,
+                               status=body.status, sort=body.sort)
+        return {"id": rid}
 
     if static_dir is not None and Path(static_dir).is_dir():
         app.mount("/", SPAStaticFiles(directory=str(static_dir), html=True), name="static")

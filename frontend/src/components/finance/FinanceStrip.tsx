@@ -1,21 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Box, Typography, IconButton, alpha } from '@mui/material'
-import { ChevronDown } from 'lucide-react'
+import { Box, Typography, alpha } from '@mui/material'
 import type { FinanceResponse, Quote } from '@/api'
 import { safeHttpUrl } from '@/lib/url'
-import { packPages } from './paging'
 import { TickerPopover, priceFmt } from './TickerPopover'
 
 export interface FinanceStripProps {
   finance: FinanceResponse
-  /** Auto-advance interval. Exposed so tests can drive it deterministically. */
-  intervalMs?: number
 }
 
 const yahooUrl = (symbol: string): string =>
   `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}`
 
-export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps) {
+export function FinanceStrip({ finance }: FinanceStripProps) {
   // Early return if error or both lists empty
   if (finance.error || (finance.watchlist.length === 0 && finance.indices.length === 0)) {
     return (
@@ -91,9 +87,8 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
   )
 
   const rowRef = useRef<HTMLDivElement>(null)
-  const [widths, setWidths] = useState<number[]>([])
-  const [available, setAvailable] = useState(0)
-  const [page, setPage] = useState(0)
+  const trackRef = useRef<HTMLDivElement>(null)
+  const [trackWidth, setTrackWidth] = useState(0)
   const [paused, setPaused] = useState(false)
   const [hovered, setHovered] = useState<{ q: Quote; el: HTMLElement } | null>(null)
 
@@ -117,41 +112,25 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
     closeTimer.current = setTimeout(() => setHovered(null), 120)
   }
 
-  // Measure chips + container, and re-measure on resize.
+  // Measure one copy of the track so the scroll distance and duration match
+  // the real content width — a fixed duration would run at wildly different
+  // speeds depending on how many symbols are in the watchlist.
   useLayoutEffect(() => {
-    const el = rowRef.current
+    const el = trackRef.current
     if (!el) return
-    const measure = () => {
-      const chips = Array.from(el.querySelectorAll('[data-chip]')) as HTMLElement[]
-      setWidths(chips.map((c) => c.offsetWidth))
-      setAvailable(el.clientWidth)
-    }
+    const measure = () => setTrackWidth(el.scrollWidth / 2)
     measure()
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
   }, [merged.length])
 
-  const pages = useMemo(() => packPages(widths, available, 8), [widths, available])
-  const pageCount = Math.max(1, pages.length)
-
-  useEffect(() => { if (page >= pageCount) setPage(0) }, [page, pageCount])
-
-  const advance = () => setPage((p) => (p + 1) % pageCount)
-
-  useEffect(() => {
-    // `hovered` pins rotation for as long as a popover is open, even if the
-    // pointer has moved off the container and onto the (portaled) popover
-    // paper itself — otherwise the row could rotate out from under an
-    // anchored-but-now-clipped chip while its popover is still open.
-    if (paused || hovered || pageCount <= 1) return
-    const id = setInterval(advance, intervalMs)
-    return () => clearInterval(id)
-  }, [paused, hovered, pageCount, intervalMs])
-
-  const activeIdx = pages[Math.min(page, pages.length - 1)] ?? merged.map((_, i) => i)
-  const firstVisible = activeIdx[0] ?? 0
-  const offset = widths.slice(0, firstVisible).reduce((a, w) => a + w + 8, 0)
+  // ~40px/sec reads comfortably without becoming a distraction.
+  const durationSec = trackWidth > 0 ? trackWidth / 40 : 0
+  // `hovered` pins the marquee while a popover is open — the paper is portaled
+  // and anchored to a chip, so letting the row scroll would drag the popover
+  // off its anchor.
+  const running = !paused && !hovered && durationSec > 0
 
   return (
     <Box
@@ -176,22 +155,34 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
       <Box
         ref={rowRef}
         data-testid="finance-row"
-        data-page={page}
-        data-page-count={pageCount}
         sx={{ flex: 1, minWidth: 0, overflow: 'hidden' }}
       >
         <Box
+          ref={trackRef}
           sx={{
-            display: 'flex', alignItems: 'center', gap: 1,
-            transform: `translateX(${-offset}px)`,
-            transition: 'transform 400ms ease',
-            '@media (prefers-reduced-motion: reduce)': { transition: 'none' },
+            display: 'flex', alignItems: 'center', gap: 1, width: 'max-content',
+            // Two identical copies scrolling by exactly one copy's width, so
+            // the loop point is seamless.
+            '@keyframes ticker': {
+              from: { transform: 'translateX(0)' },
+              to: { transform: `translateX(-${trackWidth}px)` },
+            },
+            animation: durationSec > 0 ? `ticker ${durationSec}s linear infinite` : 'none',
+            animationPlayState: running ? 'running' : 'paused',
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
           }}
         >
-          {merged.map(({ q, useName }) => (
-            <Box key={q.symbol} data-chip sx={{ flexShrink: 0 }}>
-              {renderQuote(q, useName)}
-            </Box>
+          {[0, 1].map((copy) => (
+            merged.map(({ q, useName }) => (
+              <Box
+                key={`${copy}-${q.symbol}`}
+                data-chip
+                aria-hidden={copy === 1 || undefined}
+                sx={{ flexShrink: 0 }}
+              >
+                {renderQuote(q, useName)}
+              </Box>
+            ))
           ))}
         </Box>
       </Box>
@@ -206,21 +197,6 @@ export function FinanceStrip({ finance, intervalMs = 15000 }: FinanceStripProps)
         />
       )}
 
-      {/* Dots only make sense with more than one page; the manual advance is always
-          available so the control does not appear and vanish as the row is resized. */}
-      {pageCount > 1 && (
-        <Box sx={{ display: 'flex', gap: 0.5 }}>
-          {Array.from({ length: pageCount }, (_, i) => (
-            <Box key={i} sx={{
-              width: 6, height: 6, borderRadius: '50%',
-              bgcolor: i === page ? 'primary.main' : 'action.disabled',
-            }} />
-          ))}
-        </Box>
-      )}
-      <IconButton size="small" aria-label="Next tickers" onClick={advance}>
-        <ChevronDown size={16} />
-      </IconButton>
     </Box>
   )
 }

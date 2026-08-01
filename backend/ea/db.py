@@ -113,6 +113,11 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE signals ADD COLUMN impact INTEGER")
         conn.commit()
 
+    # Add tasks.sort (drag order for the todo rail) for pre-existing DBs.
+    if not any(r[1] == "sort" for r in pragma):
+        conn.execute("ALTER TABLE tasks ADD COLUMN sort INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
 
 # --- data primitives -------------------------------------------------------
 
@@ -580,6 +585,42 @@ def add_news_item(conn: sqlite3.Connection, **fields) -> int:
     return _insert_dedup(conn, "news_items", _NEWS_COLS, fields)
 
 
+def upsert_record(conn: sqlite3.Connection, kind: str, external_ref: str, data: dict,
+                  status: str = "active", sort: int = 0) -> int:
+    """Upsert a generic dashboard record on external_ref. Returns the row id.
+
+    data is JSON-encoded for storage; ON CONFLICT updates data/status/sort.
+    """
+    conn.execute(
+        "INSERT INTO records (kind, external_ref, data, status, sort) VALUES (?,?,?,?,?) "
+        "ON CONFLICT(external_ref) DO UPDATE SET "
+        "data=excluded.data, status=excluded.status, sort=excluded.sort",
+        (kind, external_ref, json.dumps(data), status, sort),
+    )
+    conn.commit()
+    row = conn.execute(
+        "SELECT id FROM records WHERE external_ref=?", (external_ref,)
+    ).fetchone()
+    return row["id"]
+
+
+def list_records(conn: sqlite3.Connection, kind: str, status: str | None = None) -> list[dict]:
+    """Records for a kind, ordered by sort then id. data is JSON-decoded back to a dict."""
+    where, params = ["kind=?"], [kind]
+    if status is not None:
+        where.append("status=?"); params.append(status)
+    clause = " AND ".join(where)
+    rows = conn.execute(
+        f"SELECT * FROM records WHERE {clause} ORDER BY sort ASC, id ASC", params
+    ).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["data"] = json.loads(d["data"])
+        out.append(d)
+    return out
+
+
 def tag_id_by_name(conn: sqlite3.Connection, name: str) -> int | None:
     """Return a tag's id by exact name, or None. Used by feed origin/tag filters."""
     row = conn.execute("SELECT id FROM tags WHERE name=?", (name.strip(),)).fetchone()
@@ -596,7 +637,8 @@ WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_windo
                    "weather_lat", "weather_lon", "weather_label", "weather_unit",
                    "finance_watchlist", "briefing_ticker_interval_ms",
                    # wizard: user-chosen MCP name, completion flag, MCP last-seen stamp
-                   "mcp_name", "wizard_done", "mcp_last_seen"}
+                   "mcp_name", "wizard_done", "mcp_last_seen",
+                   "quick_links"}
 
 
 def set_config(conn: sqlite3.Connection, key: str, value: str) -> None:
