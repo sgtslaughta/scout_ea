@@ -116,6 +116,7 @@ class TaskPatch(BaseModel):
     priority: int | None = None
     status: str | None = None
     board_column_id: int | None = None
+    sort: int | None = None
 
 
 class TaskCreate(BaseModel):
@@ -223,7 +224,7 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
 
     @app.get("/api/tasks")
     def list_tasks(conn=Depends(get_db)):
-        return _rows(conn, "SELECT * FROM tasks ORDER BY created_at DESC, id DESC")
+        return _rows(conn, "SELECT * FROM tasks ORDER BY sort ASC, id ASC")
 
     @app.post("/api/tasks")
     def create_task(body: TaskCreate, conn=Depends(get_db)):

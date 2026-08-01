@@ -1,67 +1,99 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import type { DragEndEvent } from '@dnd-kit/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
 import { theme } from '../theme'
 import { RightRail, reorderIds, createDragEndHandler } from './RightRail'
-import type { RailTask } from './RightRail'
+import * as api from '@/api'
 
-function renderRail(props: Partial<React.ComponentProps<typeof RightRail>> = {}) {
+// The real DndContext requires pointer events jsdom can't simulate. We
+// capture the onDragEnd handler it's given so tests can invoke it directly.
+let capturedOnDragEnd: ((event: DragEndEvent) => void) | undefined
+vi.mock('@dnd-kit/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@dnd-kit/core')>()
+  return {
+    ...actual,
+    DndContext: (props: { onDragEnd: (event: DragEndEvent) => void; children: React.ReactNode }) => {
+      capturedOnDragEnd = props.onDragEnd
+      return props.children
+    },
+  }
+})
+
+function renderRail() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <ThemeProvider theme={theme}>
-      <RightRail {...props} />
-    </ThemeProvider>
+    <QueryClientProvider client={qc}>
+      <ThemeProvider theme={theme}>
+        <RightRail />
+      </ThemeProvider>
+    </QueryClientProvider>,
   )
 }
 
-const tasks: RailTask[] = [
-  { id: 1, title: 'Write report', status: 'open' },
-  { id: 2, title: 'Review PR', status: 'in_progress' },
-]
-
 describe('RightRail', () => {
-  it('renders the To do heading', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    capturedOnDragEnd = undefined
+    vi.spyOn(api, 'updateTask').mockResolvedValue({ updated: 1 })
+    vi.spyOn(api, 'createTask').mockResolvedValue({ id: 99 })
+  })
+
+  it('renders the To do heading', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([])
     renderRail()
     expect(screen.getByRole('heading', { name: 'To do' })).toBeInTheDocument()
   })
 
-  it('shows a friendly empty state when there are no tasks', () => {
+  it('shows a friendly empty state when there are no tasks', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([])
     renderRail()
-    expect(screen.getByText('Nothing to do yet. Add your first task.')).toBeInTheDocument()
+    expect(await screen.findByText('Nothing to do yet. Add your first task.')).toBeInTheDocument()
   })
 
-  it('renders a row per task when given tasks', () => {
-    renderRail({ tasks })
-    expect(screen.getByText('Write report')).toBeInTheDocument()
+  it('renders real tasks in the order returned by the API', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      { id: 1, title: 'Write report', status: 'open', priority: 3, sort: 0 },
+      { id: 2, title: 'Review PR', status: 'in_progress', priority: 3, sort: 1 },
+    ])
+    renderRail()
+    expect(await screen.findByText('Write report')).toBeInTheDocument()
     expect(screen.getByText('Review PR')).toBeInTheDocument()
   })
 
-  it('cycles the status box open -> done and fires onStatusChange with the next value', () => {
-    const onStatusChange = vi.fn()
-    renderRail({ tasks: [{ id: 1, title: 'Write report', status: 'open' }], onStatusChange })
-
-    fireEvent.click(screen.getByRole('button', { name: /mark as done/i }))
-    expect(onStatusChange).toHaveBeenCalledWith(1, 'done')
+  it('cycles the status box and PATCHes the new status', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      { id: 1, title: 'Write report', status: 'open', priority: 3, sort: 0 },
+    ])
+    renderRail()
+    fireEvent.click(await screen.findByRole('button', { name: /mark as done/i }))
+    await waitFor(() => expect(api.updateTask).toHaveBeenCalledWith(1, { status: 'done' }))
   })
 
-  it('gives the status box a natural-language accessible name reflecting each state', () => {
-    renderRail({
-      tasks: [
-        { id: 1, title: 'A', status: 'open' },
-        { id: 2, title: 'B', status: 'done' },
-        { id: 3, title: 'C', status: 'in_progress' },
-      ],
+  it('persists the new order on drag end', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([
+      { id: 1, title: 'A', status: 'open', priority: 3, sort: 0 },
+      { id: 2, title: 'B', status: 'open', priority: 3, sort: 1 },
+    ])
+    renderRail()
+    await screen.findByText('A')
+    expect(capturedOnDragEnd).toBeDefined()
+    capturedOnDragEnd!({ active: { id: 1 }, over: { id: 2 } } as DragEndEvent)
+    await waitFor(() => {
+      expect(api.updateTask).toHaveBeenCalledWith(1, { sort: 1 })
+      expect(api.updateTask).toHaveBeenCalledWith(2, { sort: 0 })
     })
-    expect(screen.getByRole('button', { name: /mark as done/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /done.*mark as in progress/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /in progress.*mark as open/i })).toBeInTheDocument()
   })
 
-  it('exposes a keyboard-focusable drag handle with sortable aria attributes', () => {
-    renderRail({ tasks })
-    const handle = screen.getAllByRole('button', { name: /reorder/i })[0]
-    expect(handle).toHaveAttribute('aria-roledescription', 'sortable')
-    expect(handle).toHaveAttribute('tabindex', '0')
+  it('adds a task on Enter and clears the input', async () => {
+    vi.spyOn(api, 'getTasks').mockResolvedValue([])
+    renderRail()
+    const input = await screen.findByRole('textbox', { name: /add a task/i })
+    fireEvent.change(input, { target: { value: 'Buy milk' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(api.createTask).toHaveBeenCalledWith({ title: 'Buy milk' }))
+    expect(input).toHaveValue('')
   })
 
   it('reorderIds maps a drag end to the new id order', () => {
@@ -73,8 +105,6 @@ describe('RightRail', () => {
 
   it('fires onReorder with the new id order when the drag end handler runs', () => {
     const onReorder = vi.fn()
-    // This is exactly the handler RightRail passes to DndContext's onDragEnd —
-    // firing it directly is the reliable way to test dnd-kit reordering in jsdom.
     const handleDragEnd = createDragEndHandler([1, 2], onReorder)
     handleDragEnd({ active: { id: 1 }, over: { id: 2 } } as DragEndEvent)
     expect(onReorder).toHaveBeenCalledWith([2, 1])

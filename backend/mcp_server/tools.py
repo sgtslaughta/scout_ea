@@ -16,7 +16,8 @@ _READABLE = {
 # The outgoing action types the executor skills (run_comms/run_teams/run_calendar/
 # run_cowork) know how to run. Keep in sync with those SKILL.md files.
 ACTION_TYPES = (
-    "email_reply", "email_forward", "email_new", "teams_dm", "teams_group",
+    "email_reply", "email_forward", "email_new", "email_delete", "email_move_folder",
+    "teams_dm", "teams_group",
     "teams_post", "calendar_invite", "status_set", "cowork_doc", "cowork_gather",
 )
 

@@ -28,13 +28,15 @@ export interface WidgetDef {
 // PlaceholderTile on the matching entry below. Nothing else in the shell
 // changes: the grid, drag ordering, and card chrome all read from here.
 const Placeholder = lazy(() => import('./PlaceholderTile'))
+const EmailTile = lazy(() => import('./EmailTile'))
+const ChatTile = lazy(() => import('./ChatTile'))
 
 export const WIDGETS: WidgetDef[] = [
   {
     key: 'email',
     title: 'Email',
     size: 'sm',
-    component: Placeholder,
+    component: EmailTile,
     queryKeys: [['records', 'email']],
     emptyState: { icon: Mail, message: 'Nothing from your key people yet.' },
   },
@@ -42,7 +44,7 @@ export const WIDGETS: WidgetDef[] = [
     key: 'chat',
     title: 'Teams chat',
     size: 'sm',
-    component: Placeholder,
+    component: ChatTile,
     queryKeys: [['records', 'chat']],
     emptyState: { icon: MessageSquare, message: 'No chats from your key people yet.' },
   },

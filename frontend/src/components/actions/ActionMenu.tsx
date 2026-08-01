@@ -4,8 +4,10 @@ import { Zap } from 'lucide-react'
 import { actionsForEntity, type ActionSpec, type EntityType } from '../../lib/actions'
 import { ActionComposeModal } from './ActionComposeModal'
 
-export function ActionMenu({ entity, onDone }: {
+export function ActionMenu({ entity, extraPayload, onDone }: {
   entity: { type: EntityType; id: number }
+  /** Passed through to the compose modal; see its `extraPayload` docs. */
+  extraPayload?: Record<string, unknown>
   onDone?: () => void
 }) {
   const [anchor, setAnchor] = useState<null | HTMLElement>(null)
@@ -26,7 +28,7 @@ export function ActionMenu({ entity, onDone }: {
         ))}
       </Menu>
       {spec && (
-        <ActionComposeModal open spec={spec} entity={entity}
+        <ActionComposeModal open spec={spec} entity={entity} extraPayload={extraPayload}
           onClose={() => setSpec(null)} onDone={onDone} />
       )}
     </>

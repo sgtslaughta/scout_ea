@@ -44,3 +44,25 @@ def test_create_task(tmp_path):
 
 def test_create_task_requires_title(tmp_path):
     assert _client(tmp_path).post("/api/tasks", json={"priority": 2}).status_code == 422
+
+
+def test_list_tasks_ordered_by_sort(tmp_path):
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    conn = db.get_conn(p)
+    a = db.add_task(conn, title="a", sort=2)
+    b = db.add_task(conn, title="b", sort=0)
+    c = db.add_task(conn, title="c", sort=1)
+    c_client = TestClient(create_app(p))
+    ids = [t["id"] for t in c_client.get("/api/tasks").json()]
+    assert ids == [b, c, a]
+
+
+def test_patch_task_sort(tmp_path):
+    p = tmp_path / "ea.sqlite"
+    db.init_db(p, seed_path=db.DEFAULT_SEED)
+    tid = db.add_task(db.get_conn(p), title="t")
+    r = _client(tmp_path).patch(f"/api/tasks/{tid}", json={"sort": 5})
+    assert r.status_code == 200 and r.json() == {"updated": 1}
+    row = db.get_conn(p).execute("SELECT sort FROM tasks WHERE id=?", (tid,)).fetchone()
+    assert row["sort"] == 5

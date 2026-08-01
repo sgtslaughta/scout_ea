@@ -145,10 +145,10 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
     @mcp.tool()
     def upsert_record(kind: str, external_ref: str, data: dict,
                       status: str = "active", sort: int = 0) -> int:
-        """Upsert a generic soft-dashboard record, dedup on external_ref. kind is one
-        of qtr_event|ou_feedback|territory|ebc|revops|pipeline. data is an arbitrary
-        JSON object whose shape is owned by the consuming dashboard tile. Returns
-        the row id."""
+        """Upsert a generic dashboard record, dedup on external_ref. kind is one of
+        email|chat|qtr_event|ou_feedback|territory|ebc|revops|pipeline. data is an
+        arbitrary JSON object whose shape is owned by the consuming dashboard tile.
+        Returns the row id."""
         conn = _conn()
         try:
             return tools.upsert_record(conn, kind=kind, external_ref=external_ref,
@@ -158,8 +158,9 @@ def build_server(db_path, skills_dir=None) -> FastMCP:
 
     @mcp.tool()
     def list_records(kind: str, status: str | None = None) -> list[dict]:
-        """List soft-dashboard records for a kind (qtr_event|ou_feedback|territory|
-        ebc|revops|pipeline), optionally filtered by status. Ordered by sort then id."""
+        """List dashboard records for a kind (email|chat|qtr_event|ou_feedback|
+        territory|ebc|revops|pipeline), optionally filtered by status. Ordered by
+        sort then id."""
         conn = _conn()
         try:
             return tools.list_records(conn, kind, status=status)

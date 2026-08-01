@@ -19,6 +19,8 @@ EXPECTED = {
     "daily_briefing",
     "compute_trends",
     "trending_search",
+    "email_preferred",
+    "chat_preferred",
 }
 MCP_TOOLS = {
     "add_signal",
@@ -29,6 +31,7 @@ MCP_TOOLS = {
     "log_skill_run",
     "upsert_trend",
     "add_trend_finding",
+    "upsert_record",
 }
 
 

@@ -15,7 +15,7 @@ INSERT OR IGNORE INTO config(key, value) VALUES
   ('briefing_ticker_interval_ms', '15000');
 
 INSERT OR IGNORE INTO people(id, name, role, org, importance, notes) VALUES
-  (1, 'Dr. Vance', 'Regional VP', 'Acme', 5, 'Owns the renewal decision — highest-priority contact.');
+  (1, 'Dr. Vance', 'Regional VP', 'Acme', 1, 'Owns the renewal decision — highest-priority contact.');
 
 INSERT OR IGNORE INTO topics(id, name, description, priority) VALUES
   (1, 'AI agents', 'Autonomous agent frameworks and tooling', 2);

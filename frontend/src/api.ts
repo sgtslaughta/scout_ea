@@ -85,6 +85,7 @@ export interface Task {
   status: string
   board_column_id?: number | null
   created_at?: string
+  sort?: number
 }
 
 export interface BoardColumn {
@@ -502,3 +503,19 @@ export async function getQuickLinks(): Promise<QuickLink[]> {
 
 export const saveQuickLinks = (links: QuickLink[]) =>
   setConfig('quick_links', JSON.stringify(links)).then(() => undefined)
+
+export interface RecordItem {
+  id: number
+  kind: string
+  external_ref: string
+  data: Record<string, unknown>
+  status: string
+  sort: number
+  created_at: string
+  updated_at: string
+}
+
+export const getRecords = (kind: string, status?: string) =>
+  fetchJson<RecordItem[]>(
+    `/api/records?kind=${encodeURIComponent(kind)}${status ? `&status=${encodeURIComponent(status)}` : ''}`,
+  )

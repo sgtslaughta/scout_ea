@@ -715,7 +715,7 @@ def add_trend_finding(conn: sqlite3.Connection, **fields) -> int:
 
 
 _TASK_COLS = {"title", "detail", "due_at", "priority", "status",
-              "person_id", "source_signal_id", "board_column_id"}
+              "person_id", "source_signal_id", "board_column_id", "sort"}
 
 
 def add_task(conn: sqlite3.Connection, **fields) -> int:

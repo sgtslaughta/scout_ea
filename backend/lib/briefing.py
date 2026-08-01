@@ -24,8 +24,12 @@ def _score_of(row) -> int:
         # table priority already uses, clamping out-of-range values to the
         # nearest valid end of the scale.
         return _PRIORITY_SCORE.get(max(1, min(5, round(rel))), 55)
-    if row.get("importance") is not None:   # people: higher importance = more important
-        return _PRIORITY_SCORE.get(6 - int(row["importance"]), 55)
+    if row.get("importance") is not None:
+        # people.importance is the same 1-5 ordinal as priority: 1 = critical,
+        # 5 = info (see skills/README.md and the People UI's labels). It is NOT
+        # inverted — scoring it as `6 - importance` ranked the user's most
+        # important contacts lowest.
+        return _PRIORITY_SCORE.get(max(1, min(5, int(row["importance"]))), 55)
     return _PRIORITY_SCORE.get(row.get("priority", 3), 55)
 
 
@@ -128,7 +132,9 @@ def assemble(now, deadlines, tasks, signals, news, learning, topics, people,
     opps = sorted((dict(s) for s in proactive if s.get("polarity") == "opportunity"),
                   key=_score_of, reverse=True)
     people_out = []
-    for p in sorted(people, key=lambda p: p.get("importance", 0), reverse=True):
+    # importance is 1 (critical) → 5 (info), so ascending puts the most
+    # important people first.
+    for p in sorted(people, key=lambda p: p.get("importance", 5)):
         sigs = (people_signals.get(p["id"]) or [])[:PEOPLE_SIGNAL_CAP]
         people_out.append({**p, "signals": sigs})
     return {

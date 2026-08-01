@@ -4,10 +4,17 @@ import { toast } from 'sonner'
 import { createAction } from '../../api'
 import type { ActionSpec, EntityType } from '../../lib/actions'
 
-export function ActionComposeModal({ open, spec, entity, onClose, onDone }: {
+export function ActionComposeModal({ open, spec, entity, extraPayload, onClose, onDone }: {
   open: boolean
   spec: ActionSpec
   entity?: { type: EntityType; id: number }
+  /**
+   * Payload keys the executing skill needs but the user shouldn't type or see —
+   * e.g. `external_ref`, the provider message id that lets run_comms find the
+   * actual mail. Merged over the typed values, so a same-named form field can't
+   * clobber the real identifier.
+   */
+  extraPayload?: Record<string, unknown>
   onClose: () => void
   onDone?: () => void
 }) {
@@ -20,7 +27,7 @@ export function ActionComposeModal({ open, spec, entity, onClose, onDone }: {
       entity_type: entity?.type,
       entity_id: entity?.id,
       mode: spec.mode,
-      payload: values,
+      payload: { ...values, ...extraPayload },
       approve,
     })
     toast.success(approve ? 'Approved — Scout will send it' : 'Saved to your Actions queue')

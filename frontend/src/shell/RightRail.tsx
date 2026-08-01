@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import TextField from '@mui/material/TextField'
 import { GripVertical } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
   PointerSensor,
@@ -17,17 +20,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { RailCard } from './RailCard'
+import { getTasks, createTask, updateTask } from '@/api'
 
 export interface RailTask {
   id: number
   title: string
   status: 'open' | 'in_progress' | 'done'
-}
-
-interface RightRailProps {
-  tasks?: RailTask[]
-  onReorder?: (ids: number[]) => void
-  onStatusChange?: (id: number, status: RailTask['status']) => void
 }
 
 // Cycle order per spec: blank (open) -> green (done) -> orange (in_progress) -> open
@@ -143,17 +141,66 @@ function TaskRow({
   )
 }
 
-// TODO(to-do sub-project): render the real list of tasks here.
-export function RightRail({ tasks = [], onReorder = () => {}, onStatusChange = () => {} }: RightRailProps) {
+export function RightRail() {
+  const qc = useQueryClient()
+  const [newTitle, setNewTitle] = useState('')
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
-  const ids = tasks.map(t => t.id)
-  const handleDragEnd = createDragEndHandler(ids, onReorder)
+
+  const { data: rawTasks = [] } = useQuery({ queryKey: ['tasks'], queryFn: getTasks, refetchInterval: 15000 })
+  // The rail only cycles open/in_progress/done; dismissed tasks don't appear here.
+  const tasks: RailTask[] = rawTasks
+    .filter((t) => t.status !== 'dismissed')
+    .map((t) => ({ id: t.id, title: t.title, status: t.status as RailTask['status'] }))
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: number; status: RailTask['status'] }) => updateTask(id, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  })
+
+  const reorderMutation = useMutation({
+    mutationFn: async (orderedIds: number[]) => {
+      await Promise.all(
+        orderedIds
+          .map((id, index) => ({ id, index }))
+          .filter(({ id, index }) => rawTasks.find((t) => t.id === id)?.sort !== index)
+          .map(({ id, index }) => updateTask(id, { sort: index })),
+      )
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  })
+
+  const createMutation = useMutation({
+    mutationFn: (title: string) => createTask({ title }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      setNewTitle('')
+    },
+  })
+
+  const ids = tasks.map((t) => t.id)
+  const handleDragEnd = createDragEndHandler(ids, (nextIds) => reorderMutation.mutate(nextIds))
+
+  const handleAddKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newTitle.trim()) {
+      createMutation.mutate(newTitle.trim())
+    }
+  }
 
   return (
     <RailCard heading="To do">
+      <TextField
+        placeholder="Add a task…"
+        value={newTitle}
+        onChange={(e) => setNewTitle(e.target.value)}
+        onKeyDown={handleAddKeyDown}
+        variant="standard"
+        fullWidth
+        slotProps={{ htmlInput: { 'aria-label': 'Add a task' } }}
+        sx={{ mb: 2 }}
+      />
       {tasks.length === 0 ? (
         <Typography variant="body1" color="text.secondary">
           Nothing to do yet. Add your first task.
@@ -161,8 +208,12 @@ export function RightRail({ tasks = [], onReorder = () => {}, onStatusChange = (
       ) : (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-            {tasks.map(task => (
-              <TaskRow key={task.id} task={task} onStatusChange={onStatusChange} />
+            {tasks.map((task) => (
+              <TaskRow
+                key={task.id}
+                task={task}
+                onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
+              />
             ))}
           </SortableContext>
         </DndContext>

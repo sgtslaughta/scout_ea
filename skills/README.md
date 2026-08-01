@@ -1,6 +1,6 @@
 # Scout EA Skills
 
-This directory contains the 17 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
+This directory contains the 19 Scout automation skills that orchestrate the Executive Agent. Each skill is a `SKILL.md` prompt file that Scout executes on a schedule (heartbeat or automation trigger). Skills read/write the `EA_DB` via MCP server tools and follow the cross-cutting rules from the design spec.
 
 ## Base Skills (7)
 
@@ -68,40 +68,52 @@ This directory contains the 17 Scout automation skills that orchestrate the Exec
 **Schedule:** Automation, daily 06:30 EST  
 **MCP Tools:** `add_news`, `tag_content`, `link_content`, `list_tags`, `log_skill_run`
 
+## Preferred People Feeds (2)
+
+### 13. `email_preferred`
+**Description:** Find recent email from preferred (high-importance) people; write summary records for the Email tile  
+**Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
+**MCP Tools:** `query`, `upsert_record`, `list_records`, `log_skill_run`
+
+### 14. `chat_preferred`
+**Description:** Find recent Teams chats from preferred (high-importance) people; write summary records for the Teams Chat tile  
+**Schedule:** Heartbeat 20 min, workdays 07:00–18:00 EST  
+**MCP Tools:** `query`, `upsert_record`, `list_records`, `log_skill_run`
+
 ## Outgoing Actions (5)
 
 Scout's closed-loop action pipeline: `scout_actions` drafts, the four `run_*` executors claim and execute approved (or auto-mode) actions and write results back.
 
-### 13. `scout_actions`
+### 15. `scout_actions`
 **Description:** Scan recent signals/deadlines/people and draft outgoing actions for review; report each run. Does not execute.  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_rows`, `list_guidance`, `has_open_action`, `add_action`, `log_skill_run`
 
-### 14. `run_comms`
+### 16. `run_comms`
 **Description:** Execute approved email + status actions via M365; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_send_mail`, `log_skill_run`
 
-### 15. `run_teams`
+### 17. `run_teams`
 **Description:** Execute approved Teams chat + group + channel actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`
 
-### 16. `run_calendar`
+### 18. `run_calendar`
 **Description:** Execute approved calendar invite actions; write results back  
 **Schedule:** Heartbeat 5 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `m365_create_event`, `log_skill_run`
 
-### 17. `run_cowork`
+### 19. `run_cowork`
 **Description:** Execute collaboration doc/gather actions; write results back with access URLs  
 **Schedule:** Heartbeat 10 min  
 **MCP Tools:** `list_actions`, `claim_action`, `update_action`, `log_skill_run`
 
 ---
 
-## MCP Tool Reference (31 tools)
+## MCP Tool Reference (33 tools)
 
-Skills call these over the bearer-gated MCP server. Reads: `list_rows`, `query` (flexible whitelisted SELECT — filters/since/until/order/limit), `search` (full-text), `get_entity` (row + tags + links + related actions), `list_tags`, `list_actions`, `list_guidance`, `list_skills` (roster + cadence health), `list_action_types`. Writes: `add_signal`, `add_deadline`, `add_task`, `add_learning`, `add_news`, `add_event`, `update_event`, `upsert_trend`, `add_trend_finding`, `add_alert` (user-facing notification), `add_action`, `add_guidance`, `update_status`, `update_action`, `claim_action`, `has_open_action`, `tag_content`, `link_content`, `log_skill_run`. M365 passthrough: `m365_status`, `m365_send_mail`, `m365_create_event`.
+Skills call these over the bearer-gated MCP server. Reads: `list_rows`, `query` (flexible whitelisted SELECT — filters/since/until/order/limit), `search` (full-text), `get_entity` (row + tags + links + related actions), `list_tags`, `list_actions`, `list_guidance`, `list_skills` (roster + cadence health), `list_action_types`, `list_records` (dashboard records by kind). Writes: `add_signal`, `add_deadline`, `add_task`, `add_learning`, `add_news`, `add_event`, `update_event`, `upsert_trend`, `add_trend_finding`, `add_alert` (user-facing notification), `add_action`, `add_guidance`, `update_status`, `update_action`, `claim_action`, `has_open_action`, `tag_content`, `link_content`, `upsert_record` (generic dashboard record, dedup on external_ref), `log_skill_run`. M365 passthrough: `m365_status`, `m365_send_mail`, `m365_create_event`.
 
 ---
 
