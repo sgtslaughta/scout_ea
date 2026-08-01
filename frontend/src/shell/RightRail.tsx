@@ -2,7 +2,9 @@ import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
-import { GripVertical } from 'lucide-react'
+import Tooltip from '@mui/material/Tooltip'
+import { GripVertical, Circle, CheckCircle2, CircleDashed } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   DndContext,
@@ -35,14 +37,30 @@ const NEXT_STATUS: Record<RailTask['status'], RailTask['status']> = {
   in_progress: 'open',
 }
 
-const STATUS_LABEL: Record<RailTask['status'], string> = {
-  open: 'Mark as done',
-  done: 'Done — mark as in progress',
-  in_progress: 'In progress — mark as open',
+/** What the current state means, in the user's words. Shown on hover. */
+const STATUS_MEANING: Record<RailTask['status'], string> = {
+  open: 'Not started',
+  done: 'Done',
+  in_progress: 'In progress',
 }
 
-const STATUS_COLOR: Record<RailTask['status'], string | undefined> = {
-  open: undefined,
+/** What clicking does next, for the accessible name. */
+const STATUS_ACTION: Record<RailTask['status'], string> = {
+  open: 'Mark as done',
+  done: 'Mark as in progress',
+  in_progress: 'Mark as not started',
+}
+
+const STATUS_ICON: Record<RailTask['status'], LucideIcon> = {
+  open: Circle,
+  done: CheckCircle2,
+  in_progress: CircleDashed,
+}
+
+// Colour alone can't say what a state means — every status carries its own
+// glyph and a hover tooltip too.
+const STATUS_COLOR: Record<RailTask['status'], string> = {
+  open: 'text.disabled',
   done: 'success.main',
   in_progress: 'warning.main',
 }
@@ -70,24 +88,34 @@ export function createDragEndHandler(ids: number[], onReorder: (ids: number[]) =
 }
 
 function StatusBox({ status, onClick }: { status: RailTask['status']; onClick: () => void }) {
+  const Icon = STATUS_ICON[status]
   return (
-    <Box
-      component="button"
-      type="button"
-      onClick={onClick}
-      aria-label={STATUS_LABEL[status]}
-      sx={{
-        width: 28,
-        height: 28,
-        flexShrink: 0,
-        borderRadius: 0.5,
-        border: '1px solid',
-        borderColor: 'divider',
-        bgcolor: STATUS_COLOR[status] ?? 'transparent',
-        cursor: 'pointer',
-        p: 0,
-      }}
-    />
+    <Tooltip title={`${STATUS_MEANING[status]} — click to ${STATUS_ACTION[status].toLowerCase()}`}>
+      <Box
+        component="button"
+        type="button"
+        onClick={onClick}
+        aria-label={`${STATUS_MEANING[status]}. ${STATUS_ACTION[status]}`}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 32,
+          height: 32,
+          flexShrink: 0,
+          borderRadius: 1,
+          border: 'none',
+          bgcolor: 'transparent',
+          color: STATUS_COLOR[status],
+          cursor: 'pointer',
+          p: 0,
+          '&:hover': { bgcolor: 'action.hover' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
+        }}
+      >
+        <Icon size={22} aria-hidden />
+      </Box>
+    </Tooltip>
   )
 }
 

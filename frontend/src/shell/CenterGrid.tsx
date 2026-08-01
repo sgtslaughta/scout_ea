@@ -34,7 +34,7 @@ import type { DashboardLayout } from '@/widgets/layout'
 
 const ALL_KEYS = WIDGETS.map((w) => w.key)
 
-const SPAN: Record<WidgetSize, string> = { sm: 'span 1', lg: 'span 2' }
+export const SPAN: Record<WidgetSize, string> = { sm: 'span 1', lg: 'span 2' }
 const SKELETON_HEIGHT: Record<WidgetSize, number> = { sm: 180, lg: 260 }
 
 // Builds the exact handler passed to DndContext's onDragEnd, so tests can
@@ -130,7 +130,10 @@ export function CenterGrid() {
       </Box>
       <DndContext sensors={sensors} accessibility={{ announcements: defaultAnnouncements }} onDragEnd={handleDragEnd}>
         <SortableContext items={visible} strategy={rectSortingStrategy}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2.5 }}>
+          {/* minmax(0, 1fr), not 1fr: a track's default `auto` minimum lets wide
+              content (long timestamps, unbroken URLs) push the column past the
+              container instead of wrapping. */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2.5 }}>
             {visible.map((key) => {
               const def = WIDGETS.find((w) => w.key === key)
               if (!def) return null

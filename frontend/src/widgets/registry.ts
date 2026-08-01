@@ -67,7 +67,7 @@ export const WIDGETS: WidgetDef[] = [
   {
     key: 'industryFeed',
     title: 'Industry feed',
-    size: 'lg',
+    size: 'sm',
     component: Placeholder,
     queryKeys: [['news'], ['trends']],
     emptyState: { icon: Newspaper, message: 'Nothing new in the industry yet. Scout watches email, Teams communities, and the web.' },
@@ -75,7 +75,7 @@ export const WIDGETS: WidgetDef[] = [
   {
     key: 'qtrEvent',
     title: 'Quarterly events',
-    size: 'lg',
+    size: 'sm',
     component: Placeholder,
     queryKeys: [['records', 'qtr_event']],
     emptyState: { icon: CalendarDays, message: 'No events on the list yet. Add your first CXO engagement.' },

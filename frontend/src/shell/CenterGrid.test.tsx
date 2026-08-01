@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@mui/material/styles'
 import type { DragEndEvent } from '@dnd-kit/core'
 import { theme } from '../theme'
-import { CenterGrid, createDragEndHandler } from './CenterGrid'
+import { CenterGrid, createDragEndHandler, SPAN } from './CenterGrid'
 import { WIDGETS } from '../widgets/registry'
 import { LAYOUT_KEY, defaultLayout, saveLayout } from '../widgets/layout'
 import type { DashboardLayout } from '../widgets/layout'
@@ -37,14 +37,19 @@ describe('CenterGrid', () => {
     }
   })
 
-  it('spans lg widgets across both columns and sm widgets across one', async () => {
+  // Asserted against the SPAN map rather than whatever sizes the registry
+  // happens to use today, so re-sizing a tile isn't a test failure.
+  it('maps sm to one column and lg to both', () => {
+    expect(SPAN.sm).toBe('span 1')
+    expect(SPAN.lg).toBe('span 2')
+  })
+
+  it('renders each tile at its declared span', async () => {
     wrap()
-    const lgDef = WIDGETS.find((w) => w.size === 'lg')!
-    const smDef = WIDGETS.find((w) => w.size === 'sm')!
-    const lgHeading = await screen.findByText(lgDef.title)
-    const smHeading = await screen.findByText(smDef.title)
-    expect(lgHeading.closest('[data-widget-tile]')).toHaveStyle({ gridColumn: 'span 2' })
-    expect(smHeading.closest('[data-widget-tile]')).toHaveStyle({ gridColumn: 'span 1' })
+    for (const def of WIDGETS) {
+      const heading = await screen.findByText(def.title)
+      expect(heading.closest('[data-widget-tile]')).toHaveStyle({ gridColumn: SPAN[def.size] })
+    }
   })
 
   it('hiding a widget via its card removes it and persists the hidden key', async () => {
