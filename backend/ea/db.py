@@ -637,7 +637,9 @@ WRITABLE_CONFIG = {"deadlines_visible_global", "outlook_send_time", "trend_windo
                    "weather_lat", "weather_lon", "weather_label", "weather_unit",
                    "finance_watchlist", "briefing_ticker_interval_ms",
                    # wizard: user-chosen MCP name, completion flag, MCP last-seen stamp
-                   "mcp_name", "wizard_done", "mcp_last_seen",
+                   # install_fetched_at: stamped when Scout pulls the install
+                   # bundle, so the wizard can show that the setup message ran
+                   "mcp_name", "wizard_done", "mcp_last_seen", "install_fetched_at",
                    "quick_links"}
 
 

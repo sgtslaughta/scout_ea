@@ -16,14 +16,14 @@ describe('Step 1 Connect', () => {
   it('renders MCP url and persists a renamed connection', async () => {
     render(<SetupWizard />)
     expect(await screen.findByDisplayValue('scout-ea')).toBeInTheDocument()
-    const field = screen.getByLabelText(/connection name/i)
+    const field = screen.getByLabelText(/name/i)
     fireEvent.change(field, { target: { value: 'my-scout' } })
     fireEvent.blur(field)
     await waitFor(() => expect(api.setConfig).toHaveBeenCalledWith('mcp_name', 'my-scout'))
   })
   it('copies the token', async () => {
     render(<SetupWizard />)
-    fireEvent.click(await screen.findByRole('button', { name: /copy token/i }))
+    fireEvent.click(await screen.findByRole('button', { name: /copy 3\. token/i }))
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith('tok'))
   })
 })

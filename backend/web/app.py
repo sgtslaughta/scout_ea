@@ -683,6 +683,12 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
                     "skills": [], "automations": [],
                     "mcpTools": _scout_install.required_mcp_tools()}
         now = datetime.now(timezone.utc)
+        # Scout fetching this bundle is the only signal we get that the user's
+        # pasted setup message actually ran -- installing files on their machine
+        # never touches this API again. The wizard polls this to show a real
+        # "it worked" tick instead of asking a non-technical user to verify.
+        db.set_config(conn, "install_fetched_at", now.isoformat())
+        conn.commit()
         return _scout_install.build_install_bundle(skills_dir, mcp_name, now)
 
     @app.get("/api/people")
