@@ -1,12 +1,12 @@
 # Skills
 
-Scout EA ships **17 skills** — `SKILL.md` prompt files Microsoft Scout runs on a schedule
+Scout EA ships **24 skills** — `SKILL.md` prompt files Microsoft Scout runs on a schedule
 (heartbeat or automation trigger). Each reads and writes the `EA_DB` through the
 [MCP server](mcp-tools.md).
 
 !!! tip "Just want to install them?"
-    Follow the **[Setup Wizard](setup-wizard.md)** — it walks you through all 17 in the
-    right order with the exact interval each one needs.
+    Follow the **[Setup Wizard](setup-wizard.md)** — connect Scout once, then one pasted
+    message installs and schedules all 24 for you. Nothing here needs doing by hand.
 
 ## Base skills (7)
 
@@ -25,7 +25,7 @@ Scout EA ships **17 skills** — `SKILL.md` prompt files Microsoft Scout runs on
 | Skill | Purpose | Schedule |
 |---|---|---|
 | `parse_deadlines` | Scan signals and mail/chat for hard deadlines | Heartbeat 30 min, workdays 07:00–18:00 |
-| `daily_briefing` | Morning briefing: risk/opportunity signals + one-line day summary | Daily 07:00, workdays |
+| `daily_briefing` | Morning briefing curator: proactive risk/opportunity signals + one-line day summary | Daily at config.outlook_send_time (default 07:00), workdays |
 | `compute_trends` | Daily trending keyword/topic extraction with recency-weighted scores | Daily 08:00 |
 | `trending_search` | Weekly web/news search for trending content per topic | Weekly, Fri 14:00 |
 
@@ -34,6 +34,29 @@ Scout EA ships **17 skills** — `SKILL.md` prompt files Microsoft Scout runs on
 | Skill | Purpose | Schedule |
 |---|---|---|
 | `news_search` | Search current headlines per topic; add deduped, tagged news items | Daily 06:30 |
+
+## Preferred people feeds (2)
+
+Write the summary records behind the Email and Teams chat dashboard tiles.
+
+| Skill | Purpose | Schedule |
+|---|---|---|
+| `email_preferred` | Find recent email from preferred (high-importance) people; write summary records for the Email tile | Heartbeat 20 min, workdays 07:00–18:00 |
+| `chat_preferred` | Find recent Teams chats from preferred people; write summary records for the Teams chat tile | Heartbeat 20 min, workdays 07:00–18:00 |
+
+## Dashboard records (5)
+
+Each fills in one generic-`records`-backed dashboard tile (see
+**[Architecture](architecture.md)**), always merging into the existing record rather
+than overwriting anything the user typed in by hand.
+
+| Skill | Purpose | Schedule |
+|---|---|---|
+| `pipeline_tracker` | Look up user-tracked opportunities (by TPID or opportunity ID) in MSX and fill in the Pipeline tile; refresh status monthly | Heartbeat 20 min, workdays 07:00–18:00; monthly refresh on the 1st at 07:00 |
+| `territory_review` | Find the master territory review schedule and enrich each review with its recording, decks, and recap | Heartbeat 30 min, workdays 07:00–18:00 |
+| `ou_feedback` | Catalogue feedback about the user's OU from email, Teams, and meeting notes — infrequent, no alerts | Daily 06:00 |
+| `ebc_innovation_hub` | Pull EBC and Innovation Hub session bookings from the MSXI MCP server and fill in the EBC & Innovation Hub tile | Heartbeat 20 min, workdays 07:00–18:00 |
+| `revops_meeting` | Find the monthly RevOps meeting, gather topic speakers, and draft post-meeting action items for the RevOps tile | Daily 06:00 |
 
 ## Outgoing actions (5)
 

@@ -129,8 +129,14 @@ CREATE INDEX IF NOT EXISTS idx_news_status ON news_items(status, created_at);
 CREATE TRIGGER IF NOT EXISTS trg_news_touch AFTER UPDATE ON news_items
 BEGIN UPDATE news_items SET updated_at = datetime('now') WHERE id = NEW.id; END;
 
--- Feature migration 008: generic soft-dashboard records (qtr_event, ou_feedback,
--- territory, ebc, revops, pipeline - no per-kind schema, data lives in JSON).
+-- Feature migration 008: generic dashboard records - no per-kind schema, the
+-- shape lives in the JSON blob and is owned by `kind`.
+--
+-- Kinds in use: email, chat, qtr_event, ou_feedback, territory, ebc,
+-- revops_meeting, pipeline. That's 8 of the 9 dashboard tiles; only the
+-- Industry feed reads elsewhere (news_items + topics). The authoritative list
+-- is frontend/src/widgets/registry.ts -- nothing here constrains `kind`, so
+-- this comment is documentation, not a rule.
 CREATE TABLE IF NOT EXISTS records (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   kind         TEXT NOT NULL,
