@@ -1,10 +1,10 @@
 # MCP Tools
 
-Skills call these **31 tools** over the bearer-gated MCP server (`:8766`). Tool schemas are
+Skills call these **33 tools** over the bearer-gated MCP server (`:8766`). Tool schemas are
 auto-derived from Python type hints and docstrings (FastMCP). Reads are SELECT-only against
 whitelisted tables/columns; writes are field-complete and parameter-bound.
 
-## Reads (10)
+## Reads (11)
 
 | Tool | Purpose |
 |---|---|
@@ -17,9 +17,10 @@ whitelisted tables/columns; writes are field-complete and parameter-bound.
 | `list_guidance` | List standing guidance rows |
 | `list_skills` | Skill roster plus per-skill cadence health |
 | `list_action_types` | Self-describing catalogue of outward action types |
+| `list_records` | List generic dashboard records by `kind` (see [Architecture](architecture.md)) |
 | `has_open_action` | Check whether an open action already exists (dedupe) |
 
-## Writes (18)
+## Writes (19)
 
 | Tool | Purpose |
 |---|---|
@@ -38,6 +39,7 @@ whitelisted tables/columns; writes are field-complete and parameter-bound.
 | `update_action` | Write an action's result back |
 | `update_event` | Update an event's status / external_ref |
 | `claim_action` | Claim an approved action for execution |
+| `upsert_record` | Upsert a generic dashboard record, deduped on `external_ref` — the write side of most dashboard tiles |
 | `tag_content` | Attach 1–3 lowercase tags to a row |
 | `link_content` | Link a row to a person or topic |
 | `log_skill_run` | Record a skill run (always called, even on no-op) |

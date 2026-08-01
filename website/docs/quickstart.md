@@ -1,6 +1,29 @@
 # Quick Start
 
-Two ways to run Scout EA: Docker (recommended) or a local Python + Node dev setup.
+Three ways to run Scout EA: the one-line Windows installer, Docker directly, or a
+local Python + Node dev setup.
+
+## Windows: one-line installer
+
+If you're on Windows, this is the easiest way to get started. Open **PowerShell as
+administrator** and paste this in:
+
+```powershell
+irm https://raw.githubusercontent.com/sgtslaughta/scout_ea/main/install/install.ps1 | iex
+```
+
+It installs Windows Subsystem for Linux and Docker Desktop if you don't already have
+them, downloads Scout EA, and opens the dashboard at <http://localhost:8765>. You'll
+be asked to restart your computer once, partway through — after that, run the same
+command again and it picks up where it left off.
+
+!!! warning "Untested on real Windows hardware"
+    This installer is new and hasn't yet been verified end-to-end on a real Windows
+    machine. If it doesn't work for you, fall back to the Docker steps below and
+    [open an issue](https://github.com/sgtslaughta/scout_ea/issues).
+
+See [`install/README.md`](https://github.com/sgtslaughta/scout_ea/blob/main/install/README.md)
+for troubleshooting and uninstall steps.
 
 ## Docker
 
@@ -44,5 +67,6 @@ cd frontend && npm install && npm run dev
 
 ## Next step
 
-Scout does nothing until you install its skills. Head to the
-**[Setup Wizard](setup-wizard.md)** to install all 17 in order with their required intervals.
+Scout does nothing until it's connected and its skills are installed. Head to the
+**[Setup Wizard](setup-wizard.md)** — it's built into the dashboard (click the sparkle
+icon in the top bar) and takes two steps.

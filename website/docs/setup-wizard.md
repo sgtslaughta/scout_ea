@@ -1,114 +1,76 @@
-# Skill Setup Wizard
+# Setup Wizard
 
-A guided, step-by-step walkthrough for installing all **17 skills** into Microsoft Scout
-**in order**, each with the **exact interval it requires**. Work top to bottom — later
-phases depend on earlier ones. Tick each box as you go.
+The Setup Wizard connects Scout EA to Microsoft Scout and installs everything Scout
+needs to run — in two short steps. You'll find it in the dashboard: click the sparkle
+icon (:material-star-four-points:) in the top bar.
 
 !!! info "Before you begin"
-    - Scout EA is running and reachable (`docker compose up -d`, dashboard on `:8765`).
-    - The MCP server is up on `:8766` with `EA_MCP_TOKEN` set, and Scout is pointed at it.
-    - You install a skill by copying its `skills/<name>/SKILL.md` into Scout's skills
-      directory (e.g. `C:\ScoutEA\skills\<name>\SKILL.md`) and setting the schedule below.
-
-    **Order matters:** the outgoing-action executors in Phase 5 do nothing until the
-    foundation skills in Phase 1 are producing signals for `scout_actions` to draft against.
+    - Scout EA is running and you can see the dashboard in your browser.
+    - You have Microsoft Scout open and ready to receive messages.
 
 ---
 
-## Phase 1 — Foundation (triage)
+## Step 1 — Connect Scout
 
-Start here. These skills create the signals and deadlines everything else builds on.
-All run on a **30-minute heartbeat, workdays 07:00–18:00**.
+This introduces Scout to your dashboard. You only do it once.
 
-- [ ] **1. `triage_email`** — triage inbound email for critical actions, events, key-person replies.
-  <br>:material-timer: **Heartbeat every 30 min · workdays 07:00–18:00**
-- [ ] **2. `triage_teams`** — triage active Teams chats for critical actions and mentions.
-  <br>:material-timer: **Heartbeat every 30 min · workdays 07:00–18:00**
-- [ ] **3. `extract_research_training_email`** — flag training and research announcements in email.
-  <br>:material-timer: **Heartbeat every 30 min · workdays 07:00–18:00**
-- [ ] **4. `parse_deadlines`** — scan signals and mail/chat for hard deadlines.
-  <br>:material-timer: **Heartbeat every 30 min · workdays 07:00–18:00**
+1. In Scout, open **Settings → MCP servers** and choose **Add server**.
+2. The wizard shows you three things to fill in and copy across — click the copy
+   button next to each and paste it into the matching box in Scout:
+      1. **Name** — a label for this connection (you can change it, or leave the default).
+      2. **Address** — where Scout should send its requests.
+      3. **Token** — a password that proves it's really your dashboard on the other end.
+3. Once all three are filled in and saved in Scout, send Scout this message (there's a
+   copy button for it too):
 
-!!! success "Checkpoint"
-    Open the dashboard. Within ~30 minutes you should see signals and deadlines appear.
-    Do not proceed until you do — the rest of the pipeline feeds off them.
+    > List your available tools
 
----
+4. Wait a moment. When Scout has picked up the connection, a green tick appears on the
+   page and it says **"Scout is connected."** Click **Next**.
 
-## Phase 2 — Event handling
-
-These turn signals into proposed calendar events. Both run on a **30-minute heartbeat**.
-
-- [ ] **5. `suggest_events`** — read signals implying meetings; suggest times and attendees.
-  <br>:material-timer: **Heartbeat every 30 min**
-- [ ] **6. `create_events`** — draft calendar invites from approved events for your review.
-  <br>:material-timer: **Heartbeat every 30 min**
+If nothing turns green after a minute or two, double-check the address and token were
+pasted in full, with no extra spaces.
 
 ---
 
-## Phase 3 — Daily automations
+## Step 2 — Set it up
 
-Scheduled once per day. Set each to fire at the listed local time.
+This step installs everything: all 24 of Scout's automated jobs ("skills"), a
+schedule for each one, and the list of tools Scout is allowed to use.
 
-- [ ] **7. `news_search`** — search current headlines per topic; add deduped, tagged news.
-  <br>:material-timer: **Daily at 06:30**
-- [ ] **8. `daily_briefing`** — morning briefing: risk/opportunity signals + one-line summary.
-  <br>:material-timer: **Daily at 07:00 · workdays only**
-- [ ] **9. `compute_trends`** — extract trending keywords/topics with recency-weighted scores.
-  <br>:material-timer: **Daily at 08:00**
+You don't set any of this up by hand. Instead:
 
-!!! note "Ordering within the day"
-    `news_search` (06:30) runs before `daily_briefing` (07:00) so the briefing can include
-    fresh headlines; `compute_trends` (08:00) runs after both so scores reflect the new items.
+1. Click **Copy the setup message**.
+2. Paste it into Scout and send it.
+3. Scout reads the message and does the rest itself — no further clicks needed on
+   your end.
 
----
+While you wait, you can click **What will it set up?** to see the full list of jobs
+Scout is about to configure, with a plain description of what each one does and how
+often it runs.
 
-## Phase 4 — Weekly automations
+When Scout finishes, a green confirmation — **"Scout picked it up. You're all set."**
+— appears on the page by itself. That's it; click **Finish**.
 
-Scheduled once a week. All fire **Friday**, staggered through the day.
-
-- [ ] **10. `research_topics`** — weekly web/news search for developments in active topics.
-  <br>:material-timer: **Weekly · Friday 09:00**
-- [ ] **11. `compile_learning_email`** — consolidate the week's training/research emails.
-  <br>:material-timer: **Weekly · Friday 10:00**
-- [ ] **12. `trending_search`** — weekly web/news search for trending content per topic.
-  <br>:material-timer: **Weekly · Friday 14:00**
+!!! note "What's actually happening"
+    The one message you paste tells Scout to fetch a bundle from your dashboard and
+    write it into its own configuration: the 24 skill files, an entry in Scout's job
+    list for each one, and an updated tool allow-list. You don't need to understand
+    this to use the wizard — it's here in case you're curious or something looks off.
 
 ---
 
-## Phase 5 — Outgoing actions (closed loop)
+## If something goes wrong
 
-Install these **last**. `scout_actions` drafts outgoing actions from the signals the earlier
-phases produced; the four `run_*` executors claim and execute the approved ones.
+**The green tick in Step 1 never appears** — make sure you pasted the Address and
+Token exactly as copied, and that Scout's Add server dialog was actually saved.
+Re-open the wizard and try again; it's safe to repeat.
 
-!!! warning "Drafter before executors"
-    Install `scout_actions` first and confirm it is drafting actions (they appear in the
-    dashboard's Actions view) **before** enabling any `run_*` executor — the executors only
-    act on already-drafted, approved actions.
+**The confirmation in Step 2 never appears** — check that Scout actually received and
+ran the pasted message (look for its reply in the Scout chat). If Scout reports an
+error partway through, tell it to retry — the setup message is safe to re-run and
+won't create duplicates.
 
-- [ ] **13. `scout_actions`** — draft outgoing actions from recent signals/deadlines/people. Never executes.
-  <br>:material-timer: **Heartbeat every 5 min**
-- [ ] **14. `run_comms`** — execute approved email + status actions via M365.
-  <br>:material-timer: **Heartbeat every 5 min**
-- [ ] **15. `run_teams`** — execute approved Teams chat/group/channel actions.
-  <br>:material-timer: **Heartbeat every 5 min**
-- [ ] **16. `run_calendar`** — execute approved calendar invite actions.
-  <br>:material-timer: **Heartbeat every 5 min**
-- [ ] **17. `run_cowork`** — execute collaboration doc/gather actions.
-  <br>:material-timer: **Heartbeat every 10 min**
-
-!!! success "Done"
-    All 17 skills installed. Every skill logs a `skill_runs` row on each fire (even no-ops),
-    so the dashboard's Scout-activity feed and `list_skills` MCP tool show live cadence health.
-
----
-
-## Interval cheat sheet
-
-| Cadence | Skills |
-|---|---|
-| Heartbeat 5 min | `scout_actions`, `run_comms`, `run_teams`, `run_calendar` |
-| Heartbeat 10 min | `run_cowork` |
-| Heartbeat 30 min | `triage_email`, `triage_teams`, `extract_research_training_email`, `parse_deadlines`, `suggest_events`, `create_events` |
-| Daily | `news_search` (06:30), `daily_briefing` (07:00), `compute_trends` (08:00) |
-| Weekly (Fri) | `research_topics` (09:00), `compile_learning_email` (10:00), `trending_search` (14:00) |
+**A skill isn't running** — open the dashboard and check the tile it feeds. If it's
+empty after the skill's schedule should have fired at least once, re-send the Step 2
+message; Scout will re-check and fix anything that didn't take.

@@ -26,19 +26,20 @@ cd frontend && npm install && npm run dev                                     # 
 
 ## Features
 
-- **Mission-control Dashboard** — KPI tiles, live charts, deadline countdowns, signal + Scout-activity feeds; collapsible panels, 15 s live refresh.
-- **10 views** — Dashboard, Inbox, Tasks, Calendar, Deadlines, Trending, Docs (copy-paste skill library), Settings, People, Topics (full CRUD on deadlines / people / topics).
-- **Today briefing** — an immersive modal, auto-opens once per day (+ manual trigger).
+- **Single-page dashboard** — a sticky top bar (quick links, weather, a finance ticker, timers, and drawer icons for Settings/People/Topics/Automations), a Calendar rail on the left, a To-do rail on the right, and a drag-and-drop 2-column grid of 9 tiles in the middle. No routes: Settings, People, Topics, Automations and the setup wizard all open as drawers or modals over the same page.
+- **9 dashboard tiles** — Email, Teams chat, RevOps, Pipeline, Industry feed, Quarterly events, OU feedback, Territory reviews, and EBC & Innovation Hub. See `frontend/src/widgets/registry.ts`.
+- **To-do rail** — High/Normal/Low priority buckets over the existing 1–5 scale, Manual/Priority/Status sorting, a "High only" filter, a "Hide done" toggle, and drag-to-reorder. Any row in any tile can become a to-do via a hover button.
 - **⌘K command palette**, **light / dark + OS detection**, **accent personalization**.
 - **Web Push** — opt in under Settings → Notifications; critical alerts are pushed by a background worker.
 - **Trending** — recency-weighted keyword trends; an optional vector layer merges near-duplicate terms (see below).
+- **One-line Windows installer** — see [`install/README.md`](install/README.md). Currently untested on real Windows hardware.
 
 ## Architecture
 
 Two surfaces over one SQLite DB:
-- **Backend** (`backend/`): FastAPI web API (HTTP + SSE live updates + control-loop writes) on `:8765`, and an **MCP server** (FastMCP, bearer-gated) on `:8766` that Scout's skills call to read/write the DB.
-- **Frontend** (`frontend/`): React + TypeScript + Tailwind + shadcn, served as static assets by the API in the container.
-- **Skills** (`skills/`): 11 `SKILL.md` automations (heartbeat scans + weekly tasks) — paste them into Microsoft Scout.
+- **Backend** (`backend/`): FastAPI web API (HTTP + SSE live updates + control-loop writes) on `:8765`, and an **MCP server** (FastMCP, bearer-gated) on `:8766` that Scout's skills call to read/write the DB — 33 tools in total.
+- **Frontend** (`frontend/`): React + TypeScript + MUI, served as static assets by the API in the container.
+- **Skills** (`skills/`): 24 `SKILL.md` automations (heartbeat scans + weekly/daily tasks) — installed automatically by the [setup wizard](website/docs/setup-wizard.md), or paste them into Microsoft Scout by hand.
 
 ## Configuration (`.env`)
 
@@ -53,8 +54,8 @@ Two surfaces over one SQLite DB:
 ## Tests
 
 ```bash
-cd backend && python -m pytest -q     # 134 tests
-cd frontend && npx vitest run         # 28 tests
+cd backend && python -m pytest -q     # 364 tests (+1 skipped)
+cd frontend && npx vitest run         # 447 tests
 ```
 
 ## Docs
