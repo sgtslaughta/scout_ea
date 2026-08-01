@@ -35,6 +35,9 @@ import type { DashboardLayout } from '@/widgets/layout'
 const ALL_KEYS = WIDGETS.map((w) => w.key)
 
 export const SPAN: Record<WidgetSize, string> = { sm: 'span 1', lg: 'span 2' }
+
+/** Tallest a tile may grow before its body scrolls instead. */
+export const MAX_TILE_HEIGHT = 420
 const SKELETON_HEIGHT: Record<WidgetSize, number> = { sm: 180, lg: 260 }
 
 // Builds the exact handler passed to DndContext's onDragEnd, so tests can
@@ -133,7 +136,17 @@ export function CenterGrid() {
           {/* minmax(0, 1fr), not 1fr: a track's default `auto` minimum lets wide
               content (long timestamps, unbroken URLs) push the column past the
               container instead of wrapping. */}
-          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2.5 }}>
+          {/* Rows size to their content but stop at MAX_TILE_HEIGHT, so one tile
+              with a long list can't stretch the whole row. Past that the tile
+              body scrolls, and the expand action still shows the full list. */}
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+            // Floor is 0, not min-content: CSS drops the max entirely when the
+            // min exceeds it, so a tile with a long list would ignore the cap.
+            gridAutoRows: `minmax(0, ${MAX_TILE_HEIGHT}px)`,
+            gap: 2.5,
+          }}>
             {visible.map((key) => {
               const def = WIDGETS.find((w) => w.key === key)
               if (!def) return null

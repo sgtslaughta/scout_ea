@@ -84,8 +84,76 @@ def _events(now):
     ]
 
 
+def _records(now):
+    """(kind, ref, data) for the six `records`-backed tiles.
+
+    Field names have to match what each tile parses -- they're the shape the
+    Scout skills will write, not anything the DB enforces.
+    """
+    day = lambda n: (now + timedelta(days=n)).date().isoformat()  # noqa: E731
+    return [
+        ("ou_feedback", "ouf1", {
+            "who": "Priya Raman", "source": "Contoso QBR",
+            "text": "Pricing page is hard to follow once you get past three SKUs.",
+            "when": day(-3), "needsAction": True, "taskCreated": False}),
+        ("ou_feedback", "ouf2", {
+            "who": "Mike Chen", "source": "Partner sync",
+            "text": "Wants the MACC consumption view broken out by workload.",
+            "when": day(-9), "needsAction": True, "taskCreated": True}),
+        ("ou_feedback", "ouf3", {
+            "who": "Julie Park", "source": "Teams thread",
+            "text": "Innovation Hub intake form is asking for the TPID twice.",
+            "when": day(-14), "needsAction": False, "taskCreated": False}),
+
+        ("pipeline", "pipe1", {
+            "customer": "Contoso", "accountExec": "Dana Rivera", "tpid": "7742119",
+            "opportunityId": "OPP-884120", "totalValue": 1250000, "workload": "Azure",
+            "salesTagId": "TAG-AZ-114", "status": "Commit"}),
+        ("pipeline", "pipe2", {
+            "customer": "Fabrikam", "accountExec": "Sam Oyelaran", "tpid": "6610042",
+            "opportunityId": "OPP-901337", "totalValue": 480000, "workload": "Copilot",
+            "salesTagId": "TAG-CP-207", "status": "Best case"}),
+        ("pipeline", "pipe3", {
+            "customer": "Northwind Traders", "accountExec": "Dana Rivera",
+            "tpid": "5520918", "opportunityId": "OPP-772004", "totalValue": 2100000,
+            "workload": "MACC", "status": "Pipeline"}),  # no salesTagId yet -- user fills it
+
+        ("territory", "terr1", {
+            "manager": "Alex Okonkwo", "date": day(4), "presenter": "You",
+            "customerPlanUrl": "https://microsoft.sharepoint.com/plans/contoso",
+            "attachments": [{"label": "Recording", "url": "https://teams.microsoft.com/rec/demo"}]}),
+        ("territory", "terr2", {
+            "manager": "Alex Okonkwo", "date": day(18), "presenter": "Sam Oyelaran",
+            "customerPlanUrl": "https://microsoft.sharepoint.com/plans/fabrikam",
+            "attachments": []}),
+
+        ("ebc", "ebc1", {
+            "date": day(11), "customer": "Contoso", "accountExec": "Dana Rivera",
+            "leadPlanner": "Julie Park", "myAction": "Attending"}),
+        ("ebc", "ebc2", {
+            "date": day(26), "customer": "Northwind Traders",
+            "accountExec": "Sam Oyelaran", "myAction": ""}),  # planner/action still blank
+
+        ("qtr_event", "qtr1", {
+            "eventName": "Azure Innovation Day — Chicago", "date": day(21),
+            "partners": "Avanade, Insight", "budget": 45000, "tpid": "7742119",
+            "totalOpportunity": 1800000,
+            "attachmentUrl": "https://microsoft.sharepoint.com/events/azure-day-approved.xlsx"}),
+        ("qtr_event", "qtr2", {
+            "eventName": "Copilot Executive Roundtable", "date": day(47),
+            "partners": "Slalom", "budget": 22000, "totalOpportunity": 640000}),
+    ]
+
+
 def seed(conn, now):
-    counts = {"email": 0, "chat": 0, "events": 0}
+    counts = {"email": 0, "chat": 0, "events": 0, "records": 0}
+
+    for kind, ref, data in _records(now):
+        conn.execute(
+            "INSERT INTO records(kind, external_ref, data, status) VALUES(?,?,?,'active') "
+            "ON CONFLICT(external_ref) DO UPDATE SET data=excluded.data",
+            (kind, PREFIX + ref, json.dumps(data)))
+        counts["records"] += 1
 
     for ref, sender, addr, subject, preview, at, unread, mention, folder in _emails(now):
         conn.execute(

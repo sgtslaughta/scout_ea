@@ -76,7 +76,10 @@ export function QuickLinkEditorDialog({
             Add a link to get started.
           </Typography>
         ) : (
-          <List disablePadding>
+          // The list is the only part that grows with the data, so it's the
+          // only part that scrolls -- the add/edit form below stays put
+          // instead of being pushed off the bottom of the screen.
+          <List disablePadding sx={{ maxHeight: '45vh', overflowY: 'auto', flexShrink: 0 }}>
             {links.map((link) => (
               <ListItem
                 key={link.name}

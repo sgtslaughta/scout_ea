@@ -191,7 +191,10 @@ export function WidgetCard({ title, drillDown, onRefresh, onHide, dragHandle, em
           <Box sx={{ flex: 1 }} />
           {actions}
         </Box>
-        <Box sx={{ flex: 1, minHeight: 0, p: 2.5 }}>
+        {/* Scrolls rather than clips: the Paper is overflow:hidden to keep its
+            rounded corners, so without this a list longer than the tile just
+            disappeared at the bottom edge with no way to reach it. */}
+        <Box sx={{ flex: 1, minHeight: 0, p: 2.5, overflowY: 'auto' }}>
           <WidgetErrorBoundary title={title}>
             <ExpandedContext.Provider value={false}>{body}</ExpandedContext.Provider>
           </WidgetErrorBoundary>
