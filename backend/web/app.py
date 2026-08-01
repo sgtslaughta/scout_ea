@@ -20,6 +20,7 @@ from lib import outlook as _outlook
 from lib import briefing as _briefing
 from lib import skills as _skills
 from lib import skill_health as _skill_health
+from ea import scout_install as _scout_install
 from lib import search as _search
 from lib import feed as _feed
 from lib import weather as _weather
@@ -669,6 +670,26 @@ def create_app(db_path, static_dir=None, skills_dir=None) -> FastAPI:
             s["last_run"] = lr
             s["active"] = _skill_health.is_active(s.get("schedule"), lr, now)
         return skills
+
+    @app.get("/api/scout/install")
+    def get_scout_install(mcp_name: str | None = None, conn=Depends(get_db)):
+        if not mcp_name:
+            row = conn.execute("SELECT value FROM config WHERE key='mcp_name'").fetchone()
+            mcp_name = (row["value"] if row and row["value"] else None) or "scout-ea"
+        if not skills_dir:
+            return {"skillsDir": "~/.scout/m-skills",
+                    "automationsPath": "~/.scout/m-automations/automations.json",
+                    "mcpServersPath": "~/.scout/m-mcp-servers.json",
+                    "skills": [], "automations": [],
+                    "mcpTools": _scout_install.required_mcp_tools()}
+        now = datetime.now(timezone.utc)
+        # Scout fetching this bundle is the only signal we get that the user's
+        # pasted setup message actually ran -- installing files on their machine
+        # never touches this API again. The wizard polls this to show a real
+        # "it worked" tick instead of asking a non-technical user to verify.
+        db.set_config(conn, "install_fetched_at", now.isoformat())
+        conn.commit()
+        return _scout_install.build_install_bundle(skills_dir, mcp_name, now)
 
     @app.get("/api/people")
     def list_people(include_inactive: bool = False, conn=Depends(get_db)):
