@@ -91,17 +91,6 @@ export function WidgetCard({ title, drillDown, onRefresh, onHide, dragHandle, em
 
   const actions = (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      <Tooltip title="Reorder">
-        <IconButton
-          aria-label={`Reorder ${title}`}
-          aria-roledescription="sortable"
-          ref={dragHandle?.setActivatorNodeRef}
-          {...dragHandle?.attributes}
-          {...dragHandle?.listeners}
-        >
-          <GripVertical size={18} />
-        </IconButton>
-      </Tooltip>
       <Box
         className="widget-actions"
         sx={{ display: 'flex', gap: 0.5, opacity: 0, transition: 'opacity 0.15s', '@media (hover: none)': { opacity: 1 } }}
@@ -120,6 +109,21 @@ export function WidgetCard({ title, drillDown, onRefresh, onHide, dragHandle, em
         )}
         <Tooltip title="Hide"><IconButton aria-label={`Hide ${title}`} onClick={onHide}><EyeOff size={18} /></IconButton></Tooltip>
       </Box>
+      {/* Last in the row, per request. Stays always-visible rather than joining
+          .widget-actions: a hover-gated handle is unreachable by keyboard. The
+          hover box uses opacity, not display, so its slot is reserved and the
+          grip never shifts as the other actions fade in. */}
+      <Tooltip title="Reorder">
+        <IconButton
+          aria-label={`Reorder ${title}`}
+          aria-roledescription="sortable"
+          ref={dragHandle?.setActivatorNodeRef}
+          {...dragHandle?.attributes}
+          {...dragHandle?.listeners}
+        >
+          <GripVertical size={18} />
+        </IconButton>
+      </Tooltip>
     </Box>
   )
 
