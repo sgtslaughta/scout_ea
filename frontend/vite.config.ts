@@ -26,8 +26,10 @@ export default defineConfig({
     allowedHosts,
     // Behind a Cloudflare tunnel the browser reaches the page over https:443,
     // so the HMR socket has to be told that — it defaults to the local port
-    // and would otherwise fail to connect through the tunnel.
-    hmr: { clientPort: 443, protocol: 'wss' },
+    // and would otherwise fail to connect through the tunnel. Opt-in via
+    // EA_TUNNEL=1, because forcing wss:443 breaks HMR for plain localhost
+    // dev: the socket then dials a port nothing is listening on.
+    hmr: process.env.EA_TUNNEL ? { clientPort: 443, protocol: 'wss' } : undefined,
     proxy: {
       '/api': {
         target: apiTarget,

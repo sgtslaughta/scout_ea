@@ -4,7 +4,22 @@ import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
 import Tooltip from '@mui/material/Tooltip'
 import Chip from '@mui/material/Chip'
-import { GripVertical, Circle, CheckCircle2, CircleDashed, Eye, EyeOff, ArrowDownWideNarrow } from 'lucide-react'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import InputLabel from '@mui/material/InputLabel'
+import FormControl from '@mui/material/FormControl'
+import {
+  GripVertical,
+  Circle,
+  CheckCircle2,
+  CircleDashed,
+  Eye,
+  EyeOff,
+  ChevronUp,
+  Minus,
+  ChevronDown,
+  Flame,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -29,13 +44,15 @@ export interface RailTask {
   id: number
   title: string
   status: 'open' | 'in_progress' | 'done'
+  priority: number
 }
 
-// Cycle order per spec: blank (open) -> green (done) -> orange (in_progress) -> open
+// Follows how work actually moves: not started -> in progress -> done, then
+// back round to not started for a task you need to reopen.
 const NEXT_STATUS: Record<RailTask['status'], RailTask['status']> = {
-  open: 'done',
-  done: 'in_progress',
-  in_progress: 'open',
+  open: 'in_progress',
+  in_progress: 'done',
+  done: 'open',
 }
 
 /** What the current state means, in the user's words. Shown on hover. */
@@ -47,9 +64,9 @@ const STATUS_MEANING: Record<RailTask['status'], string> = {
 
 /** What clicking does next, for the accessible name. */
 const STATUS_ACTION: Record<RailTask['status'], string> = {
-  open: 'Mark as done',
-  done: 'Mark as in progress',
-  in_progress: 'Mark as not started',
+  open: 'Mark as in progress',
+  in_progress: 'Mark as done',
+  done: 'Mark as not started',
 }
 
 const STATUS_ICON: Record<RailTask['status'], LucideIcon> = {
@@ -64,6 +81,48 @@ const STATUS_COLOR: Record<RailTask['status'], string> = {
   open: 'text.disabled',
   done: 'success.main',
   in_progress: 'warning.main',
+}
+
+// The app-wide 1-5 priority scale collapsed to three buckets a rail this
+// narrow can show at a glance: 1-2 high, 3 normal, 4-5 low.
+export type Bucket = 'high' | 'normal' | 'low'
+
+export function toBucket(priority: number): Bucket {
+  if (priority <= 2) return 'high'
+  if (priority >= 4) return 'low'
+  return 'normal'
+}
+
+// Writing back only ever uses these mid-bucket values, so a skill-written 1
+// or 5 is left alone unless the user actually moves that task's bucket.
+export const BUCKET_WRITE: Record<Bucket, number> = { high: 2, normal: 3, low: 4 }
+
+const NEXT_BUCKET: Record<Bucket, Bucket> = { high: 'normal', normal: 'low', low: 'high' }
+
+const BUCKET_MEANING: Record<Bucket, string> = {
+  high: 'High priority',
+  normal: 'Normal priority',
+  low: 'Low priority',
+}
+
+const BUCKET_ACTION: Record<Bucket, string> = {
+  high: 'Set to normal priority',
+  normal: 'Set to low priority',
+  low: 'Set to high priority',
+}
+
+const BUCKET_ICON: Record<Bucket, LucideIcon> = {
+  high: ChevronUp,
+  normal: Minus,
+  low: ChevronDown,
+}
+
+// Colour alone can't say what a bucket means — every bucket carries its own
+// glyph and a hover tooltip too.
+const BUCKET_COLOR: Record<Bucket, string> = {
+  high: 'error.main',
+  normal: 'text.secondary',
+  low: 'text.disabled',
 }
 
 // Pure mapping from a drag-end (active/over ids) onto the new task order.
@@ -120,52 +179,98 @@ function StatusBox({ status, onClick }: { status: RailTask['status']; onClick: (
   )
 }
 
+function BucketBox({ priority, onClick }: { priority: number; onClick: () => void }) {
+  const bucket = toBucket(priority)
+  const Icon = BUCKET_ICON[bucket]
+  return (
+    <Tooltip title={`${BUCKET_MEANING[bucket]} — click to ${BUCKET_ACTION[bucket].toLowerCase()}`}>
+      <Box
+        component="button"
+        type="button"
+        onClick={onClick}
+        aria-label={`${BUCKET_MEANING[bucket]}. ${BUCKET_ACTION[bucket]}`}
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 24,
+          height: 32,
+          flexShrink: 0,
+          borderRadius: 1,
+          border: 'none',
+          bgcolor: 'transparent',
+          color: BUCKET_COLOR[bucket],
+          cursor: 'pointer',
+          p: 0,
+          '&:hover': { bgcolor: 'action.hover' },
+          '&:focus-visible': { outline: '2px solid', outlineColor: 'primary.main' },
+        }}
+      >
+        <Icon size={18} aria-hidden />
+      </Box>
+    </Tooltip>
+  )
+}
+
 function TaskRow({
   task,
+  draggable,
   onStatusChange,
+  onPriorityChange,
 }: {
   task: RailTask
+  draggable: boolean
   onStatusChange: (id: number, status: RailTask['status']) => void
+  onPriorityChange: (id: number, bucket: Bucket) => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: task.id })
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+    id: task.id,
+    disabled: !draggable,
+  })
 
   return (
     <Box
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={draggable ? { transform: CSS.Transform.toString(transform), transition } : undefined}
       sx={{
         display: 'flex',
         alignItems: 'center',
-        gap: 2,
+        gap: 1,
         py: 2.5,
         borderBottom: '1px solid',
         borderColor: 'divider',
       }}
     >
       <StatusBox status={task.status} onClick={() => onStatusChange(task.id, NEXT_STATUS[task.status])} />
+      <BucketBox
+        priority={task.priority}
+        onClick={() => onPriorityChange(task.id, NEXT_BUCKET[toBucket(task.priority)])}
+      />
       <Typography variant="body1" sx={{ flex: 1 }}>
         {task.title}
       </Typography>
-      <Box
-        component="button"
-        type="button"
-        {...attributes}
-        {...listeners}
-        aria-label={`Reorder ${task.title}`}
-        aria-roledescription="sortable"
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          flexShrink: 0,
-          border: 'none',
-          bgcolor: 'transparent',
-          color: 'text.secondary',
-          cursor: 'grab',
-          p: 0.5,
-        }}
-      >
-        <GripVertical size={20} />
-      </Box>
+      {draggable && (
+        <Box
+          component="button"
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Reorder ${task.title}`}
+          aria-roledescription="sortable"
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            flexShrink: 0,
+            border: 'none',
+            bgcolor: 'transparent',
+            color: 'text.secondary',
+            cursor: 'grab',
+            p: 0.5,
+          }}
+        >
+          <GripVertical size={20} />
+        </Box>
+      )}
     </Box>
   )
 }
@@ -177,25 +282,30 @@ const STATUS_RANK: Record<RailTask['status'], number> = {
   done: 2,
 }
 
+export type SortMode = 'manual' | 'priority' | 'status'
+
 /**
  * Applies the rail's view options. Manual drag order is the default; sorting by
- * status is a view over the same list and deliberately doesn't rewrite `sort`,
- * so switching back restores the user's own ordering.
+ * priority or status is a view over the same list and deliberately doesn't rewrite
+ * `sort`, so switching back to Manual restores the user's own ordering.
  */
 export function applyView(
   tasks: RailTask[],
-  opts: { hideDone: boolean; sortByStatus: boolean },
+  opts: { hideDone: boolean; sort: SortMode; onlyHigh: boolean },
 ): RailTask[] {
-  const visible = opts.hideDone ? tasks.filter((t) => t.status !== 'done') : tasks
-  if (!opts.sortByStatus) return visible
-  return [...visible].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status])
+  let visible = opts.hideDone ? tasks.filter((t) => t.status !== 'done') : tasks
+  if (opts.onlyHigh) visible = visible.filter((t) => toBucket(t.priority) === 'high')
+  if (opts.sort === 'priority') return [...visible].sort((a, b) => a.priority - b.priority)
+  if (opts.sort === 'status') return [...visible].sort((a, b) => STATUS_RANK[a.status] - STATUS_RANK[b.status])
+  return visible
 }
 
 export function RightRail() {
   const qc = useQueryClient()
   const [newTitle, setNewTitle] = useState('')
   const [hideDone, setHideDone] = useState(false)
-  const [sortByStatus, setSortByStatus] = useState(false)
+  const [onlyHigh, setOnlyHigh] = useState(false)
+  const [sort, setSort] = useState<SortMode>('manual')
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -205,10 +315,15 @@ export function RightRail() {
   // The rail only cycles open/in_progress/done; dismissed tasks don't appear here.
   const tasks: RailTask[] = rawTasks
     .filter((t) => t.status !== 'dismissed')
-    .map((t) => ({ id: t.id, title: t.title, status: t.status as RailTask['status'] }))
+    .map((t) => ({ id: t.id, title: t.title, status: t.status as RailTask['status'], priority: t.priority }))
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: RailTask['status'] }) => updateTask(id, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  })
+
+  const priorityMutation = useMutation({
+    mutationFn: ({ id, bucket }: { id: number; bucket: Bucket }) => updateTask(id, { priority: BUCKET_WRITE[bucket] }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   })
 
@@ -232,11 +347,13 @@ export function RightRail() {
     },
   })
 
-  const shown = applyView(tasks, { hideDone, sortByStatus })
+  const shown = applyView(tasks, { hideDone, sort, onlyHigh })
   const doneCount = tasks.filter((t) => t.status === 'done').length
 
-  // Dragging reorders the real list, so it only makes sense while the rail is
-  // showing that list — sorting by status is a temporary view on top of it.
+  // Dragging reorders the real list, so it only makes sense in manual mode —
+  // a drag inside a computed sort looks like it works, then snaps back on the
+  // next refetch. Rows render without drag handles or Dnd wiring otherwise.
+  const manual = sort === 'manual'
   const ids = shown.map((t) => t.id)
   const handleDragEnd = createDragEndHandler(ids, (nextIds) => reorderMutation.mutate(nextIds))
 
@@ -245,6 +362,16 @@ export function RightRail() {
       createMutation.mutate(newTitle.trim())
     }
   }
+
+  const rows = shown.map((task) => (
+    <TaskRow
+      key={task.id}
+      task={task}
+      draggable={manual}
+      onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
+      onPriorityChange={(id, bucket) => priorityMutation.mutate({ id, bucket })}
+    />
+  ))
 
   return (
     <RailCard heading="To do">
@@ -259,19 +386,35 @@ export function RightRail() {
         sx={{ mb: 1.5 }}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1.5, flexWrap: 'wrap' }}>
-        <Tooltip title={sortByStatus ? 'Back to your own order' : 'Group by status: in progress, then not started, then done'}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+        <FormControl variant="standard" size="small" sx={{ minWidth: 110 }}>
+          <InputLabel id="rail-sort-label">Sort by</InputLabel>
+          <Select
+            labelId="rail-sort-label"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortMode)}
+          >
+            <MenuItem value="manual">Manual</MenuItem>
+            <MenuItem value="priority">Priority</MenuItem>
+            <MenuItem value="status">Status</MenuItem>
+          </Select>
+        </FormControl>
+        {/* describeChild: without it MUI copies the tooltip title onto the chip
+            as aria-label, so the accessible name became "Show only high
+            priority tasks" while the chip visibly reads "High only" — voice
+            control can't act on a label it can't see (WCAG 2.5.3). */}
+        <Tooltip describeChild title={onlyHigh ? 'Show every task' : 'Show only high priority tasks'}>
           <Chip
             size="medium"
-            icon={<ArrowDownWideNarrow size={16} />}
-            label="By status"
-            onClick={() => setSortByStatus((v) => !v)}
-            color={sortByStatus ? 'primary' : 'default'}
-            variant={sortByStatus ? 'filled' : 'outlined'}
-            aria-pressed={sortByStatus}
+            icon={<Flame size={16} />}
+            label="High only"
+            onClick={() => setOnlyHigh((v) => !v)}
+            color={onlyHigh ? 'primary' : 'default'}
+            variant={onlyHigh ? 'filled' : 'outlined'}
+            aria-pressed={onlyHigh}
           />
         </Tooltip>
-        <Tooltip title={hideDone ? 'Show finished tasks again' : 'Hide anything already done'}>
+        <Tooltip describeChild title={hideDone ? 'Show finished tasks again' : 'Hide anything already done'}>
           <Chip
             size="medium"
             icon={hideDone ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -290,18 +433,14 @@ export function RightRail() {
             ? 'Nothing to do yet. Add your first task.'
             : 'Everything here is done. Nice.'}
         </Typography>
-      ) : (
+      ) : manual ? (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-            {shown.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onStatusChange={(id, status) => statusMutation.mutate({ id, status })}
-              />
-            ))}
+            {rows}
           </SortableContext>
         </DndContext>
+      ) : (
+        rows
       )}
     </RailCard>
   )

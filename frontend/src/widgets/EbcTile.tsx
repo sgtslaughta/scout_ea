@@ -151,6 +151,11 @@ export default function EbcTile() {
         columns={columns}
         getRowId={(r) => r.record.id}
         emptyMessage="No sessions booked yet."
+        rowTask={(r) => ({
+          title: `EBC follow-up: ${dash(r.customer)}`,
+          dueAt: r.date,
+          source: `EBC — ${dash(r.customer)}, ${dash(r.date)}`,
+        })}
       />
     </Box>
   )

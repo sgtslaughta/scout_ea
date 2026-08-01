@@ -164,6 +164,10 @@ export default function PipelineTile() {
           columns={columns}
           getRowId={(r) => r.id}
           emptyMessage="No opportunities tracked yet."
+          rowTask={(r) => ({
+            title: `Update ${dash(r.customer)} — ${dash(r.workload)}`,
+            source: `Pipeline — opp ${dash(r.opportunityId ?? r.tpid)}`,
+          })}
         />
       </Box>
     </Box>

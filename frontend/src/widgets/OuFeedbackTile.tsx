@@ -137,6 +137,13 @@ export default function OuFeedbackTile() {
         columns={columns}
         getRowId={(r) => r.id}
         emptyMessage="Nothing needs action right now — expand to browse the full catalogue."
+        rowTask={(r) => ({
+          title: `Follow up: ${dash(r.who ?? r.source)}`,
+          detail: r.text,
+          personName: r.who,
+          source: `OU Feedback — ${r.who ?? 'unknown'}, ${dash(r.when)}`,
+          alreadyAdded: r.taskCreated,
+        })}
       />
     </Box>
   )

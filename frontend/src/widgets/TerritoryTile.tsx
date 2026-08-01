@@ -152,6 +152,11 @@ export default function TerritoryTile() {
         columns={columns}
         getRowId={(r) => r.id}
         emptyMessage="No reviews on the schedule yet."
+        rowTask={(r) => ({
+          title: `Prep territory review: ${dash(r.manager)}`,
+          dueAt: r.date,
+          source: `Territory Review — ${dash(r.date)}`,
+        })}
       />
     </Box>
   )
