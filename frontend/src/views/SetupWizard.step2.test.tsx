@@ -26,7 +26,9 @@ describe('Step 2 Skills', () => {
     expect(screen.queryByText(/MCP server\./)).not.toBeInTheDocument()  // body hidden
     fireEvent.click(screen.getByRole('button', { name: /view/i }))
     expect(await screen.findByText(/my-scout MCP server\./)).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /copy/i }))
+    // Exact: the step also offers "Copy the setup message", which installs
+    // every skill at once rather than this one skill's body.
+    fireEvent.click(screen.getByRole('button', { name: 'Copy' }))
     await waitFor(() =>
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Use the my-scout MCP server.'))
   })

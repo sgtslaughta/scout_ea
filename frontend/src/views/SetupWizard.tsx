@@ -9,6 +9,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import {
   getMcpConfig, getConfig, setConfig, getMcpStatus, getSkills, type McpConfig, type Skill,
 } from '../api'
+import { buildBootstrapPrompt } from './setup/bootstrapPrompt'
 
 const STEPS = ['Connect', 'Skills', 'Automations']
 
@@ -106,9 +107,20 @@ function Step2Skills({ mcpName }: { mcpName: string }) {
   useEffect(() => { getSkills().then(setSkills) }, [])
   return (
     <Stack spacing={2}>
+      <Alert severity="info" sx={{ alignItems: 'flex-start' }}>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Scout reads skills straight out of <code>~/.copilot/skills/</code> and picks up new ones
+          at the start of each conversation. Paste this one message and it installs all {skills.length}
+          {' '}itself — no need to add them one at a time.
+        </Typography>
+        <Button size="small" variant="contained"
+          onClick={() => navigator.clipboard.writeText(
+            buildBootstrapPrompt({ baseUrl: window.location.origin, mcpName }))}>
+          Copy the setup message
+        </Button>
+      </Alert>
       <Typography variant="body2" color="text.secondary">
-        A skill is a set of instructions Scout follows. For each one, click <b>Copy</b> and paste it
-        into a new Skill in Scout.
+        Or add them by hand: click <b>Copy</b> on a skill and paste it into a new Skill in Scout.
       </Typography>
       {skills.map((s) => (
         <Card key={s.name} variant="outlined">
