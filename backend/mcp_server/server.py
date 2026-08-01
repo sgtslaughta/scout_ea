@@ -1,14 +1,14 @@
-"""MCP server exposing EA_DB tools over streamable-http, bearer-gated. Built on FastMCP."""
+"""MCP server exposing EA_DB tools over streamable-http, bearer-gated. Built on MCPServer."""
 from __future__ import annotations
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from ea import db
 from mcp_server import tools
 from mcp_server.auth import BearerAuthMiddleware
 
 
-def build_server(db_path, skills_dir=None) -> FastMCP:
-    """Construct a FastMCP server whose tools read/write the EA_DB at db_path."""
-    mcp = FastMCP("Scout EA")
+def build_server(db_path, skills_dir=None) -> MCPServer:
+    """Construct an MCP server whose tools read/write the EA_DB at db_path."""
+    mcp = MCPServer("Scout EA")
 
     def _conn():
         return db.get_conn(db_path)

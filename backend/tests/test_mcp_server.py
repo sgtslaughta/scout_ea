@@ -1,4 +1,4 @@
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from ea import db
 from mcp_server import server
 import pytest
@@ -27,11 +27,11 @@ def test_runtime_params_host_override():
     assert host == "0.0.0.0"
 
 
-def test_build_server_returns_fastmcp(tmp_path):
+def test_build_server_returns_mcpserver(tmp_path):
     p = tmp_path / "ea.sqlite"
     db.init_db(p, seed_path=db.DEFAULT_SEED)
     s = server.build_server(p)
-    assert isinstance(s, FastMCP)
+    assert isinstance(s, MCPServer)
 
 
 def test_http_app_builds_with_auth_mounted(tmp_path):
