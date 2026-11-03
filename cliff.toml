@@ -1,0 +1,73 @@
+# git-cliff — generates CHANGELOG.md and GitHub release notes from commit
+# messages. See .github/workflows/release.yml for when it runs.
+#
+# This repo's history is ~97% conventional, but it also uses four types that
+# aren't in the spec — polish, copy, a11y and security — and they cover real
+# user-visible work. They're mapped below rather than dropped, which is the
+# main reason for a hand-written config instead of a default one.
+
+[changelog]
+header = """
+# Changelog
+
+Everything notable in Scout EA, newest first. Generated from commit messages.
+"""
+
+body = """
+
+{% if version %}\
+## {{ version | trim_start_matches(pat="v") }} — {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## Unreleased
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+
+### {{ group | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}**{{ commit.scope }}**: {% endif %}\
+{{ commit.message | upper_first }}\
+{% endfor %}
+{% endfor %}\n
+"""
+
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+# Keep non-conventional subjects rather than silently losing them; the parsers
+# below catch the custom types, and anything still unmatched is skipped
+# explicitly at the end.
+filter_unconventional = false
+protect_breaking_commits = true
+filter_commits = true
+topo_order = false
+sort_commits = "newest"
+
+commit_parsers = [
+  # Merge commits say nothing a reader wants; the merged commits are already here.
+  { message = "^Merge (pull request|branch|remote)", skip = true },
+  { message = "^Merge ", skip = true },
+
+  { message = "^feat", group = "Features" },
+  { message = "^fix", group = "Bug fixes" },
+  { message = "^perf", group = "Performance" },
+
+  # Custom types this repo actually uses.
+  { message = "^security", group = "Security" },
+  { message = "^a11y", group = "Accessibility" },
+  { message = "^polish", group = "Polish" },
+  { message = "^copy", group = "Wording" },
+
+  { message = "^docs", group = "Documentation" },
+  { message = "^refactor", group = "Refactoring" },
+  { message = "^test", group = "Tests" },
+  { message = "^(build|ci|chore|style)", group = "Maintenance" },
+
+  # Anything left is a subject nobody wrote for a reader.
+  { message = ".*", skip = true },
+]
+
+[bump]
+features_always_bump_minor = true
+breaking_always_bump_major = true

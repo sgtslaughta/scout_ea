@@ -1,0 +1,78 @@
+# Cut a release from a tag.
+#
+#   git tag v0.9.1 && git push origin v0.9.1
+#
+# Regenerates CHANGELOG.md from every commit and publishes GitHub release notes
+# covering just this tag. Tagging stays a human decision: CI never invents a
+# version number, so a stray "feat:" in a commit message can't ship a release
+# on its own.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Changelog & GitHub release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # git-cliff reads the whole history; the default shallow clone would
+          # produce a changelog containing one commit.
+          fetch-depth: 0
+
+      - name: Release notes for this tag
+        uses: orhun/git-cliff-action@v4
+        id: notes
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          OUTPUT: RELEASE_NOTES.md
+
+      - name: Full changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --output CHANGELOG.md
+
+      - name: Publish
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: RELEASE_NOTES.md
+          # Tags containing a hyphen are pre-releases by semver convention
+          # (v1.0.0-rc.1), so mark them rather than announcing them as stable.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+      # CHANGELOG.md is generated, so main should carry the generated result --
+      # otherwise the file in the repo drifts from what the last release said.
+      #
+      # TAG goes through env rather than being interpolated into the script:
+      # a ref name ends up inside a shell command, and ${{ }} substitution
+      # happens before the shell ever sees it.
+      - name: Commit CHANGELOG.md back to main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # The generated file lives in the workspace, not in the tag -- keep it
+          # across the branch switch rather than trying to check it out.
+          cp CHANGELOG.md /tmp/CHANGELOG.md
+          git fetch --quiet origin main
+          git checkout --quiet -B main origin/main
+          cp /tmp/CHANGELOG.md CHANGELOG.md
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md already current, nothing to commit."
+            exit 0
+          fi
+          git add CHANGELOG.md
+          git commit -m "docs(changelog): release ${TAG}"
+          git push origin main
